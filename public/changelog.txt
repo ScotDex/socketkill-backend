@@ -75,3 +75,146 @@
 - Backgrounds: @Rixxjavix photography
 - Built by: Dexomus Viliana
 
+
+========================================
+
+### Is this a concept worth pursuing?
+
+# TRADE TERMINAL (Market.SocketKill.com) - Changelog
+
+## Version History
+
+### v0.0.2-BETA (In Development)
+**Status:** Core features complete, polish phase
+
+#### ✅ Completed (Session 11-12)
+- [x] AdSense removed (replaced with self-managed affiliate rotation) - Options to expand using eve player banners
+- [x] Affiliate rotation system (4 partners, 15s cycles, manual navigation)
+- [x] Affiliate config extracted to JSON (`/data/ads.json`)
+- [x] Rebranded from "MARKET_SCANNER" to "TRADE TERMINAL"
+- [x] Unified `/random` image endpoint (shared with Socket.Kill)
+- [x] Atmospheric effects (power flicker every 25-75s to give the idea of old and worn out)
+- [x] Item autocomplete (13,000+ market items from CCP SDE)
+- [x] Fuzzy search filtering (2+ character trigger although not magnificent)
+- [x] Keyboard navigation (Arrow keys, Enter, Escape)
+- [x] Static file serving (`/data/market-items.json`)
+- [x] Code cleanup (modular structure, separated concerns)
+
+#### 🚧 Current Dev List Ideas (To Reach v1.0)
+**Priority: Must Have**
+- [ ] Error handling improvements
+  - [ ] Graceful "item not found" message
+  - [ ] API timeout handling
+  - [ ] Better loading state (not just text)
+  - [ ] Network error recovery
+- [ ] Mobile responsive check
+  - [ ] Test autocomplete on mobile
+  - [ ] Touch-friendly affiliate navigation
+  - [ ] Readable hub prices on small screens
+- [ ] URL parameters for sharing
+  - [ ] `?item=tritanium` auto-loads item
+  - [ ] `?id=34` loads by type ID
+  - [ ] Shareable links for specific searches
+- [ ] Recent searches
+  - [ ] localStorage cache (last 5 items)
+  - [ ] Quick re-check dropdown
+  - [ ] Clear history button
+
+**Priority: Should Have**
+- [ ] Better visual feedback
+  - [ ] Price update animation (numbers "burn in")
+  - [ ] Hub row highlight on hover
+  - [ ] Smoother autocomplete transitions
+- [ ] Performance optimization
+  - [ ] Lazy load affiliate images
+  - [ ] Debounce autocomplete input
+  - [ ] Cache API responses (5 min TTL)
+
+**Priority: Nice to Have (Post v1.0)**
+- [ ] PLEX price ticker
+  - [ ] Real-time Jita PLEX price
+  - [ ] ISK-to-USD calculator
+- [ ] Price history graphs
+  - [ ] 7-day price trend
+  - [ ] Volatility indicator
+  - [ ] "Price spike alert" badge
+- [ ] Buy vs Sell toggle
+  - [ ] Currently shows sell orders only
+  - [ ] Add buy order comparison
+- [ ] Search audio feedback (optional)
+  - [ ] Mechanical chirp on Enter
+  - [ ] Nostromo-style data processing sound
+- [ ] Bookmarks
+  - [ ] Save favorite items
+  - [ ] Quick access sidebar
+
+#### 🎨 Atmosphere Polish (Future)
+**Not blocking v1.0 - refinement phase**
+- [ ] Desaturate nebula backgrounds (60% grayscale)
+- [ ] Heavy vignette overlay
+- [ ] Grain/static texture animation
+- [ ] Green phosphor tint option
+- [ ] Chromatic aberration on text
+- [ ] Occasional hub row flickers
+
+---
+
+### v0.0.1-BETA (February 19, 2025)
+**Initial Release**
+
+#### Features
+- Multi-hub price comparison (Jita, Amarr, Dodixie, Rens, Hek)
+- Item search with Enter key submission
+- ESI API integration with Redis caching
+- Cheapest hub highlighting
+- Terminal aesthetic (CRT theme, scanlines, green phosphor)
+- Loading state with animated dots
+- UTC clock
+- Responsive layout
+- Custom favicon
+- AdSense integration (later removed)
+
+#### Technical Stack
+- **Backend:** Node.js, Express, Redis
+- **Frontend:** Vanilla JavaScript, CSS
+- **API:** EVE ESI (market data)
+- **CDN:** Cloudflare (images, static assets)
+- **Hosting:** Digital Ocean
+- **Performance:** 98/94/96/100 Lighthouse scores
+
+#### Known Issues
+- No autocomplete (search requires exact item names)
+- AdSense breaks visual cohesion
+- No price history
+- Sell orders only (no buy order comparison)
+- No mobile optimization
+- No shareable links
+
+---
+
+## Development Philosophy
+
+**Goal:** Properly usable, not feature-complete.
+
+The market tool is a **utility**, not the flagship product. It should:
+- Answer "which hub is cheapest?" quickly and reliably
+- Look consistent with Socket.Kill branding
+- Work on mobile
+- Load fast
+- Be maintainable
+
+**Not trying to:**
+- Replace zKillboard market tools
+- Build comprehensive trading analytics
+- Compete with EVE Marketer
+- Add every possible feature
+
+**Definition of Done (v1.0):**
+- Core search works flawlessly
+- Mobile friendly
+- Shareable links
+- Recent searches for convenience
+- Proper error handling
+- No blocking bugs
+
+After v1.0, the tool is "done enough" - maintenance only, no major features.
