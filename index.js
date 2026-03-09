@@ -103,10 +103,13 @@ async function r2BackgroundWorker() {
 
     let lastKnownSequence = sharedState.currentSequence;
     const processedKills = new Set();
+
+    const MAX_AGE = 24 * 60 * 60 * 1000;
+
     const poll = async () => {
       if (isThrottled) return;
 
-      // Cache-buster ONLY active during 404/Stall recovery
+  
       const isNewSequence = sharedState.currentSequence > lastKnownSequence
       const url = `${R2_BASE_URL}/${sharedState.currentSequence}.json${isNewSequence ? `?cb=${Date.now()}` : ''}`;
       let nextTick = 0;
@@ -117,11 +120,15 @@ async function r2BackgroundWorker() {
 
         if (r2Package?.killID) {
 
-          if (!processedKills.has(r2Package.killID)) {
+          const killTime = new Date(r2Package.esiData?.killmail_time)getTime();
+          const currentTime = new Date().getTime();
+
+          if (currentTime - killTime > MAX_AGE) {
+            console.warn(`[OLD_MAIL] Discarding old killmail ${r2Package.killID} with timestamp ${killTime}`);
+          } else if (!processedKills.has(r2Package.killID)) {
             processedKills.add(r2Package.killID);
             processor.processPackage(r2Package);
             if (processedKills.size > 1000) processedKills.clear();
-
             const killTime = new Date(r2Package.esiData?.killmail_time).getTime();
             const ingestDelay = Date.now() - killTime;
             console.log(`[INGEST] Kill ${r2Package.killID} | Age: ${(ingestDelay / 1000).toFixed(1)}s`);
