@@ -120,7 +120,7 @@ async function r2BackgroundWorker() {
 
         if (r2Package?.killID) {
 
-          const killTime = new Date(r2Package.esiData?.killmail_time)getTime();
+          const killTime = new Date(r2Package.esiData?.killmail_time).getTime();
           const currentTime = new Date().getTime();
 
           if (currentTime - killTime > MAX_AGE) {
