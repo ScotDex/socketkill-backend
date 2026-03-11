@@ -14,7 +14,7 @@ class corpIntelFactory {
 
         const totalValue = helpers.formatIsk(zkb.totalValue)
         const corpIcon = `https://edge.socketkill.com/taylr/logo.png`;
-        const title = LOSS_COMMENTS[Math.floor(Math.random() * KILL_COMMENTS.length)];
+        const title = LOSS_COMMENTS[Math.floor(Math.random() * LOSS_COMMENTS.length)];
         return {
             username: "Wall of Shame Member",
             avatar_url: corpIcon,
