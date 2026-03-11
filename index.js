@@ -10,7 +10,6 @@ const statsManager = require("./src/services/statsManager");
 const ProcessorFactory = require("./src/core/processor");
 const esi = new ESIClient("Contact: @ScottishDex");
 
-const mapper = new MapperService(process.env.WINGSPAN_API);
 
 const ROTATION_SPEED = 10 * 60 * 1000;
 const R2_BASE_URL = process.env.R2_BASE_URL

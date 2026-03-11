@@ -1,6 +1,5 @@
 const axios = require("../network/agent"); 
 const helpers = require("./helpers");
-const EmbedFactory = require("../services/embedFactory");
 const { TwitterService, BlueSkyService } = require("../network/twitterService");
 const CorpIntelFactory = require("../services/corpIntelFactory");
 module.exports = (esi, mapper, io, statsManager) => {
