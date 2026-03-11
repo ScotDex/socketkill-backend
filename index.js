@@ -2,7 +2,6 @@ require("dotenv").config({ quiet: true });
 const talker = require("./src/network/agent");
 const path = require("path");
 const ESIClient = require("./src/network/esi");
-const MapperService = require("./src/network/mapper");
 const HeartbeatService = require("./src/services/heartbeatService");
 const startWebServer = require("./src/services/webServer");
 const normalizer = require("./src/core/normalizer");
