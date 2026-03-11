@@ -2,7 +2,7 @@ const axios = require("../network/agent");
 const helpers = require("./helpers");
 const { TwitterService, BlueSkyService } = require("../network/twitterService");
 const CorpIntelFactory = require("../services/corpIntelFactory");
-module.exports = (esi, mapper, io, statsManager) => {
+module.exports = (esi, io, statsManager) => {
     
     const THERA_ID = 31000005;
     const WHALE_THRESHOLD = 20000000000;
