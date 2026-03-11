@@ -206,11 +206,11 @@ async function r2BackgroundWorker() {
   console.log("Initializing Socket.Kill...");
   await esi.loadSystemCache("./data/systems.json");
   await esi.loadCache(path.join(__dirname, "data", "esi_cache.json"));
-  // await mapper.refreshChain(esi.getSystemDetails.bind(esi));
+
   refreshNebulaBackground();
   processor = ProcessorFactory(esi, mapper, io, statsManager);
   syncPlayerCount();
-  // setInterval(() => mapper.refreshChain(esi.getSystemDetails.bind(esi)), 29 * 60 * 1000);
+  
   setInterval(refreshNebulaBackground, ROTATION_SPEED);
   setInterval(() => {
     statsManager.save();
