@@ -1,5 +1,5 @@
 const utils = require("../core/helpers");
-const r2 = require('../network/r2writer');
+const r2 = require('../network/r2Writer');
 
 class StatsManager {
     constructor() {
