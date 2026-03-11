@@ -61,7 +61,7 @@ module.exports = (esi, io, statsManager) => {
             const isWhale = rawValue >= WHALE_THRESHOLD;
                                
 
-            if (isWhale || isRelevantWH) {
+            if (isWhale) {
                 await handlePrivateIntel(killmail, zkb, {
                     shipName,
                     systemName,
