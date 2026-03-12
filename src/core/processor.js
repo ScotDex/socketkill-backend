@@ -50,6 +50,7 @@ module.exports = (esi, io, statsManager) => {
                 ship: shipName,
                 system: systemName,
                 region: regionName,
+                corpName: corpName,
                 systemId: killmail.solar_system_id,
                 article: helpers.getArticle(shipName),
                 shipId: killmail.victim.ship_type_id,
