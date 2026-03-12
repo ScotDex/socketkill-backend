@@ -377,7 +377,7 @@ body::after {
     content: "";
     position: absolute;
     inset: 0;
-    background: rgba(180, 140, 40, 0.04);
+    background: rgba(180, 140, 40, 0.08);
     pointer-events: none;
     z-index: 1;
     border-radius: 8px;
@@ -443,6 +443,7 @@ body::after {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    padding-left: 0.2rem;
 }
 
 .corp-logo-square {
