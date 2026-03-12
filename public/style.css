@@ -221,17 +221,6 @@ body::after {
     color: rgba(63, 185, 80, 0.5);
 }
 
-.kill-meta {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    justify-content: center;
-    min-width: 150px;
-    padding-right: 1rem;
-    gap: 2px;
-}
-
-
 .container-fluid {
     max-width: 1050px;
     background-color: transparent !important;
@@ -364,6 +353,24 @@ body::after {
     margin-top: 20px;
     border: 1px solid rgba(63, 185, 80, 0.2);
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9), 0 0 15px rgba(63, 185, 80, 0.05), inset 0 0 40px rgba(0, 0, 0, 0.8);
+}
+
+#feed {
+    position: relative; /* ensure pseudo-element is contained */
+}
+
+#feed::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.4'/%3E%3C/svg%3E");
+    opacity: 0.035;
+    animation: grain 0.8s steps(1) infinite;
+    pointer-events: none;
+    z-index: 2;
+    border-radius: 8px;
 }
 
 /* === FEED ROWS === */
@@ -698,79 +705,6 @@ body.signal-interference {
     animation: spin 2s linear infinite, phosphor-glow 1.5s ease-in-out infinite;
 }
 
-/* === HUD === */
-#hud-status {
-    position: fixed;
-    bottom: 30px;
-    right: 1rem;
-    display: flex;
-    flex-direction: column-reverse;
-    align-items: flex-end;
-    padding: 1rem;
-    gap: 8px;
-    pointer-events: none;
-    z-index: 9999;
-    width: auto;
-    transition: bottom 0.3s ease;
-}
-
-.hud-card {
-    pointer-events: auto;
-    background: rgba(13, 17, 23, 0.8);
-    backdrop-filter: blur(4px);
-    border: 1px dashed rgba(63, 185, 80, 0.4);
-    border-radius: 2px;
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
-    animation: slideInRight 0.5s ease-out;
-}
-
-.hud-card-inner {
-    display: flex;
-    align-items: center;
-    padding: 6px 12px;
-    gap: 0.75rem;
-}
-
-.hud-card-content {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 2px;
-}
-
-.hud-label {
-    font-size: 0.55rem;
-    color: #2a7e36;
-    opacity: 0.8;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    font-family: var(--mono-font);
-}
-
-.hud-value-row {
-    display: flex;
-    align-items: baseline;
-    gap: 4px;
-    justify-content: flex-end;
-}
-
-.hud-value {
-    font-family: 'Exo 2', sans-serif;
-    font-size: 1rem;
-    font-weight: 700;
-    color: var(--neon-green) !important;
-    text-shadow: 0 0 5px rgba(63, 185, 80, 0.5);
-}
-
-.hud-unit {
-    font-size: 0.6rem;
-    color: #2a7e36;
-    opacity: 0.8;
-    font-family: var(--mono-font);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
 .pulse-indicator {
     width: 6px;
     height: 6px;
@@ -1037,7 +971,6 @@ body.signal-interference {
     }
 
     .legal-footer,
-    #hud-status,
     .header-center,
     .radar-circle,
     .ccp-notice {
