@@ -210,6 +210,17 @@ body::after {
     opacity: 0.6;
 }
 
+.final-blow-label {
+    color: rgba(255, 255, 255, 0.25);
+    font-family: var(--mono-font);
+    font-size: 0.7rem;
+    letter-spacing: 0.5px;
+}
+
+.final-blow-label span.fb-corp {
+    color: rgba(63, 185, 80, 0.5);
+}
+
 .container-fluid {
     max-width: 1200px;
     background-color: transparent !important;

@@ -338,9 +338,6 @@ socket.on('raw-kill', (kill) => {
                 <div class="small">
                     <span class="location-label">${kill.locationLabel}</span>
                 </div>
-                <div class="small">
-                    <span class="location-label">Final Blow ${kill.finalBlowCorp}</span>
-                </div>
             </div>
         </div>
         <div class="d-flex align-items-center">
@@ -350,6 +347,8 @@ socket.on('raw-kill', (kill) => {
             <div class="text-end" style="width: 100px;">
                 <div class="${val >= 1000000000 ? 'isk-billion' : 'isk-million'} fw-bold">${formatIskValue(val)}</div>
                 <a href="${kill.zkillUrl}" target="_blank" rel="noopener" class="zkill-link">DETAILS</a>
+                <div class="final-blow-label">${kill.finalBlowCorp || "Unknown"}</div>
+                <div class="final-blow-label">${kill.attackerCount} attackers</div>
             </div>
         </div>
     `;
