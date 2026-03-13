@@ -4,7 +4,7 @@ const status = document.getElementById('status');
 const counterElement = document.getElementById('kill-counter');
 const regionSearch = document.getElementById('regionSearch');
 
-const MAX_FEED_SIZE = 60;
+const MAX_FEED_SIZE = 50;
 let isTyping = false;
 let regionCache = [];
 
@@ -141,6 +141,10 @@ const typeShipNameSurgical = (el, text) => {
 
 // Terminal Autocomplete
 let selectedIndex = -1;
+
+document.getElementById('network-toggle').addEventListener('click', () => {
+    document.getElementById('network-dropdown').classList.toggle('active');
+});
 
 function showSuggestions(term) {
     const dropdown = document.getElementById('region-suggestions');
