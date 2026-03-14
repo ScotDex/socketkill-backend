@@ -1,5 +1,6 @@
 const helpers = require('../core/helpers')
 
+
 class atOfficerFactory {
     static createKillEmbed(kill, zkb, names) {
         const DOTLAN_BASE = 'https://evemaps.dotlan.net'

@@ -3,12 +3,18 @@ const CorpIntelFactory = require("../services/corpIntelFactory");
 const axios = require("../network/agent");
 const helpers = require("../core/helpers");
 const atOfficerFactory = require("./atOfficerFactory");
+const { OFFICER_SHIP_IDS } = require ("../core/officerIDs");
 
 const WHALE_THRESHOLD = 20000000000;
 
 module.exports = async (killmail, zkb, names) => {
+    const isOfficerKill = killmail.attackers?.some(a => OFFICER_SHIP_IDS.has(a.ship_type_id));
+
+    if (isOfficerKill) {
     await postOfficerIntel(killmail, zkb, names);
     await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+
     if (names.rawValue < WHALE_THRESHOLD) return;
     await Promise.all([
         postCorpIntel(killmail, zkb, names),

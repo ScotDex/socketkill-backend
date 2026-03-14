@@ -2,12 +2,9 @@ const axios = require("../network/agent");
 const helpers = require("./helpers");
 const handleWhale = require("../services/whaleModule");
 
+
 module.exports = (esi, io, statsManager) => {
     
-    
-    const WHALE_THRESHOLD = 20000000000;
-
-
     async function processPackage(packageData) {
         const startProcessing = process.hrtime.bigint();
         const { zkb, killID, isR2, esiData } = packageData;
