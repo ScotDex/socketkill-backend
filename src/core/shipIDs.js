@@ -28,7 +28,7 @@ const AT_SHIP_IDS = new Set([
     33673, // Whiptail
     11940, // Gold Magnate
     74141, // Geri
-    // 29990, // Loki - Test
+    29990, // Loki - Test
 ]);
 
 
