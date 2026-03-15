@@ -34,8 +34,8 @@ class corpIntelFactory {
                 thumbnail: { url: `https://images.evetech.net/types/${kill.victim.ship_type_id}/render?size=256` },
                 color: 0xf39c12,
                 fields: [
-                    { name: "System", value: `** [${names.systemName}](${DOTLAN_BASE}/system/${names.systemName.replace(/ /g, '_')}) ** `, inline: false },
-                    { name: "Region", value: `** [${names.regionName}](${DOTLAN_BASE}/region/${names.regionName.replace(/ /g, '_')}) ** `, inline: false },
+                    { name: "System", value: `**[${names.systemName}](${DOTLAN_BASE}/system/${names.systemName.replace(/ /g, '_')})** `, inline: false },
+                    { name: "Region", value: `**[${names.regionName}](${DOTLAN_BASE}/region/${names.regionName.replace(/ /g, '_')})** `, inline: false },
                     { name: "Corporation", value: names.corpName, inline: false },
                     { name: "Final Blow", value: names.finalBlowCorp, inline: false },
                     { name: "Total Value", value: `**${totalValue} ISK**`, inline: false },
