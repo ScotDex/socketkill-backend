@@ -545,6 +545,25 @@ body::after {
     animation: cursor-blink 0.8s step-end infinite;
 }
 
+@keyframes interference {
+    0%, 95%, 100% { opacity: 0; }
+    96% { opacity: 1; transform: translateY(20vh); }
+    97% { opacity: 0.5; transform: translateY(45vh); }
+    98% { opacity: 1; transform: translateY(70vh); }
+    99% { opacity: 0; }
+}
+
+.interference-line {
+    position: fixed;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: rgba(63, 185, 80, 0.15);
+    pointer-events: none;
+    z-index: 9998;
+    animation: interference 7s steps(1) infinite;
+}
+
 #socket-title {
     text-shadow: 0 0 8px rgba(63, 185, 80, 0.6);
     letter-spacing: 2px;
