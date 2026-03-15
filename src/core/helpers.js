@@ -7,7 +7,7 @@ const FIN_PATH = path.join(process.cwd(), "data", "financials.json");
 
 class utils {
   static getArticle(name) {
-    if (!name) return "a";
+    if (!name || typeof name !== 'string') return "a";
     const vowels = ["a", "e", "i", "o", "u"];
     const firstLetter = name.charAt(0).toLowerCase();
     return vowels.includes(firstLetter) ? "an" : "a";
