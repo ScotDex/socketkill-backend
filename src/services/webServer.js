@@ -114,7 +114,13 @@ function startWebServer(esi, statsManager, sharedState) {
             corporations: esi.cache.corporations.size,
             types: esi.cache.types.size,
             regions: esi.cache.regions.size
+        },
+        memory: {
+            rss: Math.round(mem.rss / 1024 / 1024),
+            heapUsed: Math.round(mem.heapUsed / 1024 / 1024),
+            heapTotal: Math.round(mem.heapTotal / 1024 / 1024)
         }
+
     });
 });
 
