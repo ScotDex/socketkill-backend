@@ -30,7 +30,7 @@ zKillboard R2 Feed → R2 Background Worker → Processor → WebSocket Broadcas
 
 A public image proxy API is available for EVE Online assets. Free to use for personal and third-party projects. If you integrate this API into your tool or application, a credit link back to [socketkill.com](https://socketkill.com) is appreciated.
 
-Full API documentation is available at [socketkill.com/docs](https://socketkill.com/docs).
+Full API documentation is available at [socketkill.com/docs](https://api.socketkill.com/docs/).
 
 ## WebSocket Access
 
@@ -49,4 +49,4 @@ CCP is in no way responsible for the content on or functioning of this website, 
 
 ## Credits
 
-Built by [@ScottishDex](https://zkillboard.com) • Powered by [zKillboard](https://zkillboard.com) • [socketkill.com](https://socketkill.com)
+Developed by [@ScottishDex/Dexomus Viliana](https://socketkill.com) • JSON Data Source: [zKillboard](https://zkillboard.com) 
