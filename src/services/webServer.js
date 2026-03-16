@@ -104,6 +104,7 @@ function startWebServer(esi, statsManager, sharedState) {
   });
 
   app.get('/api/stats', (req, res) => {
+    const mem = process.memoryUsage();
     res.json({
         totalScanned: statsManager.getTotal(),
         totalIsk: statsManager.totalIsk,
