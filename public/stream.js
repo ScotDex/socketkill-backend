@@ -234,6 +234,13 @@ regionSearch.addEventListener('input', (e) => {
         row.hidden = term !== "" && !locationText.includes(term);
     });
 
+    const exactMatch = regionCache.some (r => r.toLowerCase() === term);
+    if (exactMatch) {
+        document.getElementById('region-suggestions').classList.remove('active');
+        return;
+    }
+
+
     // Show suggestions
     showSuggestions(term);
 });
