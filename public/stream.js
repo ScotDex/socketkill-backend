@@ -4,7 +4,7 @@ const status = document.getElementById('status');
 const counterElement = document.getElementById('kill-counter');
 const regionSearch = document.getElementById('regionSearch');
 
-const MAX_FEED_SIZE = 50;
+const MAX_FEED_SIZE = 60;
 let isTyping = false;
 let regionCache = [];
 
@@ -325,12 +325,6 @@ socket.on('nebula-update', (data) => {
 });
 
 socket.on('raw-kill', (kill) => {
-     if (document.hidden) return;
-    const prefetchShip = new Image();
-    const prefetchCorp = new Image();
-    prefetchShip.src = kill.shipImageUrl;
-    prefetchCorp.src = kill.corpImageUrl;
-
     const val = Number(kill.val) || 0;
     const emptyState = document.getElementById('empty-state');
     if (emptyState) emptyState.remove();
@@ -387,9 +381,6 @@ div.innerHTML = `
         </div>
     </div>
 `;
-
-   // div.classList.add('fresh');
-   // setTimeout(() => div.classList.remove('fresh'), 300);
 
     const overlay = document.querySelector('body');
     overlay.style.opacity = '0.9';

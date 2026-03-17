@@ -603,6 +603,7 @@ body::after {
 #socket-title {
     text-shadow: 0 0 8px rgba(63, 185, 80, 0.6);
     letter-spacing: 2px;
+    font-family: 'Oxanium', sans-serif;
 }
 
 .timestamp {
