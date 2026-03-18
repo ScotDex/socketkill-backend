@@ -1,44 +1,32 @@
-/* === 1. CORE ARCHITECTURE & VARIABLES === */
+/* === 1. VARIABLES & CORE === */
 :root {
-    /* Colors */
     --neon-green: #3fb950;
-    --neon-green-alpha: rgba(63, 185, 80, 0.6);
+    --neon-green-06: rgba(63, 185, 80, 0.6);
     --terminal-blue: #58a6ff;
-    --dark-bg: #0d1117;
     --glass-bg: rgba(10, 12, 16, 0.85);
-    
-    /* Typography & Effects */
     --mono-font: 'Share Tech Mono', monospace;
-    --phosphor-glow: 0 0 2px var(--neon-green-alpha), 0 0 4px rgba(63, 185, 80, 0.3), 0 0 1px rgba(255, 255, 255, 0.2);
-    --crt-border: 1px solid rgba(63, 185, 80, 0.2);
-    
-    /* Animation Defaults */
-    --ease-crt: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    --phosphor-glow: 0 0 2px var(--neon-green-06), 0 0 4px rgba(63, 185, 80, 0.3), 0 0 1px rgba(255, 255, 255, 0.2);
 }
 
-/* === 2. GLOBAL RESET & BASE === */
 @font-face {
     font-family: 'Triglavian';
     src: url(https://edge.socketkill.com/triglavian-completed.otf) format('opentype');
 }
 
+/* === 2. GLOBAL OVERLAYS & BASE === */
 body {
     color: #c9d1d9;
     font-family: 'Exo 2', sans-serif;
     margin: 0;
-    background: fixed center / cover no-repeat;
+    background: #0d1117 fixed center / cover no-repeat;
     animation: cathode-flicker 0.15s infinite;
-    text-rendering: geometricPrecision;
     -webkit-font-smoothing: antialiased;
 }
 
-/* Screen Overlays (Fog, Scanlines, Vignette) */
-body::before, body::after, .fog-overlay, #crt-screen::before {
+/* CRT Screen Effects */
+.fog-overlay, #crt-screen::before, body::before, body::after {
     content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 1;
 }
-
-body::before { height: 15px; background: rgba(63, 185, 80, 0.03); box-shadow: 0 0 8px rgba(63, 185, 80, 0.08); }
-body::after { background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 50%, rgba(255,255,255,0.01) 100%); z-index: 5; }
 
 .fog-overlay {
     background: radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.3) 60%, rgba(0,0,0,0.7) 100%),
@@ -46,108 +34,124 @@ body::after { background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, tra
     z-index: 2; opacity: 0.8;
 }
 
-#crt-screen { animation: crt-boot 1.5s var(--ease-crt) forwards; transform-origin: center; padding: env(safe-area-inset-top) 10px 20px 10px; }
+#crt-screen { animation: crt-boot 1.5s ease-out forwards; transform-origin: center; padding: env(safe-area-inset-top) 10px 20px; }
 #crt-screen::before {
     background: repeating-linear-gradient(90deg, rgba(255,0,0,0.03) 0px, transparent 3px),
                 repeating-linear-gradient(0deg, rgba(0,0,0,0.1) 0px, transparent 2px);
     z-index: -1; opacity: 0.6;
 }
 
-/* === 3. COMPONENT PRIMITIVES (UTILITIES) === */
-.triglavian { font-family: 'Triglavian'; letter-spacing: 2px; }
-.mono-text { font-family: var(--mono-font); text-transform: uppercase; letter-spacing: 1px; }
-.glow { text-shadow: var(--phosphor-glow); color: var(--neon-green); }
+body::before { height: 15px; background: rgba(63, 185, 80, 0.03); box-shadow: 0 0 8px rgba(63, 185, 80, 0.08); }
+body::after { background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 50%, rgba(255,255,255,0.01) 100%); z-index: 5; }
 
-/* Standard Terminal Panel Skin */
-.terminal-panel {
-    background: var(--glass-bg);
-    border: var(--crt-border);
+/* === 3. HEADER & BANNER === */
+.creator-awards-banner {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 99999; display: none;
+    background: rgba(0, 0, 0, 0.95); border-bottom: 1px solid rgba(63, 185, 80, 0.4);
     backdrop-filter: blur(8px);
 }
 
-/* === 4. UI COMPONENTS === */
-/* Banners & Dropdowns */
-.creator-awards-banner {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 99999;
-    background: rgba(0,0,0,0.95); border-bottom: 1px solid rgba(63, 185, 80, 0.4);
-    display: none; backdrop-filter: blur(8px);
-}
-
-.banner-content, .footer-content {
+.banner-content, .site-header {
     display: flex; align-items: center; justify-content: center;
     max-width: 1400px; margin: 0 auto; padding: 10px 20px; gap: 15px;
 }
 
-#network-dropdown {
-    display: none; position: absolute; bottom: calc(100% + 15px); left: 50%;
-    transform: translateX(-50%); padding: 6px 0; min-width: 160px;
-    background: rgba(10,12,16,0.98); border: 1px solid rgba(63, 185, 80, 0.4);
+.site-header { 
+    display: grid; grid-template-columns: 1fr auto 1fr; 
+    border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 1rem; 
 }
-#network-dropdown.active { display: block; }
 
-/* Buttons & Links */
 .award-cta, .award-dismiss {
     background: transparent; border: 1px solid var(--neon-green); color: var(--neon-green);
-    transition: all 0.2s; cursor: pointer;
+    font-family: var(--mono-font); text-transform: uppercase; transition: 0.2s;
 }
+
 .award-cta:hover { background: rgba(63, 185, 80, 0.15); box-shadow: 0 0 15px rgba(63, 185, 80, 0.4); }
 
-/* === 5. THE FEED === */
+/* === 4. TERMINAL & FEED === */
+.terminal-header {
+    display: flex; align-items: center; padding: 6px 15px;
+    background: rgba(10, 12, 16, 0.9); border: 1px solid rgba(63, 185, 80, 0.2);
+    border-radius: 4px 4px 0 0; border-bottom: none;
+}
+
 #feed {
     position: relative; overflow: hidden; margin-top: 20px; border-radius: 8px;
-    background: radial-gradient(circle at center, rgba(22,27,34,0.7) 0%, rgba(10,12,16,0.9) 100%);
-    border: var(--crt-border); box-shadow: 0 20px 50px #000;
+    background: radial-gradient(circle at center, rgba(22, 27, 34, 0.7) 0%, rgba(10, 12, 16, 0.9) 100%);
+    border: 1px solid rgba(63, 185, 80, 0.2); box-shadow: 0 20px 50px #000;
 }
 
 #feed::after {
-    content: ""; position: absolute; inset: 0; opacity: 0.035; z-index: 2;
+    content: ""; position: absolute; inset: 0; opacity: 0.035; z-index: 2; pointer-events: none;
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
     animation: grain 0.8s steps(1) infinite;
 }
 
 .kill-row {
     display: flex; align-items: center; padding: 8px 15px; min-height: 64px;
-    border-bottom: 1px solid #1c2128; transition: transform 0.2s var(--ease-crt);
+    border-bottom: 1px solid #1c2128; transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .kill-row:hover {
     background: linear-gradient(90deg, rgba(63, 185, 80, 0.08), transparent);
-    transform: translateX(4px);
-    box-shadow: inset 2px 0 0 var(--neon-green);
+    transform: translateX(4px); box-shadow: inset 2px 0 0 var(--neon-green);
     animation: hover-vibrate 0.1s infinite;
 }
 
-/* Ship/Corp Containers */
-.ship-icon-container, .corp-square-container {
-    width: 64px; height: 64px; flex-shrink: 0; background: #000;
-    border: 1px solid rgba(63,185,80,0.3); border-radius: 4px; overflow: hidden;
+/* === 5. TYPOGRAPHY & INTERACTIVE === */
+.triglavian { font-family: 'Triglavian'; letter-spacing: 2px; }
+.typewriter { 
+    font-family: var(--mono-font); color: var(--neon-green); 
+    border-right: 0.15em solid var(--neon-green); animation: blink-caret 0.75s step-end infinite; 
 }
 
-/* === 6. ANIMATIONS (CONSOLIDATED) === */
-@keyframes cathode-flicker { 0%, 100% { opacity: 0.99; } 50% { opacity: 0.95; } }
+.terminal-input-field {
+    background: transparent; border: none; outline: none; color: var(--neon-green);
+    font-family: var(--mono-font); width: 100%;
+}
+
+#network-dropdown {
+    display: none; position: absolute; bottom: calc(100% + 15px); left: 50%;
+    transform: translateX(-50%); background: rgba(10, 12, 16, 0.98);
+    border: 1px solid rgba(63, 185, 80, 0.4); min-width: 160px;
+}
+#network-dropdown.active { display: block; }
+
+/* === 6. ANIMATIONS === */
+@keyframes cathode-flicker { 0%, 100% { opacity: 0.99; } 50% { opacity: 0.96; } }
 @keyframes crt-boot { 
     0% { transform: scaleY(0.001); opacity: 0; filter: brightness(3); } 
     100% { transform: scaleY(1); opacity: 1; filter: brightness(1); } 
 }
-@keyframes pulse-standard { 
-    0%, 100% { opacity: 0.9; text-shadow: 0 0 8px var(--neon-green-alpha); } 
-    50% { opacity: 1; text-shadow: 0 0 15px var(--neon-green); } 
+@keyframes blink-caret { from, to { border-color: transparent; } 50% { border-color: var(--neon-green); } }
+@keyframes grain { 
+    0%, 100% { transform: translate(0,0); } 10% { transform: translate(-5%,-5%); } 
+    50% { transform: translate(10%,0); } 
 }
 @keyframes hover-vibrate { 0%, 100% { transform: translateX(4px); } 50% { transform: translateX(4.5px) translateY(0.2px); } }
 
-/* Assign shared animations */
+/* Shared Pulsing Elements */
 .award-icon, .filter-label.active, #status.bg-success { animation: pulse-standard 2s infinite; }
-.ship-name { animation: cathode-flicker 1s infinite; }
+@keyframes pulse-standard { 
+    0%, 100% { text-shadow: 0 0 8px var(--neon-green-06); opacity: 0.9; } 
+    50% { text-shadow: 0 0 15px var(--neon-green); opacity: 1; } 
+}
 
-/* === 7. RESPONSIVE (ONE BLOCK) === */
+/* === 7. LEGAL FOOTER === */
+.legal-footer {
+    position: fixed; bottom: 0; left: 0; width: 100%; z-index: 9999;
+    background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(4px);
+    border-top: 1px solid rgba(63, 185, 80, 0.2); padding: 3px 20px;
+}
+
+.footer-content { display: grid; grid-template-columns: 1fr auto 1fr; font-size: 0.6rem; text-transform: uppercase; }
+
+/* === 8. RESPONSIVE (ONE BLOCK) === */
 @media (max-width: 768px) {
-    /* Hide Non-Critical Mobile Elements */
     .legal-footer, .header-center, .radar-circle, .ccp-notice { display: none !important; }
-    
-    body { background-position: 70% top; background-attachment: scroll; }
     .banner-content { flex-direction: column; text-align: center; }
+    .ship-icon-container, .corp-square-container { width: 32px !important; height: 32px !important; }
     .kill-row { padding: 5px 10px; min-height: 50px; }
-    .ship-icon-container, .corp-square-container { width: 32px; height: 32px; margin-right: 10px; }
-    .ship-name { font-size: 0.9rem; }
     body.awards-banner-visible { padding-top: 80px; }
+    #crt-screen { padding-top: 5px; }
 }
