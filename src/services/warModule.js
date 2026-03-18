@@ -32,6 +32,7 @@ async function pollWarKillmails(processPackage, processedKills) {
                 if (!killPackage) continue;
 
                 processPackage(killPackage);
+                console.log(`[WARS] Kill ${km.killmail_id} processed from war ${war.id}`);
             }
         } catch (err) {
             console.error(`[WARS] Poll failed for war ${war.id}: ${err.message}`);
