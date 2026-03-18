@@ -9,8 +9,8 @@ const statsManager = require("./src/services/statsManager");
 // const ProcessorFactory = require("./src/core/processor");
 const ProcessorFactory = require("./src/core/processor_v2");
 const esi = new ESIClient("Contact: @ScottishDex");
-const { syncWars, loadWars, pollWarKillmails} = require('./src/services/warModule');
-const { syncMarketPrices, loadMarketPrices, calculateKillValue } = require('./src/services/priceService');
+//const { syncWars, loadWars, pollWarKillmails} = require('./src/services/warModule');
+//const { syncMarketPrices, loadMarketPrices, calculateKillValue } = require('./src/services/priceService');
 
 
 const ROTATION_SPEED = 10 * 60 * 1000;
@@ -209,16 +209,16 @@ async function r2BackgroundWorker() {
   await esi.loadSystemCache("./data/systems.json");
   await esi.loadCache(path.join(__dirname, "data", "esi_cache.json"));
   await statsManager.recoverFromR2();
-  await loadMarketPrices();
-  await loadWars();
+ // await loadMarketPrices();
+//  await loadWars();
   refreshNebulaBackground();
   processor = ProcessorFactory(esi, io, statsManager);
   syncPlayerCount();
-  pollWarKillmails(processor.processPackage, processedKills); // ADD
-  syncWars();
-  setInterval(syncWars, 60 * 60 * 1000);
-  setInterval(() => pollWarKillmails(processor.processPackage, processedKills), 60 * 60 * 1000); // ADD
-  setInterval(syncMarketPrices, 24 * 60 * 60 * 1000);
+ // pollWarKillmails(processor.processPackage, processedKills); // ADD
+ // syncWars();
+ // setInterval(syncWars, 60 * 60 * 1000);
+ // setInterval(() => pollWarKillmails(processor.processPackage, processedKills), 60 * 60 * 1000); // ADD
+ // setInterval(syncMarketPrices, 24 * 60 * 60 * 1000);
   setInterval(refreshNebulaBackground, ROTATION_SPEED);
   r2BackgroundWorker();
 })();
