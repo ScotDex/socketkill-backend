@@ -275,13 +275,13 @@ document.addEventListener('click', (e) => {
 
 
 socket.on('connect', () => {
-    status.innerText = "ONLINE";
-    status.className = "badge bg-success";
+    status.innerText = "● ONLINE";
+    status.className = "bg-success";
 });
 
 socket.on('disconnect', () => {
-    status.innerText = "OFFLINE";
-    status.className = "badge bg-danger";
+    status.innerText = "● OFFLINE";
+    status.className = "bg-danger";
 });
 
 socket.on('region-list', (regionNames) => {
