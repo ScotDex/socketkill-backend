@@ -76,6 +76,7 @@ const TRIGLAVIAN_SYSTEMS = new Set([
     30040141, // Urhinichi
     30045328, // Ahtila
     30045329, // Ichoriya
+    32000058, // Ubbcre
 ]);
 
 module.exports = { AT_SHIP_IDS, OFFICER_SHIP_IDS, TRIGLAVIAN_SYSTEMS };
