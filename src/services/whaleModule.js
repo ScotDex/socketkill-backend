@@ -39,6 +39,7 @@ async function postNewsChannel(kill, zkb, names, category) {
 module.exports = async (killmail, zkb, names) => {
     const isOfficerKill = killmail.attackers?.some(a => OFFICER_SHIP_IDS.has(a.ship_type_id));
     const isATKill = killmail.attackers?.some(a => AT_SHIP_IDS.has(a.ship_type_id))
+    const isRorqual = killmail.attackers?.some(a => RORQUAL_ID.has(a.ship_type_id))
 
     await postNewsChannel(killmail, zkb, names, 'test');
     await new Promise (resolve => setTimeout(resolve, 3000))
