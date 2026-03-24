@@ -222,8 +222,8 @@ async function r2BackgroundWorker() {
   syncPlayerCount();
   setInterval(refreshNebulaBackground, ROTATION_SPEED);
   r2BackgroundWorker();
-  setInterval(syncMarketPrices, 24 * 60 * 60 * 1000);
-  await loadMarketPrices();
+  //setInterval(syncMarketPrices, 24 * 60 * 60 * 1000);
+  //await loadMarketPrices();
 })();
 
 // Commented out code for re-implementation/consideration
