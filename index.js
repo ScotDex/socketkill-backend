@@ -29,6 +29,8 @@ let lastErrorStatus = null;
 let isThrottled = false;
 
 const startMonitor = require("./src/network/monitor"); 
+const e = require("express");
+const { worker } = require("cluster");
 startMonitor(750);
 
 let currentSpaceBg = null;
@@ -206,9 +208,18 @@ async function r2BackgroundWorker() {
         }
       }
       if (Date.now() - workerStart >= 60000) {
-        console.log('[WORKER] Minute elapsed — restarting worker');
-        await r2.put('worker_state.json', { sequence: sharedState.currentSequence });
-        return r2BackgroundWorker();
+        const liveRes = await talker.get (SEQUENCE_CACHE_URL, { timeout: 5000 });
+        const liveSeq = parseInt(liveRes.data?.sequence);
+        const gap = liveSeq = sharedState.currentSequence;
+        if (gap < 10) {
+          console.log('[WORKER] Minute elapsed — restarting worker');
+          await r2.put('worker_state.json', { sequence: sharedState.currentSequence });
+          return r2BackgroundWorker();
+        } else {
+          console.log(`[WORKER] Minute elapsed but ${gap} behind — continuing without restart`);
+          workerStart = Date.now();
+        }
+        
       }
       setTimeout(poll, nextTick);
     };
