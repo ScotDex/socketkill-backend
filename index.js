@@ -179,7 +179,7 @@ async function r2BackgroundWorker() {
           sharedState.isThrottled = true;
           console.error("[429] Rate Limited. Entering 2m quiet period.");
           setTimeout(() => { isThrottled = false; poll(); }, POLLING_CONFIG.PANIC_DELAY);
-          return; // Break recursion until timeout finishes
+          return; 
         }
 
         // AFTER
