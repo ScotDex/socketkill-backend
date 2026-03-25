@@ -29,8 +29,6 @@ let lastErrorStatus = null;
 let isThrottled = false;
 
 const startMonitor = require("./src/network/monitor"); 
-const e = require("express");
-const { worker } = require("cluster");
 startMonitor(750);
 
 let currentSpaceBg = null;
@@ -84,6 +82,7 @@ const POLLING_CONFIG = {
 const processedKills = new Set();
 async function r2BackgroundWorker() {
   processedKills.clear();
+  consecutive404s = 0;
   try {
     const savedState = await r2.get('worker_state.json')
     const liveRes = await talker.get(SEQUENCE_CACHE_URL, { timeout: 5000 });
@@ -113,7 +112,7 @@ async function r2BackgroundWorker() {
   // 2. The Centralized Recursive Tick
 
   let lastKnownSequence = sharedState.currentSequence;
-  const workerStart = Date.now();
+  let workerStart = Date.now();
 
 
   const MAX_AGE = 24 * 60 * 60 * 1000;
@@ -236,8 +235,9 @@ async function r2BackgroundWorker() {
   await statsManager.recoverFromR2();
   refreshNebulaBackground();
   processor = ProcessorFactory(esi, io, statsManager);
+  r2BackgroundWorker();
   syncPlayerCount();
   setInterval(refreshNebulaBackground, ROTATION_SPEED);
-  r2BackgroundWorker();
+  
 })();
 
