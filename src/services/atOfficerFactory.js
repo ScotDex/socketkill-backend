@@ -1,4 +1,4 @@
-const { AT_SHIP_IDS, OFFICER_SHIP_IDS } = require('../core/shipIDs');
+const { AT_SHIP_IDS, OFFICER_SHIP_IDS, RORQUAL_SHIP_IDS } = require('../core/shipIDs');
 class atOfficerFactory {
     static createKillEmbed(kill, zkb, names) {
         const DOTLAN_BASE = 'https://evemaps.dotlan.net'
@@ -6,7 +6,7 @@ class atOfficerFactory {
         const title = 'Activity Detected';
 
         const triggerAttacker = kill.attackers?.find(a => 
-            AT_SHIP_IDS.has(a.ship_type_id) || OFFICER_SHIP_IDS.has(a.ship_type_id) 
+            AT_SHIP_IDS.has(a.ship_type_id) || OFFICER_SHIP_IDS.has(a.ship_type_id) || RORQUAL_SHIP_IDS.has(a.ship_type_id) 
         );
         return {
             username: "Target Ship Tracker",
