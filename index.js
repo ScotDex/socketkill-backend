@@ -190,7 +190,7 @@ async function r2BackgroundWorker() {
         }
 
         // AFTER
-        if (status === 404) {
+        if (status === 404 || status === 403) {
           try {
             const liveRes = await talker.get(SEQUENCE_CACHE_URL, { timeout: 5000 });
             const liveSeq = liveRes.data?.sequence;
@@ -203,7 +203,7 @@ async function r2BackgroundWorker() {
           nextTick = POLLING_CONFIG.ERROR_BACKOFF;
         }
 
-        if (status === 404 && consecutive404s >= 30) {
+        if ((status === 404 || status === 403) && consecutive404s >= 30) {
           console.warn("[RE-SYNC] 404 limit reached. Re-priming...");
           return r2BackgroundWorker();
         }
