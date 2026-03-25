@@ -210,7 +210,7 @@ async function r2BackgroundWorker() {
       if (Date.now() - workerStart >= 60000) {
         const liveRes = await talker.get (SEQUENCE_CACHE_URL, { timeout: 5000 });
         const liveSeq = parseInt(liveRes.data?.sequence);
-        const gap = liveSeq = sharedState.currentSequence;
+        const gap = liveSeq - sharedState.currentSequence;
         if (gap < 10) {
           console.log('[WORKER] Minute elapsed — restarting worker');
           await r2.put('worker_state.json', { sequence: sharedState.currentSequence });
