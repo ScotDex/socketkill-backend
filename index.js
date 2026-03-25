@@ -195,7 +195,7 @@ async function r2BackgroundWorker() {
             const liveSeq = liveRes.data?.sequence;
             console.log(`[GAP] Current: ${sharedState.currentSequence} | Live: ${liveSeq} | Behind: ${liveSeq - sharedState.currentSequence} sequences`);
           } catch (_) { }
-          sharedState.currentSequence = lastKnownSequence;
+          sharedState.currentSequence++;
           nextTick = 6000;
         } else {
           console.error(`[POLL] Non-404 error: ${status} | ${err.message}`);
