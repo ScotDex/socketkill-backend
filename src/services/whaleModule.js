@@ -39,10 +39,14 @@ async function postNewsChannel(kill, zkb, names, category) {
 module.exports = async (killmail, zkb, names) => {
     const isOfficerKill = killmail.attackers?.some(a => OFFICER_SHIP_IDS.has(a.ship_type_id));
     const isATKill = killmail.attackers?.some(a => AT_SHIP_IDS.has(a.ship_type_id))
+    //const isRorqual = killmail.attackers?.some(a => RORQUAL_ID.has(a.ship_type_id))
+
     await postNewsChannel(killmail, zkb, names, 'test');
+    await new Promise (resolve => setTimeout(resolve, 3000))
 
     if (isOfficerKill || isATKill) {
     await postOfficerIntel(killmail, zkb, names);
+    await new Promise(resolve => setTimeout(resolve, 2000));
     }
 
     if (names.rawValue < WHALE_THRESHOLD) return;
@@ -69,9 +73,9 @@ async function postOfficerIntel(kill, zkb, names) {
             axios.post(process.env.INTEL_WEBHOOK_URL, payload),
             axios.post(process.env.SECOND_HOOK, payload)
         ])
-        console.log(`[SHIP TRACKER HOOK INTEL] Kill ${kill.killmail_id} posted`);
+        console.log(`[OFFICER HOOK INTEL] Kill ${kill.killmail_id} posted`);
     } catch (err) {
-        console.error(`[SHIP TRACKER HOOK INTEL] Webhook failed: ${err.message}`);
+        console.error(`[OFFICER HOOK INTEL] Webhook failed: ${err.message}`);
     }
 }
 
