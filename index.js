@@ -82,6 +82,7 @@ const POLLING_CONFIG = {
 
 const processedKills = new Set();
 async function r2BackgroundWorker() {
+  processedKills.clear();
     try {
       const savedState = await r2.get('worker_state.json')
       if (savedState?.sequence) {
