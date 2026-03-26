@@ -306,7 +306,7 @@ const killId = 134257055;
 const hash = '770e2ef8a4bb493e4673270b4ab9108d85d5df29';
 const totalValue = 161508980156.35;
 
-const esiRes = await talker.get(`https://esi.evetech.net/latest/killmails/${killId}/${hash}/`);
+const esiRes = await talker.get(`https://esi.evetech.net/killmails/${killId}/${hash}/`);
 const r2Package = {
     killID: killId,
     zkb: { totalValue, href: null },
