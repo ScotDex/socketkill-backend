@@ -93,15 +93,15 @@ const processedKills = new Set();
 function processKill(r2Package) {
   const killTime = new Date(r2Package.esiData?.killmail_time).getTime();
 
-  if (Date.now() - killTime > MAX_KILL_AGE_MS) {
+  if (Date.now() - killTime > MAX_KILL_AGE_MS) { // 24h old limit
     console.warn(`[OLD_MAIL] Discarding ${r2Package.killID} — age ${((Date.now() - killTime) / 1000).toFixed(0)}s`);
     return;
   }
 
   if (processedKills.has(r2Package.killID)) return;
 
-  processedKills.add(r2Package.killID);
-  if (processedKills.size > DEDUP_MAX) processedKills.clear();
+  processedKills.add(r2Package.killID); // Rolling buffer update
+  if (processedKills.size > DEDUP_MAX) processedKills.delete(processedKills.values().next().value);
 
   processor.processPackage(r2Package);
 
