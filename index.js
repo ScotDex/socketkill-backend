@@ -277,26 +277,9 @@ async function startPoller() {
   await esi.loadSystemCache("./data/systems.json");
   await esi.loadCache(path.join(__dirname, "data", "esi_cache.json"));
   await statsManager.recoverFromR2();
-
   processor = ProcessorFactory(esi, io, statsManager);
-
-//   // REFIRE — remove after use
-// const killId = 134257055;
-// const hash = '770e2ef8a4bb493e4673270b4ab9108d85d5df29';
-// const totalValue = 161508980156.35;
-
-// const esiRes = await talker.get(`https://esi.evetech.net/killmails/${killId}/${hash}`);
-// const r2Package = {
-//     killID: killId,
-//     zkb: { totalValue, href: null },
-//     isR2: false,
-//     esiData: esiRes.data
-// };
-// processor.processPackage(r2Package);
-
   refreshNebulaBackground();
   syncPlayerCount();
   setInterval(refreshNebulaBackground, NEBULA_ROTATION_MS);
-
   startPoller();
 })();

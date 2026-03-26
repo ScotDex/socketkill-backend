@@ -55,6 +55,7 @@ module.exports = async (killmail, zkb, names) => {
 };
 
 async function postCorpIntel(kill, zkb, names) {
+    console.log(`[CORP INTEL] Firing for kill ${kill.killmail_id} | rawValue: ${names.rawValue}`);
     const payload = CorpIntelFactory.createKillEmbed(kill, zkb, names);
     try {
         await axios.post(process.env.BLANKSPACE_HOOK, payload),
@@ -65,6 +66,7 @@ async function postCorpIntel(kill, zkb, names) {
 }
 
 async function postOfficerIntel(kill, zkb, names) {
+    console.log(`[OFFICER INTEL] Firing for kill ${kill.killmail_id} | rawValue: ${names.rawValue}`);
     const payload = atOfficerFactory.createKillEmbed(kill, zkb, names);
     try {
         await Promise.all([
