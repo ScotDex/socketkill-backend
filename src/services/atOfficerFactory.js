@@ -14,7 +14,7 @@ class atOfficerFactory {
             // content: `<@344509856176275476> 👀`,
             embeds: [{
                 author: {
-                    name: `${names.triggerShipName} spotted in ${names.systemName}`,
+                    name: `${names.triggerShipName || 'Unknown'} spotted in ${names.systemName}`,
                     icon_url: `https://images.evetech.net/corporations/${triggerAttacker?.corporation_id}/logo?size=64`
                 },
                 title: title,
@@ -24,8 +24,8 @@ class atOfficerFactory {
                 fields: [
                     { name: "System", value: `**[${names.systemName}](${DOTLAN_BASE}/system/${names.systemName.replace(/ /g, '_')})** `, inline: false },
                     { name: "Region", value: `**[${names.regionName}](${DOTLAN_BASE}/region/${names.regionName.replace(/ /g, '_')})** `, inline: false },
-                    { name: "Pilot", value: names.triggerCharName, inline: false },
-                    { name: "Corporation", value: names.triggerCorpName, inline: false },
+                    { name: "Pilot", value: names.triggerCharName || 'Unknown', inline: false },
+                    { name: "Corporation", value: names.triggerCorpName || 'Unknown', inline: false },
                 ],
                 footer: {
                     text: `Powered by socketkill.com`,
