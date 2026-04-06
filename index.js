@@ -166,9 +166,22 @@ async function prime() {
   try {
     const saved = await r2.get("worker_state.json");
     if (saved?.sequence) {
-      state.sequence = saved.sequence;
-      console.log(`[PRIME] Resumed from saved sequence ${saved.sequence}`);
-      return;
+      console.log (`[PRIME] Found saved sequence ${saved.sequence} — validating...`);
+      const testUrl = `${R2_BASE_URL}/${saved.sequence}.json`;
+      try {
+        await talker.get(testUrl, { timeout: 2000 });
+        state.sequence = saved.sequence;
+        console.log(`[PRIME] Validated Resumed from saved sequence ${saved.sequence}`);
+        return;
+      } catch (e) {
+        if (e.response?.status === 404) {
+          console.warn(`[PRIME] Saved sequence ${saved.sequence} is a gap — falling back to sequence.json`);
+        } else {
+          state.sequence = saved.sequence;
+          console.error(`[PRIME] Failed to validate saved sequence ${saved.sequence}:`, e.message);
+          return;
+        }
+      }
     }
   } catch (_) {
     // No saved state — fall through to sequence.json
@@ -242,6 +255,11 @@ async function poll() {
       state.consecutive404s++;
       if (state.consecutive404s === 1 || state.consecutive404s % 10 === 0) {
         console.log(`[WAIT] At frontier — seq ${state.sequence}, 404 #${state.consecutive404s}. Sleeping ${STALL_DELAY_MS / 1000}s.`);
+      }
+      if (state.consecutive404s >= 100) {
+        console.warn(`[ADVANCE] Seq ${state.sequence} — permanent gap detected, advancing.`);
+        state.sequence++;
+        state.consecutive404s = 0;
       }
       nextDelay = STALL_DELAY_MS;
     } else if (status === 403) {
