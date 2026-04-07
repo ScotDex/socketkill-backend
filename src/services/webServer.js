@@ -7,7 +7,6 @@ const path = require("path");
 const helmet = require("helmet");
 const fs = require("fs");
 const axios = require("../network/agent");
-const axios = require("../network/agent");
 const hashCache = require("../state/hashCache");
 const killmailCache = require("../state/killmailCache");
 const { renderKillPage } = require("./killPageRenderer");
