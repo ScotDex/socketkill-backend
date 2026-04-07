@@ -169,7 +169,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
 });
 
 // Kill detail page — date-dispatched hash lookup, ESI fetch, HTML render
-app.get('/kill/:date/:killID', async (req, res) => {
+app.get('/:date/:killID', async (req, res) => {
     const { date, killID } = req.params;
 
     // Input validation

@@ -45,6 +45,11 @@ function renderKillPage({ killID, killmail, resolved }) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${escapeHtml(ogTitle)} | Socket.Kill</title>
+
+<meta name="description" content="Socket.Kill - Live kill feed for Eve Online optimized for rendering speed and performance complete with a global NPC death counter, system and region filter.">
+<meta name="author" content="Dexomus Viliana">
+<meta name="keywords" content="eve online, eve, pvp, socket.kill, killboard, real-time, intel, whale hunter, wormhole, low-latency, eve tool, pvp tracker, gatekeeper, mmorpg, third, party, tools, socket, kill, socket kill, socket kill feed">
+<link rel="icon" type="image/png" href="https://edge.socketkill.com/favicon.png">
 <meta property="og:type" content="article">
 <meta property="og:title" content="${escapeHtml(ogTitle)}">
 <meta property="og:description" content="${escapeHtml(ogDesc)}">
