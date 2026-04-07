@@ -28,6 +28,7 @@ async function prime() {
 }
 
 function set(killID, hash) {
+    console.log(`[HASH-DEBUG] set called: killID=${killID} hash=${hash}`);
     if (!killID || !hash) return;
     if (cache.has(killID)) return;  // dedupe — hashes are immutable
     cache.set(killID, hash);
