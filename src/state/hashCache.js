@@ -1,4 +1,4 @@
-const { sharedPromise } = require("twitter-api-v2/dist/esm/helpers");
+
 const r2 = require("../network/r2Writer");
 
 const FLUSH_INTERVAL = 50;
