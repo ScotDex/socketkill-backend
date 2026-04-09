@@ -1,8 +1,4 @@
-const r2 = require('../network/r2Writer');
-const talker = require('../network/agent');
-const ESI_BASE = 'https://esi.evetech.net/latest';
-const normalizer = require('../core/normalizer')
-const { calculateKillValue } = require('../services/priceService');
+
 
 let activeWars = [];
 

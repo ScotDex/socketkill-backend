@@ -11,7 +11,10 @@ const LOSS_COMMENTS = [
     "Masterclass in decision making",
     "Big brain energy detected",
     "Ship died faster than his post-goon clarity",
-    "When the goon session lasts longer than your tank"
+    "When the goon session lasts longer than your tank",
+    "That fit looked better in theory",
+    "You’ve successfully reduced server load",
+    "At least it wasn't a Titan",
 ]
 
 class corpIntelFactory {

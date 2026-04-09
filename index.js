@@ -1,4 +1,31 @@
 require("dotenv").config({ quiet: true });
+
+// --- Axiom Logging ---
+const { Axiom } = require('@axiomhq/js');
+const axiom = new Axiom({ token: process.env.AXIOM_TOKEN });
+
+const originalLog = console.log;
+const originalError = console.error;
+const originalWarn = console.warn;
+
+console.log = (...args) => {
+    originalLog(...args);
+    axiom.ingest('socketkill', [{ level: 'info', message: args.join(' '), ts: new Date().toISOString() }]);
+};
+
+console.error = (...args) => {
+    originalError(...args);
+    axiom.ingest('socketkill', [{ level: 'error', message: args.join(' '), ts: new Date().toISOString() }]);
+};
+
+console.warn = (...args) => {
+    originalWarn(...args);
+    axiom.ingest('socketkill', [{ level: 'warn', message: args.join(' '), ts: new Date().toISOString() }]);
+};
+
+setInterval(() => axiom.flush(), 10000);
+
+
 const talker = require("./src/network/agent");
 const path = require("path");
 const ESIClient = require("./src/network/esi");
@@ -6,219 +33,274 @@ const startWebServer = require("./src/services/webServer");
 const normalizer = require("./src/core/normalizer");
 const utils = require("./src/core/helpers");
 const statsManager = require("./src/services/statsManager");
-// const ProcessorFactory = require("./src/core/processor");
 const ProcessorFactory = require("./src/core/processor_v2");
+const r2 = require("./src/network/r2Writer");
+const hashCache = require("./src/state/hashCache")
+
+// --- Constants ---
+
 const esi = new ESIClient("Contact: @ScottishDex");
-//const { syncWars, loadWars, pollWarKillmails} = require('./src/services/warModule');
-//const { syncMarketPrices, loadMarketPrices, calculateKillValue } = require('./src/services/priceService');
-
-
-const ROTATION_SPEED = 10 * 60 * 1000;
-const R2_BASE_URL = process.env.R2_BASE_URL
+const R2_BASE_URL = process.env.R2_BASE_URL;
 const SEQUENCE_CACHE_URL = `${R2_BASE_URL}/sequence.json`;
+const NEBULA_ROTATION_MS = 10 * 60 * 1000;
 
-const sharedState = {
-    isThrottled: false,
-    currentSequence: 0
+// R2Z2 spec-compliant timings
+const POLL_DELAY_MS = 100;        // 100ms between successful fetches (spec: 10 req/s max)
+const STALL_DELAY_MS = 6000;      // 6s on 404 — spec mandated minimum
+const ERROR_DELAY_MS = 5000;      // generic error backoff
+const THROTTLE_DELAY_MS = 120000; // 2m on 429
+const GHOST_SKIP_AFTER = 5;       // skip a sequence after N normalizer failures
+const DEDUP_MAX = 5000;           // dedup set ceiling before pruning
+const MAX_KILL_AGE_MS = 24 * 60 * 60 * 1000;
+const STATE_PERSIST_INTERVAL = 50;
+
+// --- Shared State (single source of truth) ---
+
+const state = {
+  sequence: 0,
+  isThrottled: false,
+  lastErrorStatus: null,
+  consecutive404s: 0,
+  lastSuccessfulIngest: Date.now(),
 };
 
-const { io } = startWebServer(esi, statsManager, sharedState);
+// --- Web Server & Socket ---
 
-let currentSequence = 0;
-let consecutive404s = 0;
-let lastSuccessfulIngest = Date.now();
-let lastErrorStatus = null;
-let isThrottled = false;
+const { io, app} = startWebServer(esi, statsManager, state, () => processor);
 
-const startMonitor = require("./src/network/monitor"); 
+const startMonitor = require("./src/network/monitor");
 startMonitor(750);
 
 let currentSpaceBg = null;
 let processor = null;
 
-async function syncPlayerCount() {
-  const status = await utils.getPlayerCount();
-  if (status) {
-    io.emit("player-count", status);
-  }
-}
-
 io.on("connection", async (socket) => {
-    const ip = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
-    const userAgent = socket.handshake.headers['user-agent'] || 'Unknown';
-    const referrer = socket.handshake.headers['referer'] || 'Direct';
-    console.log(`[NETWORK] New connection: ${socket.id} | IP: ${ip} | UA: ${userAgent} | Ref: ${referrer} | Total Active: ${io.engine.clientsCount}`)
-    
+  const ip = socket.handshake.headers["x-forwarded-for"] || socket.handshake.address;
+  const ua = socket.handshake.headers["user-agent"] || "Unknown";
+  const ref = socket.handshake.headers["referer"] || "Direct";
+  console.log(`[NETWORK] New connection: ${socket.id} | IP: ${ip} | UA: ${ua} | Ref: ${ref} | Active: ${io.engine.clientsCount}`);
+
   if (currentSpaceBg) {
     socket.emit("nebula-update", currentSpaceBg);
   } else {
     refreshNebulaBackground();
   }
-  const regions = Array.from(esi.cache.regions.values()).sort();
-  socket.emit("region-list", regions);
-  socket.emit("gatekeeper-stats", { totalScanned: statsManager.getTotal(),
-    totalIsk:statsManager.totalIsk
-   });
-  const currentStatus = await utils.getPlayerCount();
-  socket.emit("player-count", currentStatus);
+
+  socket.emit("region-list", Array.from(esi.cache.regions.values()).sort());
+  socket.emit("gatekeeper-stats", {
+    totalScanned: statsManager.getTotal(),
+    totalIsk: statsManager.totalIsk,
+  });
+
+  const playerCount = await utils.getPlayerCount();
+  if (playerCount) socket.emit("player-count", playerCount);
 });
 
+// --- Nebula Background ---
+
 async function refreshNebulaBackground() {
-  console.log("Fetching Background Image");
   const data = await utils.getBackPhoto();
   if (data) {
     currentSpaceBg = data;
     io.emit("nebula-update", data);
-    console.log(`Background Synced: ${data.name}`);
+    console.log(`[NEBULA] Background synced: ${data.name}`);
   }
 }
 
-// --- Configuration ---
-const POLLING_CONFIG = {
-    CATCHUP_SPEED: 75,    
-    STALL_DELAY: 1000,    
-    ERROR_BACKOFF: 5000,  
-    PANIC_DELAY: 600000  
-};
+// --- Player Count ---
+
+async function syncPlayerCount() {
+  const status = await utils.getPlayerCount();
+  if (status) io.emit("player-count", status);
+}
+
+// --- Kill Processing ---
 
 const processedKills = new Set();
 
-async function r2BackgroundWorker() {
-    // 1. Priming Phase
-    
-    try {
-        const res = await talker.get(SEQUENCE_CACHE_URL, { timeout: 5000 });
-        if (res.data?.sequence) {
-            sharedState.currentSequence = parseInt(res.data.sequence) - 5;
-        } else {
-            throw new Error("Invalid sequence data");
-        }
-    } catch (e) {
-        const status = e.response?.status;
-        lastErrorStatus = status;
-        const wait = status === 429 ? POLLING_CONFIG.PANIC_DELAY : 10000;
-        console.error(`Priming failed:`, e.response?.status, e.response?.data, e.message);
-        return setTimeout(r2BackgroundWorker, wait);
-    }
+function processKill(r2Package) {
+  const killTime = new Date(r2Package.esiData?.killmail_time).getTime();
 
-    // 2. The Centralized Recursive Tick
+  if (Date.now() - killTime > MAX_KILL_AGE_MS) { // 24h old limit
+    console.warn(`[OLD_MAIL] Discarding ${r2Package.killID} — age ${((Date.now() - killTime) / 1000).toFixed(0)}s`);
+    return;
+  }
 
-    let lastKnownSequence = sharedState.currentSequence;
-    
+  if (processedKills.has(r2Package.killID)) return;
 
-    const MAX_AGE = 24 * 60 * 60 * 1000;
+  processedKills.add(r2Package.killID); // Rolling buffer update
+  if (processedKills.size > DEDUP_MAX) processedKills.delete(processedKills.values().next().value);
 
-    const poll = async () => {
-      if (isThrottled) return;
+  processor.processPackage(r2Package);
 
-  
-      const isNewSequence = sharedState.currentSequence > lastKnownSequence
-      const url = `${R2_BASE_URL}/${sharedState.currentSequence}.json${isNewSequence ? `?cb=${Date.now()}` : ''}`;
-      let nextTick = 0;
-
-      try {
-        const response = await talker.get(url, { timeout: 2000 });
-        const r2Package = normalizer.fromR2(response.data);
-
-        if (r2Package?.killID) {
-
-          const killTime = new Date(r2Package.esiData?.killmail_time).getTime();
-          const currentTime = new Date().getTime();
-
-          if (currentTime - killTime > MAX_AGE) {
-            console.warn(`[OLD_MAIL] Discarding old killmail ${r2Package.killID} with timestamp ${killTime}`);
-          } else if (!processedKills.has(r2Package.killID)) {
-            processedKills.add(r2Package.killID);
-            processor.processPackage(r2Package);
-            if (processedKills.size > 1000) processedKills.clear();
-            const killTime = new Date(r2Package.esiData?.killmail_time).getTime();
-            const ingestDelay = Date.now() - killTime;
-            console.log(`[INGEST] Kill ${r2Package.killID} | Age: ${(ingestDelay / 1000).toFixed(1)}s`);
-          }
-
-                lastKnownSequence = sharedState.currentSequence;
-                sharedState.currentSequence++;
-                consecutive404s = 0;
-                lastSuccessfulIngest = Date.now();
-              lastErrorStatus = 200;
-              isThrottled = false;
-              if (r2Package?.sequenceUpdated) {
-                try {
-                  const updatedRes = await talker.get(`${R2_BASE_URL}/${r2Package.sequenceUpdated}.json`, { timeout: 2000 });
-                  const updatedPackage = normalizer.fromR2(updatedRes.data);
-                  if (updatedPackage?.killID && !processedKills.has(updatedPackage.killID)) {
-                    processedKills.add(updatedPackage.killID);
-                    processor.processPackage(updatedPackage);
-                    console.log(`Reprocessed updated sequence ${r2Package.sequenceUpdated}`);
-                  }
-                } catch (e) {
-                  console.error(`Failed to refetch updated sequence ${r2Package.sequenceUpdated}:`, e);
-                }
-              }
-
-            } else {
-                // DATA GAP: File exists but normalize failed or no kill data
-                consecutive404s++;
-                if (consecutive404s === 1) console.log(`[GAP] Potential ghost file at ${currentSequence}. Retrying...`);
-                nextTick = POLLING_CONFIG.STALL_DELAY;
-                
-                if (consecutive404s >= 5) {
-                    console.warn(`[SKIP] Seq ${currentSequence} is ghost data. Skipping to next.`);
-                    sharedState.currentSequence++;
-                    consecutive404s = 0;
-                }
-            }
-        } catch (err) {
-            const status = err.response?.status;
-            lastErrorStatus = status;
-
-        if (status === 429) {
-          sharedState.isThrottled = true;
-          console.error("[429] Rate Limited. Entering 2m quiet period.");
-          setTimeout(() => { isThrottled = false; poll(); }, POLLING_CONFIG.PANIC_DELAY);
-          return; // Break recursion until timeout finishes
-        }
-
-        // AFTER
-        if (status === 404) {
-          try {
-            const liveRes = await talker.get(SEQUENCE_CACHE_URL, { timeout: 5000 });
-            const liveSeq = liveRes.data?.sequence;
-            console.log(`[GAP] Current: ${sharedState.currentSequence} | Live: ${liveSeq} | Behind: ${liveSeq - sharedState.currentSequence} sequences`);
-          } catch (_) { }
-          sharedState.currentSequence = lastKnownSequence;
-          nextTick = 6000;
-        } else {
-          nextTick = POLLING_CONFIG.ERROR_BACKOFF;
-        }
-
-        if (status === 404 && consecutive404s >= 30) {
-          console.warn("[RE-SYNC] 404 limit reached. Re-priming...");
-          return r2BackgroundWorker();
-        }
-      }
-
-      setTimeout(poll, nextTick);
-    };
-
-    poll();
+  const ingestDelay = ((Date.now() - killTime) / 1000).toFixed(1);
+  console.log(`[INGEST] Kill ${r2Package.killID} | Age: ${ingestDelay}s`);
 }
 
+async function handleSequenceUpdate(sequenceId) {
+  try {
+    const res = await talker.get(`${R2_BASE_URL}/${sequenceId}.json`, { timeout: 2000 });
+    const pkg = normalizer.fromR2(res.data);
+    if (pkg?.killID && !processedKills.has(pkg.killID)) {
+      processedKills.add(pkg.killID);
+      processor.processPackage(pkg);
+      console.log(`[REFETCH] Reprocessed updated sequence ${sequenceId}`);
+    }
+  } catch (e) {
+    console.error(`[REFETCH] Failed for sequence ${sequenceId}:`, e.message);
+  }
+}
+
+// --- R2Z2 Poller (spec-compliant) ---
+//
+// Contract (from R2Z2 docs):
+//   1. Fetch sequence N
+//   2. On 200: process it, sleep 100ms, sequence++
+//   3. On 404: no more killmails yet. Sleep >= 6s, retry SAME sequence
+//   4. Rate limit: 20 req/s. On 429: back off significantly
+//   5. Sequences are strictly increasing, monotonic, never reused
+//
+
+let ghostStreak = 0; // consecutive normalizer failures on 200 responses
+
+async function prime() {
+  try {
+    const saved = await r2.get("worker_state.json");
+    if (saved?.sequence) {
+      console.log (`[PRIME] Found saved sequence ${saved.sequence} — validating...`);
+      const testUrl = `${R2_BASE_URL}/${saved.sequence}.json`;
+      try {
+        await talker.get(testUrl, { timeout: 2000 });
+        state.sequence = saved.sequence;
+        console.log(`[PRIME] Validated Resumed from saved sequence ${saved.sequence}`);
+        return;
+      } catch (e) {
+        if (e.response?.status === 404) {
+          console.warn(`[PRIME] Saved sequence ${saved.sequence} is a gap — falling back to sequence.json`);
+        } else {
+          state.sequence = saved.sequence;
+          console.error(`[PRIME] Failed to validate saved sequence ${saved.sequence}:`, e.message);
+          return;
+        }
+      }
+    }
+  } catch (_) {
+    // No saved state — fall through to sequence.json
+  }
+
+  const res = await talker.get(SEQUENCE_CACHE_URL, { timeout: 5000 });
+  if (!res.data?.sequence) throw new Error("Invalid sequence.json payload");
+
+  state.sequence = parseInt(res.data.sequence) - 5;
+  console.log(`[PRIME] Cold start from sequence.json at ${state.sequence}`);
+}
+
+async function poll() {
+  if (state.isThrottled) return;
+
+  const url = `${R2_BASE_URL}/${state.sequence}.json`;
+  let nextDelay = POLL_DELAY_MS;
+
+  try {
+    const response = await talker.get(url, { timeout: 2000 });
+    const r2Package = normalizer.fromR2(response.data);
+
+    if (r2Package?.killID) {
+      // --- Success: valid killmail ---
+      processKill(r2Package);
+
+      if (r2Package.sequenceUpdated) {
+        handleSequenceUpdate(r2Package.sequenceUpdated);
+      }
+
+      ghostStreak = 0;
+      state.consecutive404s = 0;
+      state.lastSuccessfulIngest = Date.now();
+      state.lastErrorStatus = 200;
+      state.sequence++;
+
+      if (state.sequence % STATE_PERSIST_INTERVAL === 0) {
+        r2.put("worker_state.json", { sequence: state.sequence });
+      }
+
+      nextDelay = POLL_DELAY_MS;
+    } else {
+      // --- 200 but normalizer returned nothing (ghost file) ---
+      ghostStreak++;
+      if (ghostStreak >= GHOST_SKIP_AFTER) {
+        console.warn(`[SKIP] Seq ${state.sequence} — ${GHOST_SKIP_AFTER} consecutive ghost files. Advancing.`);
+        state.sequence++;
+        ghostStreak = 0;
+      } else {
+        console.log(`[GAP] Ghost file at seq ${state.sequence} (attempt ${ghostStreak}/${GHOST_SKIP_AFTER})`);
+        nextDelay = STALL_DELAY_MS;
+      }
+    }
+  } catch (err) {
+    const status = err.response?.status;
+    state.lastErrorStatus = status;
+
+    if (status === 429) {
+      // --- Rate limited: full stop, wait, resume ---
+      state.isThrottled = true;
+      console.error(`[429] Rate limited. Pausing for ${THROTTLE_DELAY_MS / 1000}s.`);
+      setTimeout(() => {
+        state.isThrottled = false;
+        poll();
+      }, THROTTLE_DELAY_MS);
+      return; // break the setTimeout chain
+    }
+
+    if (status === 404) {
+      // --- Frontier: no more killmails yet. Hold position, wait 6s (spec) ---
+      state.consecutive404s++;
+      if (state.consecutive404s === 1 || state.consecutive404s % 10 === 0) {
+        console.log(`[WAIT] At frontier — seq ${state.sequence}, 404 #${state.consecutive404s}. Sleeping ${STALL_DELAY_MS / 1000}s.`);
+      }
+      if (state.consecutive404s >= 100) {
+        console.warn(`[ADVANCE] Seq ${state.sequence} — permanent gap detected, advancing.`);
+        state.sequence++;
+        state.consecutive404s = 0;
+      }
+      nextDelay = STALL_DELAY_MS;
+    } else if (status === 403) {
+      // --- Blocked: likely user-agent or ban. Log prominently, back off hard ---
+      console.error(`[403] Blocked by R2Z2. Check user-agent or visit zKillboard Discord.`);
+      nextDelay = THROTTLE_DELAY_MS;
+    } else {
+      // --- Unknown error ---
+      console.error(`[ERROR] Fetch failed for seq ${state.sequence}: ${status || err.message}`);
+      nextDelay = ERROR_DELAY_MS;
+    }
+  }
+
+  setTimeout(poll, nextDelay);
+}
+
+async function startPoller() {
+  try {
+    await prime();
+    poll();
+  } catch (e) {
+    const status = e.response?.status;
+    const delay = status === 429 ? THROTTLE_DELAY_MS : 10000;
+    console.error(`[PRIME] Failed — ${status || e.message}. Retrying in ${delay / 1000}s.`);
+    setTimeout(startPoller, delay);
+  }
+}
+
+
+// --- Boot -
 (async () => {
   console.log("Initializing Socket.Kill...");
   await esi.loadSystemCache("./data/systems.json");
   await esi.loadCache(path.join(__dirname, "data", "esi_cache.json"));
   await statsManager.recoverFromR2();
- // await loadMarketPrices();
-//  await loadWars();
-  refreshNebulaBackground();
   processor = ProcessorFactory(esi, io, statsManager);
+  await hashCache.prime();                                  // <-- ADD
+  setInterval(() => hashCache.rotateIfNeeded(), 60_000);   
+  refreshNebulaBackground();
   syncPlayerCount();
- // pollWarKillmails(processor.processPackage, processedKills); // ADD
- // syncWars();
- // setInterval(syncWars, 60 * 60 * 1000);
- // setInterval(() => pollWarKillmails(processor.processPackage, processedKills), 60 * 60 * 1000); // ADD
- // setInterval(syncMarketPrices, 24 * 60 * 60 * 1000);
-  setInterval(refreshNebulaBackground, ROTATION_SPEED);
-  r2BackgroundWorker();
+  setInterval(refreshNebulaBackground, NEBULA_ROTATION_MS);
+  startPoller();
 })();

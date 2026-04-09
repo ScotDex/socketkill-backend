@@ -2,17 +2,14 @@ const helpers = require('../core/helpers');
 
 const CATEGORY_CONFIG = {
     value_1b:       { label: 'KILL DETECTED',       color: 0x3fb950 },
-    value_5b:       { label: 'HIGH VALUE KILL',     color: 0x58a6ff },
     value_10b:      { label: 'MAJOR KILL',          color: 0xf39c12 },
-    value_20b:      { label: 'WHALE KILL',          color: 0xf2cc60 },
-    value_50b:      { label: 'MASSIVE KILL',        color: 0xe67e22 },
     value_100b:     { label: 'CATASTROPHIC KILL',   color: 0xe74c3c },
     capitals:       { label: 'CAPITAL KILL',        color: 0x3498db },
     supercapitals:  { label: 'SUPERCAPITAL KILL',   color: 0x9b59b6 },
     at_ships:       { label: 'AT SHIP SIGHTING',    color: 0xe74c3c },
-    officer:        { label: 'OFFICER KILL',        color: 0xf39c12 },
-    wormhole:       { label: 'WORMHOLE KILL',       color: 0x1abc9c },
-    pochven:        { label: 'POCHVEN KILL',        color: 0xe74c3c },
+    officer:        { label: 'OFFICER ACTIVITY',        color: 0xf39c12 },
+    rorqual:        { label: 'RORQUAL SPOTTED',     color: 0xf39c12 },
+    titan_loss:     { label: 'TITAN DESTROYED',     color: 0xf39c12 },
 };
 
 const DOTLAN_BASE = 'https://evemaps.dotlan.net';

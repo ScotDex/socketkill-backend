@@ -1,4 +1,4 @@
-const { AT_SHIP_IDS, OFFICER_SHIP_IDS } = require('../core/shipIDs');
+const { AT_SHIP_IDS, OFFICER_SHIP_IDS, RORQUAL_SHIP_IDS } = require('../core/shipIDs');
 class atOfficerFactory {
     static createKillEmbed(kill, zkb, names) {
         const DOTLAN_BASE = 'https://evemaps.dotlan.net'
@@ -6,15 +6,15 @@ class atOfficerFactory {
         const title = 'Activity Detected';
 
         const triggerAttacker = kill.attackers?.find(a => 
-            AT_SHIP_IDS.has(a.ship_type_id) || OFFICER_SHIP_IDS.has(a.ship_type_id)
+            AT_SHIP_IDS.has(a.ship_type_id) || OFFICER_SHIP_IDS.has(a.ship_type_id) || RORQUAL_SHIP_IDS.has(a.ship_type_id) 
         );
         return {
-            username: "Officer NPC/AT Ship Tracker",
+            username: "Target Ship Tracker",
             avatar_url: corpIcon,
             // content: `<@344509856176275476> 👀`,
             embeds: [{
                 author: {
-                    name: `${names.triggerShipName} spotted in ${names.systemName}`,
+                    name: `${names.triggerShipName || 'Unknown'} spotted in ${names.systemName}`,
                     icon_url: `https://images.evetech.net/corporations/${triggerAttacker?.corporation_id}/logo?size=64`
                 },
                 title: title,
@@ -24,8 +24,8 @@ class atOfficerFactory {
                 fields: [
                     { name: "System", value: `**[${names.systemName}](${DOTLAN_BASE}/system/${names.systemName.replace(/ /g, '_')})** `, inline: false },
                     { name: "Region", value: `**[${names.regionName}](${DOTLAN_BASE}/region/${names.regionName.replace(/ /g, '_')})** `, inline: false },
-                    { name: "Pilot", value: names.triggerCharName, inline: false },
-                    { name: "Corporation", value: names.triggerCorpName, inline: false },
+                    { name: "Pilot", value: names.triggerCharName || 'Unknown', inline: false },
+                    { name: "Corporation", value: names.triggerCorpName || 'Unknown', inline: false },
                 ],
                 footer: {
                     text: `Powered by socketkill.com`,

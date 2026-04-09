@@ -47,4 +47,45 @@ const OFFICER_SHIP_IDS = new Set([
     13654, 13659, 13661, 13667
 ]);
 
-module.exports = { AT_SHIP_IDS, OFFICER_SHIP_IDS };
+const RORQUAL_SHIP_IDS = new Set([
+    42241 // Molok
+]);
+
+
+const TRIGLAVIAN_SYSTEMS = new Set([
+    30000021, // Kuharah
+    30000157, // Otela
+    30000192, // Otanuomi
+    30000206, // Wirashoda
+    30001372, // Kino
+    30001381, // Arvasaras
+    30001413, // Nani
+    30001445, // Nalvula
+    30002079, // Krirald
+    30002225, // Harva
+    30002411, // Skarkon
+    30002652, // Ala
+    30002702, // Archee
+    30002737, // Konola
+    30002770, // Tunudan
+    30002797, // Kaunokka
+    30003046, // Angymonne
+    30003495, // Raravoss
+    30003504, // Niarja
+    30005005, // Ignebaener
+    30005029, // Vale
+    30010141, // Sakenta
+    30020141, // Senda
+    30031392, // Komo
+    30040141, // Urhinichi
+    30045328, // Ahtila
+    30045329, // Ichoriya
+    32000058, // Ubbcre
+    32000012, // Xnfcre
+    32000049, // Xevfgvaa
+    32000123, // Orethe
+    32000074, // Rhna
+    32000102, // Unsfgrvaa
+]);
+
+module.exports = { AT_SHIP_IDS, OFFICER_SHIP_IDS, TRIGLAVIAN_SYSTEMS, RORQUAL_SHIP_IDS };

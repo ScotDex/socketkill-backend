@@ -3,7 +3,7 @@ const CorpIntelFactory = require("../services/corpIntelFactory");
 const axios = require("../network/agent");
 const helpers = require("../core/helpers");
 const atOfficerFactory = require("./atOfficerFactory");
-const { AT_SHIP_IDS, OFFICER_SHIP_IDS } = require('../core/shipIDs');
+const { AT_SHIP_IDS, OFFICER_SHIP_IDS, RORQUAL_SHIP_IDS } = require('../core/shipIDs');
 const r2 = require("../network/r2Writer");
 const NewsEmbedFactory = require("./genericFactory");
 
@@ -39,23 +39,23 @@ async function postNewsChannel(kill, zkb, names, category) {
 module.exports = async (killmail, zkb, names) => {
     const isOfficerKill = killmail.attackers?.some(a => OFFICER_SHIP_IDS.has(a.ship_type_id));
     const isATKill = killmail.attackers?.some(a => AT_SHIP_IDS.has(a.ship_type_id))
+    const isRorqual = killmail.attackers?.some(a => RORQUAL_SHIP_IDS.has(a.ship_type_id))
 
-    await postNewsChannel(killmail, zkb, names, 'test');
-    await new Promise (resolve => setTimeout(resolve, 3000))
-
-    if (isOfficerKill || isATKill) {
+    if (isOfficerKill || isATKill || isRorqual) {
     await postOfficerIntel(killmail, zkb, names);
     await new Promise(resolve => setTimeout(resolve, 2000));
     }
 
     if (names.rawValue < WHALE_THRESHOLD) return;
     await Promise.all([
+        postNewsChannel(killmail, zkb, names, 'test'),
         postCorpIntel(killmail, zkb, names),
         postSocial(names, helpers.formatIsk(names.rawValue), killmail.killmail_id)
     ]);
 };
 
 async function postCorpIntel(kill, zkb, names) {
+    console.log(`[CORP INTEL] Firing for kill ${kill.killmail_id} | rawValue: ${names.rawValue}`);
     const payload = CorpIntelFactory.createKillEmbed(kill, zkb, names);
     try {
         await axios.post(process.env.BLANKSPACE_HOOK, payload),
@@ -66,6 +66,7 @@ async function postCorpIntel(kill, zkb, names) {
 }
 
 async function postOfficerIntel(kill, zkb, names) {
+    console.log(`[OFFICER INTEL] Firing for kill ${kill.killmail_id} | rawValue: ${names.rawValue}`);
     const payload = atOfficerFactory.createKillEmbed(kill, zkb, names);
     try {
         await Promise.all([

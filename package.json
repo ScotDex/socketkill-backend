@@ -1,19 +1,15 @@
 {
   "dependencies": {
     "@atproto/api": "^0.19.0",
-    "@tailwindcss/cli": "^4.1.18",
-    "axios": "^1.13.5",
-    "axios-http2-adapter": "^1.0.3",
+    "@axiomhq/js": "^1.4.0",
+    "axios": "^1.15.0",
     "cors": "^2.8.5",
-    "dotenv": "^17.2.3",
+    "dotenv": "^17.4.1",
     "express": "^5.2.1",
     "helmet": "^8.1.0",
-    "http2-wrapper": "^2.2.1",
     "io": "^1.5.7",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
-    "tailwindcss": "^4.1.18",
-    "three": "^0.183.1",
     "twitter-api-v2": "^1.28.0"
   }
 }

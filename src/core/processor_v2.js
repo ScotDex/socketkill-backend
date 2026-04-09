@@ -1,15 +1,22 @@
 const helpers = require("./helpers");
 const handleWhale = require("../services/whaleModule");
 const { resolveKillmail, resolveFinalBlowCorp, resolveTriggerAttacker } = require('./processorHelpers');
+const { TRIGLAVIAN_SYSTEMS } = require('../core/shipIDs');
+const hashCache = require ('../state/hashCache')
 
 module.exports = (esi, io, statsManager) => {
     async function processPackage(packageData) {
         const startProcessing = process.hrtime.bigint();
-        const { zkb, killID, isR2, esiData } = packageData;
+        const { zkb, killID, isR2, esiData, hash } = packageData;
+
+        if (hash) hashCache.set(killID, hash);
 
         try {
             const killmail = await resolveKillmail(isR2, esiData, zkb);
-            const rawValue = Number(zkb.totalValue) || 0;
+            const rawValue = Number(zkb.totalValue) || 0
+            console.log(`[DEBUG] zkb.totalValue: ${zkb.totalValue} | rawValue: ${rawValue}`);
+
+            //
 
             const [systemDetails, shipName, charName, corpName, finalBlowCorp] = await Promise.all([
                 esi.getSystemDetails(killmail.solar_system_id),
@@ -53,12 +60,13 @@ module.exports = (esi, io, statsManager) => {
                 shipImageUrl: `https://api.socketkill.com/render/ship/${killmail.victim.ship_type_id}`,
                 corpImageUrl: `https://api.socketkill.com/render/corp/${killmail.victim.corporation_id}`,
                 finalBlowCorp: finalBlowCorp,
-                attackerCount: attackerCount
+                attackerCount: attackerCount,
+                isTriglavian: TRIGLAVIAN_SYSTEMS.has(killmail.solar_system_id),
             });
 
             // Gated filter for web hooks
 
-            await handleWhale(killmail, zkb, {
+            handleWhale(killmail, zkb, {
                 shipName,
                 systemName,
                 charName,

@@ -36,6 +36,8 @@ jobs:
             echo "CF_CACHE_BUCKET=${{ secrets.CF_CACHE_BUCKET }}" >> .env
             echo "CF_R2_TOKEN=${{ secrets.CF_R2_TOKEN }}" >> .env
             echo "SECOND_HOOK=${{ secrets.SECOND_HOOK }}" >> .env
+            echo "AXIOM_TOKEN=${{ secrets.AXIOM_TOKEN }}" >> .env
+            echo "AXIOM_ORG_ID=${{ secrets.AXIOM_ORG_ID }}" >> .env
             git pull
             docker compose down
             docker compose up -d --build

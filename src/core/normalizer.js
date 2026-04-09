@@ -10,6 +10,7 @@ module.exports = {
 
         return {
             killID: killID,
+            hash: hash,
             zkb: {
                 totalValue: totalValue,
                 href: hash ? `https://esi.evetech.net/latest/killmails/${killID}/${hash}/` : null,
@@ -27,6 +28,7 @@ module.exports = {
         if (!esiData || !killmailId) return null;
         return {
             killID: killmailId,
+            hash: killmailHash,
             zkb: {
                 totalValue: 0,
                 href: `https://esi.evetech.net/latest/killmails/${killmailId}/${killmailHash}/`,

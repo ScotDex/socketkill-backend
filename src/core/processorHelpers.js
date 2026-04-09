@@ -1,5 +1,5 @@
 const axios = require("../network/agent");
-const { AT_SHIP_IDS, OFFICER_SHIP_IDS } = require('../core/shipIDs');
+const { AT_SHIP_IDS, OFFICER_SHIP_IDS, RORQUAL_SHIP_IDS } = require('../core/shipIDs');
 
 async function resolveKillmail(isR2, esiData, zkb) {
     if (isR2 && esiData) return esiData
@@ -17,7 +17,7 @@ async function resolveFinalBlowCorp(killmail, esi) {
 
 async function resolveTriggerAttacker(killmail, esi) {
     const attacker = killmail.attackers?.find(a =>
-        AT_SHIP_IDS.has(a.ship_type_id) || OFFICER_SHIP_IDS.has(a.ship_type_id)
+        AT_SHIP_IDS.has(a.ship_type_id) || OFFICER_SHIP_IDS.has(a.ship_type_id) || RORQUAL_SHIP_IDS.has(a.ship_type_id)
     )
     if (!attacker) return { triggerShipName: null, triggerCharName: null, triggerCorpName: null, triggerShipId: null };
     const [triggerShipName, triggerCharName, triggerCorpName] = await Promise.all([
