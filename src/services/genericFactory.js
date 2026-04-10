@@ -39,12 +39,9 @@ class NewsEmbedFactory {
                     url: `https://edge.socketkill.com/favicon.png`
                 },
                 fields: [
-                    { name: "Ship", value: names.shipName, inline: false },
-                    { name: "Corporation", value: names.corpName, inline: true},
-                    { name: "Value", value: `**${totalValue} ISK**`, inline: false },
-                    { name: "System", value: `**[${names.systemName}](${DOTLAN_BASE}/system/${names.systemName.replace(/ /g, '_')})**`, inline: true },
-                    { name: "Region", value: `**[${names.regionName}](${DOTLAN_BASE}/map/${names.regionName.replace(/ /g, '_')})**`, inline: false },
-                    { name: "Final Blow", value: names.finalBlowCorp, inline: true },
+                    { name: "Ship & Value", value: `**${names.shipName}** · ${totalValue} ISK`, inline: false },
+                    { name: "Location", value: `[${names.systemName}](${DOTLAN_BASE}/system/${names.systemName.replace(/ /g, '_')}) · [${names.regionName}](${DOTLAN_BASE}/map/${names.regionName.replace(/ /g, '_')})`, inline: false },
+                    { name: "Report", value: `Final blow: ${names.finalBlowCorp} · ${names.attackerCount} attackers`, inline: false },
                 ],
                 footer: {
                     text: "Socket.Kill | Real-time EVE Intel",
