@@ -6,6 +6,7 @@ const CATEGORY_CONFIG = {
     all_kills:      { label: 'Loss Mail Detected',   color: 0x4a4a52 },
     officer:        { label: 'Officer Spotted',    color: 0xf39c12 },
     value_1b:       { label: 'Serious Loss Mail Detected',    color: 0x5dade2 },
+    value_10b:       { label: 'Serious Loss Mail Detected',    color: 0x5dade2 },
 };
 
 const DOTLAN_BASE = 'https://evemaps.dotlan.net';
