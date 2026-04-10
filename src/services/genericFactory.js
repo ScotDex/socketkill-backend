@@ -29,7 +29,7 @@ class NewsEmbedFactory {
                     icon_url: `https://images.evetech.net/characters/${kill.victim.character_id}/portrait?size=64`,
                     url: `https://zkillboard.com/character/${kill.victim.character_id}/`
                 },
-                title: config.label,
+                title: `${names.finalVictimName} lost a ${names.shipName}`,
                 url: `https://zkillboard.com/kill/${kill.killmail_id}/`,
                 color: config.color,
                 image: {
@@ -39,8 +39,8 @@ class NewsEmbedFactory {
                     url: `https://edge.socketkill.com/favicon.png`
                 },
                 fields: [
-                    { name: "Ship & Value", value: `**${names.shipName}** · ${totalValue} ISK`, inline: false },
-                    { name: "System || Region", value: `[**${names.systemName}**](${DOTLAN_BASE}/system/${names.systemName.replace(/ /g, '_')}) · [**${names.regionName}**](${DOTLAN_BASE}/map/${names.regionName.replace(/ /g, '_')})`, inline: false },
+                    { name: "Value", value: `**${totalValue} ISK**`, inline: false },
+                    { name: "System - Region", value: `[**${names.systemName}**](${DOTLAN_BASE}/system/${names.systemName.replace(/ /g, '_')}) · [**${names.regionName}**](${DOTLAN_BASE}/map/${names.regionName.replace(/ /g, '_')})`, inline: false },
                     { name: "Report", value: `Final blow: ${names.finalBlowCorp} · ${names.attackerCount} attackers`, inline: false },
                 ],
                 footer: {
