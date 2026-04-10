@@ -4,12 +4,15 @@ const axios = require("../network/agent");
 const helpers = require("../core/helpers");
 const atOfficerFactory = require("./atOfficerFactory");
 const { AT_SHIP_IDS, OFFICER_SHIP_IDS, RORQUAL_SHIP_IDS } = require('../core/shipIDs');
+const { TITAN_SHIP_IDS, SUPER_SHIP_IDS, TRIGLAVIAN_SYSTEMS } = require('../core/relayShipIDs');
 const r2 = require("../network/r2Writer");
 const NewsEmbedFactory = require("./genericFactory");
 
 let channels = {};
 
 const WHALE_THRESHOLD = 20000000000;
+const VALUE_1B = 1000000000;
+const VALUE_10B = 10000000000;
 
 async function loadChannels() {
     try {
@@ -45,6 +48,12 @@ module.exports = async (killmail, zkb, names) => {
     await postOfficerIntel(killmail, zkb, names);
     await new Promise(resolve => setTimeout(resolve, 2000));
     }
+
+    const categoryPosts = [];
+    if (isOfficerKill) categoryPosts.push(postNewsChannel(killmail, zkb, names, 'officer'));
+    if (isATKill) categoryPosts.push(postNewsChannel(killmail, zkb, names, 'at_ships'));
+    if (isRorqual) categoryPosts.push(postNewsChannel(killmail, zkb, names, 'rorqual_activity'));
+    if (categoryPosts.length) await Promise.all(categoryPosts);
 
     if (names.rawValue < WHALE_THRESHOLD) return;
     await Promise.all([

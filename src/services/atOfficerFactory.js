@@ -11,7 +11,6 @@ class atOfficerFactory {
         return {
             username: "Target Ship Tracker",
             avatar_url: corpIcon,
-            // content: `<@344509856176275476> 👀`,
             embeds: [{
                 author: {
                     name: `${names.triggerShipName || 'Unknown'} spotted in ${names.systemName}`,
