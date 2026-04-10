@@ -23,6 +23,11 @@ class NewsEmbedFactoryV2 {
                         {
                             type: 10,
                             content: `**Value**  ${totalValue} ISK\n**System**  ${names.systemName}\n**Attackers**  ${names.attackerCount}`
+                        },
+                        { type: 14, spacing: 1, divider: false },
+                        {
+                            type: 10,
+                            content: `-# Socket.Kill | Real-time EVE Intel · <t:${Math.floor(Date.now() / 1000)}:R>`
                         }
                     ]
                 }
