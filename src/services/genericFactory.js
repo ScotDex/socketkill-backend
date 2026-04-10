@@ -43,8 +43,8 @@ class NewsEmbedFactory {
                 fields: [
                     { name: "Ship", value: names.shipName, inline: false },
                     { name: "Corporation", value: names.corpName, inline: false},
-                    { name: "Value", value: `**${totalValue} ISK**`, inline: false },
-                    { name: "System", value: `**[${names.systemName}](${DOTLAN_BASE}/system/${names.systemName.replace(/ /g, '_')})**`, inline: false },
+                    { name: "Value", value: `**${totalValue} ISK**`, inline: true },
+                    { name: "System", value: `**[${names.systemName}](${DOTLAN_BASE}/system/${names.systemName.replace(/ /g, '_')})**`, inline: true },
                     { name: "Region", value: `**[${names.regionName}](${DOTLAN_BASE}/map/${names.regionName.replace(/ /g, '_')})**`, inline: false },
                     { name: "Final Blow", value: names.finalBlowCorp, inline: false },
                 ],
