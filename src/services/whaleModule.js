@@ -7,6 +7,7 @@ const { AT_SHIP_IDS, OFFICER_SHIP_IDS, RORQUAL_SHIP_IDS } = require('../core/shi
 const { TITAN_SHIP_IDS, SUPER_SHIP_IDS, TRIGLAVIAN_SYSTEMS } = require('../core/relayShipIDs');
 const r2 = require("../network/r2Writer");
 const NewsEmbedFactory = require("./genericFactory");
+const NewsEmbedFactoryV2 = require("./genericFactoryv2");
 
 let channels = {};
 
@@ -18,7 +19,7 @@ async function loadChannels() {
     try {
         const config = await r2.get('channels.json');
         if (config) channels = config;
-        console.log (`[NEWS] Loaded ${Object.keys(channels).length} channel categories`);
+        console.log(`[NEWS] Loaded ${Object.keys(channels).length} channel categories`);
     } catch (err) {
         console.error(`[NEWS] Failed to load channels.json: ${err.message}`);
     }
@@ -33,10 +34,14 @@ async function postNewsChannel(kill, zkb, names, category) {
     if (!urls || urls.length === 0) return;
     const urlList = Array.isArray(urls) ? urls : [urls];
     const payload = NewsEmbedFactory.createEmbed(kill, zkb, names, category);
+    const payloadV2 = NewsEmbedFactoryV2.createEmbed(kill, zkb, names, category);
     await Promise.all(
-        urlList.map(url => axios.post(url, payload).catch(err =>
-            console.error(`[NEWS] ${category} webhook failed: ${err.message}`)
-        ))
+        urlList.map(url => {
+            const finalUrl = payload.flags === 32768 ? `${url}?with_components=true` : url;
+            return axios.post(finalUrl, payload).catch(err =>
+                console.error(`[NEWS] ${category} webhook failed: ${err.message}`)
+            )
+        })
     );
     console.log(`[NEWS] Kill ${kill.killmail_id} posted to ${category} (${urlList.length} webhooks)`);
 }
@@ -47,13 +52,14 @@ module.exports = async (killmail, zkb, names) => {
     const isRorqual = killmail.attackers?.some(a => RORQUAL_SHIP_IDS.has(a.ship_type_id))
 
     if (isOfficerKill || isATKill || isRorqual) {
-    await postOfficerIntel(killmail, zkb, names);
-    await new Promise(resolve => setTimeout(resolve, 2000));
+        await postOfficerIntel(killmail, zkb, names);
+        await new Promise(resolve => setTimeout(resolve, 2000));
     }
 
     await postNewsChannel(killmail, zkb, names, 'all_kills');
+    await postNewsChannel(killmail, zkb, names, 'v2_test');
 
-// Centralized Dispatcher
+    // Centralized Dispatcher
     const categoryPosts = [];
     if (isOfficerKill) categoryPosts.push(postNewsChannel(killmail, zkb, names, 'officer'));
     if (isATKill) categoryPosts.push(postNewsChannel(killmail, zkb, names, 'at_ships'));
