@@ -71,7 +71,7 @@ async function postCorpIntel(kill, zkb, names) {
     console.log(`[CORP INTEL] Firing for kill ${kill.killmail_id} | rawValue: ${names.rawValue}`);
     const payload = CorpIntelFactory.createKillEmbed(kill, zkb, names);
     try {
-        await axios.post(process.env.BLANKSPACE_HOOK, payload),
+        await axios.post(process.env.BLANKSPACE_HOOK, payload);
         console.log(`[CORP INTEL] Kill ${kill.killmail_id} posted`);
     } catch (err) {
         console.error(`[CORP INTEL] Webhook failed: ${err.message}`);
