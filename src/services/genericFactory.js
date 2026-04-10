@@ -40,7 +40,7 @@ class NewsEmbedFactory {
                 },
                 fields: [
                     { name: "Ship & Value", value: `**${names.shipName}** · ${totalValue} ISK`, inline: false },
-                    { name: "Location", value: `[${names.systemName}](${DOTLAN_BASE}/system/${names.systemName.replace(/ /g, '_')}) · [${names.regionName}](${DOTLAN_BASE}/map/${names.regionName.replace(/ /g, '_')})`, inline: false },
+                    { name: "System || Region", value: `[**${names.systemName}**](${DOTLAN_BASE}/system/${names.systemName.replace(/ /g, '_')}) · [**${names.regionName}**](${DOTLAN_BASE}/map/${names.regionName.replace(/ /g, '_')})`, inline: false },
                     { name: "Report", value: `Final blow: ${names.finalBlowCorp} · ${names.attackerCount} attackers`, inline: false },
                 ],
                 footer: {
