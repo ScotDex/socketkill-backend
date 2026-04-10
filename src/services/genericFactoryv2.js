@@ -21,8 +21,19 @@ class NewsEmbedFactoryV2 {
                         },
                         { type: 14, spacing: 1, divider: true },
                         {
-                            type: 10,
-                            content: `**Value**  ${totalValue} ISK\n**System**  ${names.systemName}\n**Attackers**  ${names.attackerCount}`
+                            type: 9,
+                            components: [
+                                {
+                                    type: 10,
+                                    content: `**Value**  ${totalValue} ISK\n**System**  ${names.systemName}\n**Attackers**  ${names.attackerCount}`
+                                }
+                            ],
+                            accessory: {
+                                type: 11,
+                                media: {
+                                    url: `https://images.evetech.net/types/${kill.victim.ship_type_id}/render?size=128`
+                                }
+                            }
                         },
                         { type: 14, spacing: 1, divider: false },
                         {
