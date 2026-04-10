@@ -52,7 +52,8 @@ module.exports = async (killmail, zkb, names) => {
     }
 
     await postNewsChannel(killmail, zkb, names, 'all_kills');
-// Relay posts
+
+// Centralized Dispatcher
     const categoryPosts = [];
     if (isOfficerKill) categoryPosts.push(postNewsChannel(killmail, zkb, names, 'officer'));
     if (isATKill) categoryPosts.push(postNewsChannel(killmail, zkb, names, 'at_ships'));
@@ -63,7 +64,7 @@ module.exports = async (killmail, zkb, names) => {
 
     if (names.rawValue < WHALE_THRESHOLD) return;
     await Promise.all([
-        postNewsChannel(killmail, zkb, names, 'test'),
+        postNewsChannel(killmail, zkb, names, 'value_20b'),
         postCorpIntel(killmail, zkb, names),
         postSocial(names, helpers.formatIsk(names.rawValue), killmail.killmail_id)
     ]);
