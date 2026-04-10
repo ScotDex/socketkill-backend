@@ -5,9 +5,11 @@ const CATEGORY_CONFIG = {
     rorqual_activity:   { label: 'Rorqual Spotted',          color: 0xf39c12 },
     all_kills:          { label: 'Loss Mail Detected',   color: 0x4a4a52 },
     officer:            { label: 'Officer Spotted',    color: 0xf39c12 },
-    value_1b:           { label: 'Serious Loss Mail Detected',    color: 0x5dade2 },
+    value_1b:           { label: 'Slightly Serious Loss Mail Detected',    color: 0x5dade2 },
     value_10b:          { label: 'Serious Loss Mail Detected',    color: 0x5dade2 },
-    value_20b:          { label: 'Serious Loss Mail Detected',    color: 0x5dade2 }
+    value_20b:          { label: 'Very Serious Loss Mail Detected',    color: 0x5dade2 },
+    titan_loss:         { label: 'Titan Destroyed',    color: 0x5dade2 },
+    super_loss:         { label: 'Super Cap Destroyed',    color: 0x5dade2 }
 };
 
 const DOTLAN_BASE = 'https://evemaps.dotlan.net';

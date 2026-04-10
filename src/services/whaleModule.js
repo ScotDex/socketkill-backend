@@ -60,6 +60,8 @@ module.exports = async (killmail, zkb, names) => {
     if (isRorqual) categoryPosts.push(postNewsChannel(killmail, zkb, names, 'rorqual_activity'));
     if (names.rawValue >= VALUE_1B) categoryPosts.push(postNewsChannel(killmail, zkb, names, 'value_1b'));
     if (names.rawValue >= VALUE_10B) categoryPosts.push(postNewsChannel(killmail, zkb, names, 'value_10b'));
+    if (TITAN_SHIP_IDS.has(killmail.victim?.ship_type_id)) {(killmail, zkb, names, 'titan_loss');}
+    if (SUPER_SHIP_IDS.has(killmail.victim?.ship_type_id)) {(killmail, zkb, names, 'super_loss');}
     if (categoryPosts.length) await Promise.all(categoryPosts);
 
     if (names.rawValue < WHALE_THRESHOLD) return;
