@@ -48,7 +48,7 @@ module.exports = async (killmail, zkb, names) => {
     await postOfficerIntel(killmail, zkb, names);
     await new Promise(resolve => setTimeout(resolve, 2000));
     }
-
+// Relay posts
     const categoryPosts = [];
     if (isOfficerKill) categoryPosts.push(postNewsChannel(killmail, zkb, names, 'officer'));
     if (isATKill) categoryPosts.push(postNewsChannel(killmail, zkb, names, 'at_ships'));
