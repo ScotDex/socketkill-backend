@@ -24,6 +24,12 @@ class NewsEmbedFactory {
             username: "Socket.Kill Intel",
             avatar_url: "https://edge.socketkill.com/favicon.png",
             embeds: [{
+                author: {
+                    name: names.finalVictimName,
+                    icon_url: `https://images.evetech.net/characters/${kill.victim.character_id}/portrait?size=64`,
+                    url: `https://zkillboard.com/character/${kill.victim.character_id}/`
+
+                },
                 title: config.label,
                 url: `https://zkillboard.com/kill/${kill.killmail_id}/`,
                 color: config.color,
@@ -31,8 +37,8 @@ class NewsEmbedFactory {
                     url: `https://images.evetech.net/types/${kill.victim.ship_type_id}/render?size=64`
                 },
                 fields: [
-                    { name: "Victim", value: `${names.finalVictimName} (${names.corpName})`, inline: false },
                     { name: "Ship", value: names.shipName, inline: true },
+                    { name: "Corporation", value: names.corpName, inline: true},
                     { name: "Value", value: `**${totalValue} ISK**`, inline: true },
                     { name: "System", value: `**[${names.systemName}](${DOTLAN_BASE}/system/${names.systemName.replace(/ /g, '_')})**`, inline: true },
                     { name: "Region", value: `**[${names.regionName}](${DOTLAN_BASE}/map/${names.regionName.replace(/ /g, '_')})**`, inline: true },
