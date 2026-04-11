@@ -27,7 +27,7 @@ async function loadChannels() {
 loadChannels();
 
 
-const MIN_WEBHOOK_INTERVAL_MS = 300;
+const MIN_WEBHOOK_INTERVAL_MS = 500;
 let lastWebhookAt = 0;
 
 async function webhookSpacer() {
