@@ -3,11 +3,11 @@ const talker = require("./agent");
 const fs = require(`fs`).promises;
 
 
-class ESIClient{
+class ESIClient {
     constructor() {
         this.api = talker;
         this.baseURL = "https://esi.evetech.net/latest";
-        
+
         this.cache = {
             characters: new Map(),
             corporations: new Map(),
@@ -20,8 +20,8 @@ class ESIClient{
         this.isDirty = false;
 
         setInterval(() => {
-            if (this.isDirty){
-                this.saveCache('./data/esi_cache.json');   
+            if (this.isDirty) {
+                this.saveCache('./data/esi_cache.json');
             }
         }, 1 * 60 * 1000);
     }
@@ -36,7 +36,7 @@ class ESIClient{
         try {
             const response = await this.api.get(`${this.baseURL}${endpoint}/${id}/`);
             const name = response.data.name;
-            
+
             if (internalCache) internalCache.set(id, name);
             this.isDirty = true;
             return name;
@@ -58,26 +58,27 @@ class ESIClient{
             await fs.writeFile(filePath, json);
             this.isDirty = false; // Reset flag after successful save
             console.log("Cache persisted to disk.");
-            await this.syncToR2('esi_cache.json',json);
+            await this.syncToR2('esi_cache.json', json);
         } catch (err) {
             console.error("Save failed:", err.message);
         }
     }
 
     async syncToR2(key, data) {
-        try {const url = `https://api.cloudflare.com/client/v4/accounts/${process.env.CF_ACCOUNT_ID}/r2/buckets/${process.env.CF_CACHE_BUCKET}/objects/${key}`;
-        await fetch (url, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${process.env.CF_R2_TOKEN}`,
-                'Content-Type': 'application/json'
-            },
-            body: typeof data === 'string' ? data : JSON.stringify(data)
-        });
+        try {
+            const url = `https://api.cloudflare.com/client/v4/accounts/${process.env.CF_ACCOUNT_ID}/r2/buckets/${process.env.CF_CACHE_BUCKET}/objects/${key}`;
+            await fetch(url, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${process.env.CF_R2_TOKEN}`,
+                    'Content-Type': 'application/json'
+                },
+                body: typeof data === 'string' ? data : JSON.stringify(data)
+            });
             console.log(`[R2] ${key} synced.`);
 
         } catch (err) {
-        console.error(`[R2] Failed to sync ${key}:`, err.message);
+            console.error(`[R2] Failed to sync ${key}:`, err.message);
         }
     }
 
@@ -85,10 +86,10 @@ class ESIClient{
         try {
             const data = await fs.readFile(filePath, 'utf8');
             if (!data || data.trim() === "") {
-            console.warn("Cache file is empty. Initializing default structure...");
-            this.isDirty = true; // Force a save later
-            return;
-        }
+                console.warn("Cache file is empty. Initializing default structure...");
+                this.isDirty = true; // Force a save later
+                return;
+            }
             const json = JSON.parse(data);
             this.cache.characters = new Map(Object.entries(json.characters || {}));
             this.cache.corporations = new Map(Object.entries(json.corporations || {}));
@@ -121,20 +122,20 @@ class ESIClient{
         return this.fetchAndCache(id, 'corporations', '/corporations');
     }
 
-    async getTypeName(id) { 
+    async getTypeName(id) {
         return this.fetchAndCache(id, 'types', '/universe/types');
     }
 
-    
+
 
     async loadSystemCache(filePath) {
         try {
             const data = await fs.readFile(filePath, 'utf8');
             this.staticSystemData = JSON.parse(data);
-            this.systemNameMap = new Map ();
+            this.systemNameMap = new Map();
             for (const [id, sys] of Object.entries(this.staticSystemData)) {
-            this.systemNameMap.set(sys.name.toLowerCase(), sys);
-        }
+                this.systemNameMap.set(sys.name.toLowerCase(), sys);
+            }
             return true;
         } catch (err) {
             console.error("Failed to load static system data:", err.message);
@@ -142,10 +143,24 @@ class ESIClient{
         }
     }
 
+    async getAllianceName(id) {
+        if (!id) return null;
+        if (this.cache.alliances?.has(id)) return this.cache.alliances.get(id);
+        try {
+            const res = await this.client.get(`https://esi.evetech.net/latest/alliances/${id}/`);
+            const name = res.data.name;
+            if (!this.cache.alliances) this.cache.alliances = new Map();
+            this.cache.alliances.set(id, name);
+            return name;
+        } catch (err) {
+            return null;
+        }
+    }
+
     findSystemByName(name) {
         if (!name) return null;
         const query = name.toLowerCase();
-        return Object.values(this.staticSystemData).find(sys => 
+        return Object.values(this.staticSystemData).find(sys =>
             sys.name.toLowerCase().startsWith(query)
         ) || null;
     }
@@ -163,7 +178,7 @@ class ESIClient{
         return this.staticSystemData[id] || null;
     }
 
-    async getRegionName(id){
+    async getRegionName(id) {
         return await this.fetchAndCache(id, 'regions', '/universe/regions');
     }
 
