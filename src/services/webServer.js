@@ -126,7 +126,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       ] = await Promise.all([
         esi.getCharacterName(victim.character_id),
         esi.getCorporationName(victim.corporation_id),
-        victim.alliance_id ? esi.getAllianceName(victim.alliance_id) : Promise.resolve(null),
+        //victim.alliance_id ? esi.getAllianceName(victim.alliance_id) : Promise.resolve(null),
         esi.getTypeName(victim.ship_type_id),
         esi.getCharacterName(finalBlow.character_id),
         esi.getCorporationName(finalBlow.corporation_id),
