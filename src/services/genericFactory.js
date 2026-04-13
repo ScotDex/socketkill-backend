@@ -1,23 +1,24 @@
 const helpers = require('../core/helpers');
 
 const CATEGORY_CONFIG = {
-    at_ships:           { label: 'AT Ship Spotted',       color: 0x3fb950 },
-    rorqual_activity:   { label: 'Rorqual Spotted',          color: 0xf39c12 },
-    all_kills:          { label: 'Loss Mail Detected',   color: 0x4a4a52 },
-    officer:            { label: 'Officer Spotted',    color: 0xf39c12 },
-    value_1b:           { label: 'Slightly Serious Loss Mail Detected',    color: 0x5dade2 },
-    value_10b:          { label: 'Serious Loss Mail Detected',    color: 0x5dade2 },
-    value_20b:          { label: 'Very Serious Loss Mail Detected',    color: 0x5dade2 },
-    titan_loss:         { label: 'Titan Destroyed',    color: 0x5dade2 },
-    super_loss:         { label: 'Super Cap Destroyed',    color: 0x5dade2 },
-    pochven:            { label: 'Loss Mail Detected',    color: 0x5dade2 },
+    at_ships:         { color: 0x3fb950 },
+    rorqual_activity: { color: 0xf39c12 },
+    all_kills:        { color: 0x4a4a52 },
+    officer:          { color: 0xf39c12 },
+    value_1b:         { color: 0x5dade2 },
+    value_10b:        { color: 0x5dade2 },
+    value_20b:        { color: 0x5dade2 },
+    titan_loss:       { color: 0x5dade2 },
+    super_loss:       { color: 0x5dade2 },
+    pochven:          { color: 0x5dade2 },
 };
 
 const DOTLAN_BASE = 'https://evemaps.dotlan.net';
+const LOSS_MAIL_BASE = ``
 
 class NewsEmbedFactory {
     static createEmbed(kill, zkb, names, category) {
-        const config = CATEGORY_CONFIG[category] || { label: 'KILL DETECTED', color: 0x3fb950 };
+        const config = CATEGORY_CONFIG[category] || { color: 0x3fb950 }
         const totalValue = helpers.formatIsk(zkb.totalValue);
 
         return {
@@ -25,18 +26,14 @@ class NewsEmbedFactory {
             avatar_url: "https://edge.socketkill.com/favicon.png",
             embeds: [{
                 author: {
-                    name: names.finalVictimName,
+                    name: `${names.finalVictimName} lost a ${names.shipName}`,
                     icon_url: `https://images.evetech.net/characters/${kill.victim.character_id}/portrait?size=64`,
                     url: `https://zkillboard.com/character/${kill.victim.character_id}/`
                 },
-                title: `${names.finalVictimName} lost a ${names.shipName}`,
-                url: `https://zkillboard.com/kill/${kill.killmail_id}/`,
+                url: `/${kill.killmail_id}/`,
                 color: config.color,
-                image: {
-                    url: `https://images.evetech.net/types/${kill.victim.ship_type_id}/render?size=256`
-                },
                 thumbnail: {
-                    url: `https://edge.socketkill.com/favicon.png`
+                    url: `https://images.evetech.net/types/${kill.victim.ship_type_id}/render?size=128`
                 },
                 fields: [
                     { name: "Value", value: `**${totalValue} ISK**`, inline: false },
