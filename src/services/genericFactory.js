@@ -41,14 +41,14 @@ class NewsEmbedFactory {
                     {
                         name: "Corporation",
                         value: kill.victim.corporation_id
-                            ? `**[${names.corpName}]**(https://zkillboard.com/corporation/${kill.victim.corporation_id}/)`
+                            ? `**[${names.corpName}](https://zkillboard.com/corporation/${kill.victim.corporation_id}/)**`
                             : "—",
                         inline: false
                     },
                     {
                         name: "Alliance",
                         value: kill.victim.alliance_id
-                            ? `**[${names.allianceName}]**(https://zkillboard.com/alliance/${kill.victim.alliance_id}/)`
+                            ? `**[${names.allianceName}](https://zkillboard.com/alliance/${kill.victim.alliance_id}/)**`
                             : "—",
                         inline: false
                     },
