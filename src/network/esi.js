@@ -151,20 +151,6 @@ class ESIClient {
         }
     }
 
-    async getAllianceName(id) {
-        if (!id) return null;
-        if (this.cache.alliances?.has(id)) return this.cache.alliances.get(id);
-        try {
-            const res = await this.client.get(`https://esi.evetech.net/latest/alliances/${id}/`);
-            const name = res.data.name;
-            if (!this.cache.alliances) this.cache.alliances = new Map();
-            this.cache.alliances.set(id, name);
-            return name;
-        } catch (err) {
-            return null;
-        }
-    }
-
     findSystemByName(name) {
         if (!name) return null;
         const query = name.toLowerCase();
