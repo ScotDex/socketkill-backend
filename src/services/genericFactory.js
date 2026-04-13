@@ -14,6 +14,7 @@ const CATEGORY_CONFIG = {
 };
 
 const DOTLAN_BASE = 'https://evemaps.dotlan.net';
+const KILLMAIL_BASE = `https://zkillboard.com/`;
 
 class NewsEmbedFactory {
     static createEmbed(kill, zkb, names, category) {
@@ -27,7 +28,7 @@ class NewsEmbedFactory {
                 author: {
                     name: `${names.finalVictimName} lost a ${names.shipName}`,
                     icon_url: `https://images.evetech.net/characters/${kill.victim.character_id}/portrait?size=64`,
-                    url: `https://zkillboard.com/character/${kill.victim.character_id}/`
+                    url: `${KILLMAIL_BASE}character/${kill.victim.character_id}/`
                 },
                 color: config.color,
                 thumbnail: {
@@ -37,8 +38,20 @@ class NewsEmbedFactory {
                     { name: "System", value: `**[${names.systemName}](${DOTLAN_BASE}/system/${names.systemName.replace(/ /g, '_')})** `, inline: false },
                     { name: "Region", value: `**[${names.regionName}](${DOTLAN_BASE}/region/${names.regionName.replace(/ /g, '_')})** `, inline: false },
                     { name: "Report", value: `Final blow: ${names.finalBlowCorp} · ${names.attackerCount} attackers`, inline: false },
-                    { name: "Corporation", value: names.corpName, inline: false },
-                    { name: "Alliance", value: names.allianceName, inline: false },
+                    {
+                        name: "Corporation",
+                        value: kill.victim.corporation_id
+                            ? `[${names.corpName}](https://zkillboard.com/corporation/${kill.victim.corporation_id}/)`
+                            : "—",
+                        inline: false
+                    },
+                    {
+                        name: "Alliance",
+                        value: kill.victim.alliance_id
+                            ? `[${names.allianceName}](https://zkillboard.com/alliance/${kill.victim.alliance_id}/)`
+                            : "—",
+                        inline: false
+                    },
                     { name: "Value", value: `**${totalValue} ISK**`, inline: false },
                 ],
                 footer: {

@@ -28,6 +28,7 @@ module.exports = (esi, io, statsManager) => {
                     : Promise.resolve(null),
                 resolveFinalBlowCorp(killmail, esi)
             ]);
+            console.log('[DEBUG] finalBlowCorp:', finalBlowCorp);
 
             const attackerCount = killmail.attackers?.length || 0;
             const finalVictimName = (charName == "Unknown" || !charName) ? corpName : charName;
