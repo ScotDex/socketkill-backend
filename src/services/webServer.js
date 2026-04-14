@@ -55,6 +55,20 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
   const PORT = process.env.PORT;
   const publicPath = path.join(__dirname, "..", "..", "public");
 
+  async function fetchZkbMeta(killID) {
+    try {
+        const res = await axios.get(`https://zkillboard.com/api/killID/${killID}/`, {
+            timeout: 3000,
+            headers: { 'User-Agent': 'Socket.Kill / Dexomus Viliana' }
+        });
+        const entry = res.data?.[0];
+        return entry?.zkb || null;
+    } catch (err) {
+        console.warn(`[ZKB FETCH] ${killID} failed: ${err.message}`);
+        return null;
+    }
+}
+
   // 2. API ROUTES (Must be defined before Static/Catch-all)
   app.get("/api/character/search/:name", async (req, res) => {
     console.log(`[API] Character search: ${req.params.name}`);
@@ -132,6 +146,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
         esi.getCorporationName(finalBlow.corporation_id),
         esi.getTypeName(finalBlow.ship_type_id),
         systemDetails?.region_id ? esi.getRegionName(systemDetails.region_id) : Promise.resolve('K-Space'),
+        fetchZkbMeta(id),     
         ...killmail.attackers.flatMap(a => [
           esi.getCharacterName(a.character_id),
           esi.getCorporationName(a.corporation_id),
@@ -160,7 +175,8 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       const payload = {
         killID: id,
         killmailTime: killmail.killmail_time,
-        rawValue: killmailCache.getValue?.(id) || 0,
+        rawValue: zkb?.totalValue || 0,                   // ← new
+        totalValue: zkb?.totalValue ? helpers.formatIsk(zkb.totalValue) : null,
         victim: {
           name: victimName,
           characterID: victim.character_id,
