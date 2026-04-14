@@ -16,7 +16,6 @@ const CATEGORY_CONFIG = {
 };
 
 const DOTLAN_BASE = 'https://evemaps.dotlan.net';
-const SOCKETKILL_BASE = `https://socketkill.com/`;
 const KILLMAIL_BASE = `https://zkillboard.com/`;
 
 class NewsEmbedFactory {
@@ -31,7 +30,7 @@ class NewsEmbedFactory {
                 author: {
                     name: `${names.finalVictimName} lost a ${names.shipName}`,
                     icon_url: `https://images.evetech.net/characters/${kill.victim.character_id}/portrait?size=64`,
-                    url: `${KILLMAIL_BASE}character/${kill.victim.character_id}/`
+                    url: helpers.getSocketKillLink(kill.killmail_id, kill.killmail_time.slice(0, 10))
                 },
                 color: config.color,
                 thumbnail: {
@@ -42,7 +41,7 @@ class NewsEmbedFactory {
                     { name: "Region", value: `**[${names.regionName}](${DOTLAN_BASE}/region/${names.regionName.replace(/ /g, '_')})** `, inline: false },
                     {
                         name: "Killmail Details",
-                        value: `**[Final blow: ${names.finalBlowCorp || 'Unknown'} · ${names.attackerCount} ${names.attackerCount === 1 ? 'attacker' : 'attackers'}](${SOCKETKILL_BASE}/kill/?id=${kill.killmail_id}&date=${kill.killmail_time.slice(0, 10)})**`,
+                        value: `**[Final blow: ${names.finalBlowCorp || 'Unknown'} · ${names.attackerCount} ${names.attackerCount === 1 ? 'attacker' : 'attackers'}](${helpers.getSocketKillLink(kill.killmail_id, kill.killmail_time.slice(0, 10))})**`,
                         inline: false
                     },
                     {

@@ -1,4 +1,6 @@
 const { AT_SHIP_IDS, OFFICER_SHIP_IDS, RORQUAL_SHIP_IDS } = require('../core/shipIDs');
+const helpers = require('../core/helpers');
+
 class atOfficerFactory {
     static createKillEmbed(kill, zkb, names) {
         const DOTLAN_BASE = 'https://evemaps.dotlan.net'
@@ -17,7 +19,7 @@ class atOfficerFactory {
                     icon_url: `https://images.evetech.net/corporations/${triggerAttacker?.corporation_id}/logo?size=64`
                 },
                 title: title,
-                url: `https://socketkill.com/kill/?id=${kill.killmail_id}&date=${kill.killmail_time.slice(0, 10)}`,
+                url: helpers.getSocketKillLink(kill.killmail_id, kill.killmail_time.slice(0, 10)),
                 thumbnail: { url: `https://images.evetech.net/types/${names.triggerShipId}/render?size=256` },
                 color: 0xf39c12,
                 fields: [

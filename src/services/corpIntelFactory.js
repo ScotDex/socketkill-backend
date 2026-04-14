@@ -33,7 +33,7 @@ class corpIntelFactory {
                     icon_url: `https://images.evetech.net/characters/${kill.victim.character_id}/portrait?size=128`
                 },
                 title: title,
-                url: `https://socketkill.com/kill/?id=${kill.killmail_id}&date=${kill.killmail_time.slice(0, 10)}`,
+                url: helpers.getSocketKillLink(kill.killmail_id, kill.killmail_time.slice(0, 10)),
                 thumbnail: { url: `https://images.evetech.net/types/${kill.victim.ship_type_id}/render?size=256` },
                 color: 0xf39c12,
                 fields: [
