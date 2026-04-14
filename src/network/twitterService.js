@@ -25,6 +25,7 @@ agent.login({
 class TwitterService {
     static async postWhale(names, formattedValue, killId) {
         try {
+            const date = new Date().toISOString().slice(0, 10);
             const status = `BOOM! ${names.shipName} destroyed! || ${formattedValue} ISK || ${helpers.getSocketKillLink(killId, date)} || #TweetFleet #EveOnline #SocketKill || https://socketkill.com/`;
             await twitterClient.v2.tweet(status);
             console.log(`Tweet posted for Kill #${killId}`);
@@ -38,6 +39,7 @@ class TwitterService {
 class BlueSkyService {
     static async postWhale(names, formattedValue, killId) {
         try {
+            const date = new Date().toISOString().slice(0, 10);
             const status = `BOOM! ${names.shipName} destroyed! || ${formattedValue} ISK || ${helpers.getSocketKillLink(killId, date)} || #TweetFleet #EveOnline #SocketKill || https://socketkill.com/`;
             await agent.post({ text: status })
             console.log(`Bluesky post made for Kill #${killId}`);
