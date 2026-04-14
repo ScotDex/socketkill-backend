@@ -2,21 +2,21 @@ const helpers = require('../core/helpers');
 const { AT_SHIP_IDS, OFFICER_SHIP_IDS, RORQUAL_SHIP_IDS } = require('../core/shipIDs');
 
 const CATEGORY_CONFIG = {
-    at_ships:         { color: 0x3fb950 },
+    at_ships: { color: 0x3fb950 },
     rorqual_activity: { color: 0xf39c12 },
-    all_kills:        { color: 0x4a4a52 },
-    officer:          { color: 0xf39c12 },
-    value_1b:         { color: 0x5dade2 },
-    value_10b:        { color: 0x5dade2 },
-    value_20b:        { color: 0x5dade2 },
-    titan_loss:       { color: 0x5dade2 },
-    super_loss:       { color: 0x5dade2 },
-    pochven:          { color: 0x5dade2 },
-    ganks:            { color: 0x5dade2 },
+    all_kills: { color: 0x4a4a52 },
+    officer: { color: 0xf39c12 },
+    value_1b: { color: 0x5dade2 },
+    value_10b: { color: 0x5dade2 },
+    value_20b: { color: 0x5dade2 },
+    titan_loss: { color: 0x5dade2 },
+    super_loss: { color: 0x5dade2 },
+    pochven: { color: 0x5dade2 },
+    ganks: { color: 0x5dade2 },
 };
 
 const DOTLAN_BASE = 'https://evemaps.dotlan.net';
-const KILLMAIL_BASE = `https://zkillboard.com/`;
+const SOCKETKILL_BASE = `https://socketkill.com/`;
 
 class NewsEmbedFactory {
     static createEmbed(kill, zkb, names, category) {
@@ -41,7 +41,7 @@ class NewsEmbedFactory {
                     { name: "Region", value: `**[${names.regionName}](${DOTLAN_BASE}/region/${names.regionName.replace(/ /g, '_')})** `, inline: false },
                     {
                         name: "Killmail Details",
-                        value: `**[Final blow: ${names.finalBlowCorp || 'Unknown'} · ${names.attackerCount} ${names.attackerCount === 1 ? 'attacker' : 'attackers'}](${KILLMAIL_BASE}kill/${kill.killmail_id}/)**`,
+                        value: `**[Final blow: ${names.finalBlowCorp || 'Unknown'} · ${names.attackerCount} ${names.attackerCount === 1 ? 'attacker' : 'attackers'}](${SOCKETKILL_BASE}/kill/?id=${kill.killmail_id}&date=${kill.killmail_time.slice(0, 10)})**`,
                         inline: false
                     },
                     {
@@ -72,8 +72,8 @@ class NewsEmbedFactory {
 
     static createActivityEmbed(kill, zkb, names, category) {
         const config = CATEGORY_CONFIG[category] || { color: 0x3fb950 };
-        const triggerAttacker = kill.attackers?.find(a => 
-            AT_SHIP_IDS.has(a.ship_type_id) || OFFICER_SHIP_IDS.has(a.ship_type_id) || RORQUAL_SHIP_IDS.has(a.ship_type_id) 
+        const triggerAttacker = kill.attackers?.find(a =>
+            AT_SHIP_IDS.has(a.ship_type_id) || OFFICER_SHIP_IDS.has(a.ship_type_id) || RORQUAL_SHIP_IDS.has(a.ship_type_id)
         );
         return {
             username: "Socket.Kill Intel",
