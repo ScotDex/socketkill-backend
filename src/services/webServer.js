@@ -180,6 +180,9 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
         killmailTime: killmail.killmail_time,
         rawValue: zkb?.totalValue || 0,                   // ← new
         totalValue: zkb?.totalValue ? helpers.formatIsk(zkb.totalValue) : null,
+        droppedValue: zkb?.droppedValue ? helpers.formatIsk(zkb.droppedValue) : null,        // ← new
+        destroyedValue: zkb?.destroyedValue ? helpers.formatIsk(zkb.destroyedValue) : null,  // ← new
+        fittedValue: zkb?.fittedValue ? helpers.formatIsk(zkb.fittedValue) : null, 
         items,
         victim: {
           name: victimName,
