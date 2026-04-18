@@ -1,4 +1,5 @@
 const { getPrice } = require('../services/priceService');
+const helpers = require('../core/helpers');
 
 const SLOT_GROUPS = {
     high: [27, 28, 29, 30, 31, 32, 33, 34],
@@ -58,6 +59,7 @@ async function resolveItems(rawItems, esi) {
                 destroyed,
                 quantity: dropped + destroyed,
                 value: getPrice(item.item_type_id),
+                formattedValue: helpers.formatIsk(getPrice(item.item_type_id) * (dropped + destroyed)),
             });
         }
     }
