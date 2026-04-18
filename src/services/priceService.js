@@ -1,5 +1,5 @@
 const axios = require('../network/agent');
-const r2 = require('../network/r2');
+const r2 = require('../network/r2Writer');
 
 const ESI_BASE = 'https://esi.evetech.net/latest';
 
