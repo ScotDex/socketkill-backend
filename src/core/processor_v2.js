@@ -64,6 +64,7 @@ module.exports = (esi, io, statsManager) => {
                 victimName: finalVictimName,
                 shipImageUrl: `https://api.socketkill.com/render/ship/${killmail.victim.ship_type_id}`,
                 corpImageUrl: `https://api.socketkill.com/render/corp/${killmail.victim.corporation_id}`,
+                allianceImageUrl: `https://images.evetech.net/alliances/${killmail.victim.alliance_id}/logo`,
                 finalBlowCorp: finalBlowCorp,
                 attackerCount: attackerCount,
                 isTriglavian: TRIGLAVIAN_SYSTEMS.has(killmail.solar_system_id),
