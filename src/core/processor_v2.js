@@ -14,8 +14,6 @@ module.exports = (esi, io, statsManager) => {
         try {
             const killmail = await resolveKillmail(isR2, esiData, zkb);
             const rawValue = Number(zkb.totalValue) || 0
-            console.log(`[DEBUG] zkb.totalValue: ${zkb.totalValue} | rawValue: ${rawValue}`);
-
             //
 
             const [systemDetails, shipName, charName, corpName, finalBlowCorp, allianceName] = await Promise.all([
@@ -29,8 +27,6 @@ module.exports = (esi, io, statsManager) => {
                     : Promise.resolve(null),
 
             ]);
-            console.log('[DEBUG] finalBlowCorp:', finalBlowCorp);
-
             const attackerCount = killmail.attackers?.length || 0;
             const finalVictimName = (charName == "Unknown" || !charName) ? corpName : charName;
             statsManager.increment(rawValue);

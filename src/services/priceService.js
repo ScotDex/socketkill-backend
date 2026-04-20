@@ -5,16 +5,22 @@ const ESI_BASE = 'https://esi.evetech.net/latest';
 
 let priceMap = new Map();
 
+function buildPriceMap(rawData) {
+    return new Map(rawData.map(item =>[item.type_id, {
+        average_price: item.average_price,
+        adjusted_price: item.adjusted_price,
+    }]));
+}
+
+
 async function syncMarketPrices() {
     try {
         const res = await axios.get(`${ESI_BASE}/markets/prices`, {
             headers: { 'X-Compatibility-Date': '2025-12-16' }
         });
+        const newMap = buildPriceMap(res.data);
         await r2.put('market_prices.json', res.data);
-        priceMap = new Map(res.data.map(item => [item.type_id, {
-            average_price: item.average_price,
-            adjusted_price: item.adjusted_price,
-        }]));
+        priceMap = newMap;
         console.log(`[MARKET] Synced ${priceMap.size} prices`);
     } catch (err) {
         console.error(`[MARKET] Sync failed: ${err.message}`);
@@ -24,11 +30,15 @@ async function syncMarketPrices() {
 async function loadMarketPrices() {
     try {
         const data = await r2.get('market_prices.json');
-        if (data) {
-            priceMap = new Map(data.map(item => [item.type_id, { adjusted_price: item.adjusted_price, average_price: item.average_price }]));
+        if (!data) {
+            await syncMarketPrices();
+            return;
+        }
+        try {
+            priceMap = buildPriceMap(data);
             console.log(`[MARKET] Loaded ${priceMap.size} prices from R2`);
-        } else {
-            // Nothing in R2 yet, fetch live
+        } catch (parseErr) {
+            console.warn(`[MARKET] R2 data unusable, fetching live: ${parseErr.message}`);
             await syncMarketPrices();
         }
     } catch (err) {
@@ -44,6 +54,10 @@ function getPrice(typeId) {
 
 function calculateKillValue(esiData) {
     if (!esiData) return 0;
+
+    if (priceMap.size === 0) {
+        console.warn('[MARKET] calculateKillValue called with empty priceMap — returning 0');
+    }
 
     const shipValue = getPrice(esiData.victim?.ship_type_id);
 
