@@ -64,6 +64,7 @@ module.exports = (esi, io, statsManager) => {
                 finalBlowCorp: finalBlowCorp,
                 attackerCount: attackerCount,
                 isTriglavian: TRIGLAVIAN_SYSTEMS.has(killmail.solar_system_id),
+                allianceName: allianceName,
             });
 
             // Gated filter for web hooks
