@@ -18,6 +18,7 @@ const CATEGORY_CONFIG = {
 const DOTLAN_BASE = 'https://evemaps.dotlan.net';
 const KILLMAIL_BASE = `https://zkillboard.com/`;
 const siteIcon = `https://edge.socketkill.com/favicon.png`;
+const API_BASE = `https://api.socketkill.com/render/`;
 
 class NewsEmbedFactory {
     static createEmbed(kill, zkb, names, category) {
@@ -36,7 +37,7 @@ class NewsEmbedFactory {
                 },
                 color: config.color,
                 thumbnail: {
-                    url: `https://images.evetech.net/types/${kill.victim.ship_type_id}/render?size=128`
+                    url: `${API_BASE}ship/${kill.victim.ship_type_id}?size=128`
                 },
                 fields: [
                     { name: "System", value: `**[${names.systemName}](${DOTLAN_BASE}/system/${names.systemName.replace(/ /g, '_')})** `, inline: false },
