@@ -3,8 +3,6 @@ const r2 = require('../network/r2Writer');
 
 class StatsManager {
     constructor() {
-        // this.totalScanned = utils.loadPersistentStats() || 0;
-        // this.totalIsk = utils.loadPersistentIsk() || 0;
         this.sessionScanned = 0;
         this.sessionIsk = 0;
         this.startTime = new Date();
@@ -33,8 +31,6 @@ class StatsManager {
         this.sessionScanned = 0;
     }
     save() {
-        // utils.savePersistentStats(this.totalScanned);
-        // utils.savePersistentIsk(this.totalIsk);
         r2.put('stats.json', {
             totalKills: this.totalScanned,
             lastUpdate: new Date().toISOString()

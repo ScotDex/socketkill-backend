@@ -25,6 +25,9 @@ class NewsEmbedFactory {
         const config = CATEGORY_CONFIG[category] || { color: 0x3fb950 }
         const totalValue = helpers.formatIsk(zkb.totalValue);
         
+           const authorIcon = kill.victim.character_id
+            ? `https://images.evetech.net/characters/${kill.victim.character_id}/portrait?size=64`
+            : `${API_BASE}corp/${kill.victim.corporation_id}`;
 
         return {
             username: "Socketkill.com",
@@ -32,7 +35,7 @@ class NewsEmbedFactory {
             embeds: [{
                 author: {
                     name: `${names.finalVictimName} lost a ${names.shipName}`,
-                    icon_url: `https://images.evetech.net/characters/${kill.victim.character_id}/portrait?size=64`,
+                    icon_url: authorIcon,
                     url: helpers.getSocketKillLink(kill.killmail_id)
                 },
                 color: config.color,

@@ -1,31 +1,4 @@
 require("dotenv").config({ quiet: true });
-
-// --- Axiom Logging ---
-const { Axiom } = require('@axiomhq/js');
-const axiom = new Axiom({ token: process.env.AXIOM_TOKEN });
-
-const originalLog = console.log;
-const originalError = console.error;
-const originalWarn = console.warn;
-
-console.log = (...args) => {
-  originalLog(...args);
-  axiom.ingest('socketkill', [{ level: 'info', message: args.join(' '), ts: new Date().toISOString() }]);
-};
-
-console.error = (...args) => {
-  originalError(...args);
-  axiom.ingest('socketkill', [{ level: 'error', message: args.join(' '), ts: new Date().toISOString() }]);
-};
-
-console.warn = (...args) => {
-  originalWarn(...args);
-  axiom.ingest('socketkill', [{ level: 'warn', message: args.join(' '), ts: new Date().toISOString() }]);
-};
-
-setInterval(() => axiom.flush(), 10000);
-
-
 const talker = require("./src/network/agent");
 const path = require("path");
 const ESIClient = require("./src/network/esi");
@@ -122,7 +95,7 @@ const processedKills = new Set();
 function processKill(r2Package) {
   const killTime = new Date(r2Package.esiData?.killmail_time).getTime();
 
-  if (Date.now() - killTime > MAX_KILL_AGE_MS) { // 24h old limit
+  if (Date.now() - killTime > MAX_KILL_AGE_MS) { // 24h old limit for duplication prevention
     console.warn(`[OLD_MAIL] Discarding ${r2Package.killID} — age ${((Date.now() - killTime) / 1000).toFixed(0)}s`);
     return;
   }
@@ -298,7 +271,7 @@ async function startPoller() {
   await loadMarketPrices();
   setInterval(syncMarketPrices, 60_000);
   processor = ProcessorFactory(esi, io, statsManager);
-  await hashCache.prime();                                  // <-- ADD
+  await hashCache.prime();                                 
   setInterval(() => hashCache.rotateIfNeeded(), 60_000);
   refreshNebulaBackground();
   syncPlayerCount();

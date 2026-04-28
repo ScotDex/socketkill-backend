@@ -26,13 +26,18 @@ class corpIntelFactory {
         const title = LOSS_COMMENTS[Math.floor(Math.random() * LOSS_COMMENTS.length)];
         const API_BASE = `https://api.socketkill.com/render/`;
 
+        const authorIcon = kill.victim.character_id
+            ? `https://images.evetech.net/characters/${kill.victim.character_id}/portrait?size=128`
+            : `${API_BASE}corp/${kill.victim.corporation_id}`;
+
+
         return {
             username: "The Shame Bell",
             avatar_url: corpIcon,
             embeds: [{
                 author: {
                     name: `${names.finalVictimName} lost a ${names.shipName}`,
-                    icon_url: `https://images.evetech.net/characters/${kill.victim.character_id}/portrait?size=128`
+                    icon_url: authorIcon
                 },
                 title: title,
                 url: helpers.getSocketKillLink(kill.killmail_id),
