@@ -1,7 +1,7 @@
 require("dotenv").config({ quiet: true });
 const talker = require("./src/network/agent");
 const path = require("path");
-const ESIClient = require("./src/network/esi");
+const esi = require("./src/network/esi");
 const startWebServer = require("./src/services/webServer");
 const normalizer = require("./src/core/normalizer");
 const utils = require("./src/core/helpers");
@@ -15,7 +15,6 @@ const kv = require('./src/network/kvClient');
 
 // --- Constants ---
 
-const esi = ESIClient("Contact: @ScottishDex");
 const R2_BASE_URL = process.env.R2_BASE_URL;
 const SEQUENCE_CACHE_URL = `${R2_BASE_URL}/sequence.json`;
 const NEBULA_ROTATION_MS = 10 * 60 * 1000;
