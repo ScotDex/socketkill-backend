@@ -42,7 +42,7 @@ module.exports = (esi, io, statsManager) => {
             console.log(`[PERF] Kill ${killID} | Latency: ${durationMs.toFixed(3)}ms`);
             io.emit("gatekeeper-stats", {
                 totalScanned: statsManager.getTotal(),
-                totalIsk: statsManager.totalIsk
+                totalisk: statsManager.totalIsk
             });
             io.emit("raw-kill", {
                 id: killID,

@@ -55,12 +55,18 @@ class utils {
     }
   }
 
-  static getBackPhoto() {
-    return {
-      url: process.env.BACKGROUND_API_URL,
-      name: "EVE Online Nebula",
-      media_type: "image",
-    };
+  static async getBackPhoto() {
+    try {
+      const url = process.env.BACKGROUND_API_URL;
+      return {
+        url: url,
+        name: "EVE Online Nebula",
+        media_type: "image",
+      };
+    } catch (err) {
+      console.error("Background Pic Retrieval Issue", err.message);
+      return null;
+    }
   }
 
   static formatDuration(ms) {

@@ -152,6 +152,7 @@ class ESIClient {
     // }
 
     async loadSystemCache() {
+        console.log('[BOOT] systems loaded on instance', this._instanceId = Math.random());
         try {
             const kv = require ('./kvClient');
             this.staticSystemData = await kv.get('systems:all');
@@ -190,7 +191,7 @@ class ESIClient {
     getSystemDetails(id) {
         const result = this.staticSystemData[id] || null;
         if (!result) {
-            console.warn(`[SYS MISS] Unknown system ID: ${id}`);
+            console.log('[SYS MISS]', id, 'instance', this._instanceId, 'data size', Object.keys(this.staticSystemData || {}).length);
         }
         return result;
     }
