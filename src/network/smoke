@@ -1,0 +1,7 @@
+const kv = require('./kv-client');
+
+(async () => {
+    await kv.put('smoke:test', { ok: true });
+    console.log(await kv.get('smoke:test', { bypassCache: true }));
+    await kv.del('smoke:test');
+})();
