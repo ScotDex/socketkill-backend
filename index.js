@@ -31,7 +31,7 @@ const MAX_KILL_AGE_MS = 24 * 60 * 60 * 1000;
 const STATE_PERSIST_INTERVAL = 50;
 
 
-
+let systems = null; 
 
 //(async () => {
    // await kv.put('systems:all', systems);
