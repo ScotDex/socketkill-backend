@@ -11,7 +11,7 @@ const r2 = require("./src/network/r2Writer");
 const hashCache = require("./src/state/hashCache")
 const { syncMarketPrices, loadMarketPrices } = require("./src/services/priceService");
 const kv = require('./src/network/kvClient');
-const systems = require ('./data/systems.json')
+//const systems = require ('./data/systems.json')
 
 // --- Constants ---
 
