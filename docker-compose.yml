@@ -10,8 +10,8 @@ services:
       - "443:443"
       
     volumes:
-      - "./data:/usr/src/app/data"
-      - "./ssl:/usr/src/app/ssl"
+      #- "./data:/usr/src/app/data"
+      #- "./ssl:/usr/src/app/ssl"
       - "./public:/usr/src/app/public"
     deploy:
       resources:
