@@ -237,7 +237,8 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
         characters: esi.cache.characters.size,
         corporations: esi.cache.corporations.size,
         types: esi.cache.types.size,
-        regions: esi.cache.regions.size
+        regions: esi.cache.regions.size,
+        killmails: killmailCache.stats()
       },
       memory: {
         rss: Math.round(mem.rss / 1024 / 1024),
@@ -312,7 +313,9 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     .listen(PORT, () => {
       console.log(`Web Module Loaded on ${PORT}`);
     })
-    .on("error", (err) => { });
+    .on("error", (err) => {
+      console.error(`[SERVER] Fatal listen error on port ${PORT}: ${err.message}`);
+    });
 
   return { app, io };
 }

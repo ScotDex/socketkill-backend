@@ -30,20 +30,6 @@ const MAX_KILL_AGE_MS = 24 * 60 * 60 * 1000;
 const STATE_PERSIST_INTERVAL = 50;
 
 
-let systems = null; 
-
-//(async () => {
-   // await kv.put('systems:all', systems);
- //   console.log(`Uploaded ${Object.keys(systems).length} systems to KV`);
-// })();
-
-async function loadSystems() {
-    systems = await kv.get('systems:all');
-    if (!systems) throw new Error('systems:all missing from KV');
-    console.log(`Loaded ${Object.keys(systems).length} systems from KV`);
-}
-
-
 // --- Shared State (single source of truth) ---
 
 const state = {
@@ -288,6 +274,7 @@ async function startPoller() {
   await loadMarketPrices();
   await esi.loadSystemCache();
   setInterval(syncMarketPrices, 60_000);
+  setInterval(() => statsManager.save(), 5 * 60 * 1000);
   processor = ProcessorFactory(esi, io, statsManager);
   await hashCache.prime();                                 
   setInterval(() => hashCache.rotateIfNeeded(), 60_000);

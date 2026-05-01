@@ -47,12 +47,12 @@ function get(killID) {
 async function flush() {
     if (cache.size === 0) return;
     const snapshot = Object.fromEntries(cache);
-    addedSinceFlush = 0;
     const ok = await r2.put(shardKey(currentDate), snapshot);
     if (ok) {
+        addedSinceFlush = 0;
         console.log(`[HASH] Flushed ${cache.size} hashes to ${shardKey(currentDate)}`);
     }
-    }
+}
     
 async function rotateIfNeeded() {
     const today = todayUTC();
