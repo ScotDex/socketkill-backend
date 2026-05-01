@@ -202,4 +202,4 @@ class ESIClient {
 
 
 }
-module.exports = ESIClient;
+module.exports = ESIClient();
