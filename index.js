@@ -278,7 +278,24 @@ async function startPoller() {
 }
 
 
-// --- Boot -
+// --- Graceful Shutdown ---
+
+async function shutdown(signal) {
+  console.log(`[SHUTDOWN] ${signal} received — flushing state before exit...`);
+  try {
+    await hashCache.flush();
+    statsManager.save();
+    console.log("[SHUTDOWN] Flush complete. Exiting.");
+  } catch (err) {
+    console.error(`[SHUTDOWN] Flush error: ${err.message}`);
+  }
+  process.exit(0);
+}
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT",  () => shutdown("SIGINT"));
+
+// --- Boot ---
 (async () => {
   console.log("Initializing Socket.Kill...");
   // await esi.loadSystemCache("./data/systems.json");
