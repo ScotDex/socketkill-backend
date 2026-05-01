@@ -115,6 +115,10 @@ async function bulkPut(pairs) {
     for (const p of pairs) cache.delete(p.key);
 }
 
+function clearCache() {
+    cache.clear();
+}
+
 function safeJsonParse(text) {
     try {
         return JSON.parse(text);
