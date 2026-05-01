@@ -281,7 +281,7 @@ async function startPoller() {
 // --- Boot -
 (async () => {
   console.log("Initializing Socket.Kill...");
-  await esi.loadSystemCache("./data/systems.json");
+  // await esi.loadSystemCache("./data/systems.json");
   await esi.loadCache(path.join(__dirname, "data", "esi_cache.json"));
   await statsManager.recoverFromR2();
   await loadMarketPrices();
