@@ -71,6 +71,7 @@ async function getHashFromShard(date, killID) {
     if(!shard) {
         shard = await r2.get(shardKey(date));
         if (!shard) return null;
+        console.log(`[HASH] Loaded shard ${date} from R2 (${Object.keys(shard).length} kills)`);
         shardCache.set(date, shard);
         if(shardCache.size > SHARD_CACHE_MAX) {
             const oldest = shardCache.keys().next().value;

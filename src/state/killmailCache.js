@@ -54,6 +54,7 @@ async function get(killID, hash) {
         })
         .catch(err => {
             inflight.delete(killID);  // critical: clear on error so retry is possible
+            console.error(`[KILLCACHE] ESI fetch failed for kill ${killID}: ${err.message}`);
             throw err;
         });
 

@@ -109,6 +109,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       return res.status(400).json({ error: 'Invalid killID.' });
     }
 
+    console.log(`[KILL API] Request for kill ${id}${date ? ` (date: ${date})` : ''}`);
     try {
       // 1. Hash lookup
       const hash = await hashCache.getHashFromShard(date, id);
@@ -302,7 +303,9 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
   // 4. SOCKET LOGIC
   io.on("connection", (socket) => {
     console.log(`Client connected to Web Socket Stream: ${socket.id}`);
-    socket.on("disconnect", () => console.log("Client disconnected"));
+    socket.on("disconnect", (reason) => {
+      console.log(`[NETWORK] Client disconnected: ${socket.id} | Reason: ${reason} | Active: ${io.engine.clientsCount}`);
+    });
   });
 
   server

@@ -268,6 +268,7 @@ async function poll() {
 async function startPoller() {
   try {
     await prime();
+    console.log(`[BOOT] Poller active — starting at sequence ${state.sequence}`);
     poll();
   } catch (e) {
     const status = e.response?.status;
