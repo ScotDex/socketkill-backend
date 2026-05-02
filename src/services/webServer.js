@@ -47,7 +47,8 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
         "https://incursions-dev.nesbit.solutions",
         "https://incursions.nesbit.solutions",
         "https://socketkill.com/map/",
-        "https://socketkill.com/about/"
+        "https://socketkill.com/about/",
+        "https://0adf3919.test-enviroment-4b4.pages.dev/"
       ], // Web Socket whitelist
       methods: ["GET", "POST"],
     },
