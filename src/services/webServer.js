@@ -229,108 +229,108 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
 
   app.get('/api/kills/:date', async (req, res) => {
     const { date } = req.params;
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD.' });
-  }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD.' });
+    }
 
-  const today = new Date().toISOString().slice(0, 10);
-  const isToday = date === today;
-  const r2 = require('../network/r2Writer');
-  const { calculateKillValue } = require('./priceService');
-
-  console.log(`[LOG API] Request for ${date}${isToday ? ' (today)' : ''}`);
+    const today = new Date().toISOString().slice(0, 10);
+    const isToday = date === today;
+    const r2 = require('../network/r2Writer');
+    const { calculateKillValue } = require('./priceService');
 
     console.log(`[LOG API] Request for ${date}${isToday ? ' (today)' : ''}`);
 
-  try {
-    // Get killID → hash entries for the day
-    let entries;
-    if (isToday) {
-      entries = hashCache.getAllToday();
-    } else {
-      const shard = await r2.get(`hashes/${date}.json`);
-      entries = shard ? Object.entries(shard) : [];
-    }
+    console.log(`[LOG API] Request for ${date}${isToday ? ' (today)' : ''}`);
 
-    if (!entries.length) {
-      return res.json({ date, count: 0, total: 0, hasMore: false, kills: [] });
-    }
-
-    // Cap at 200 most recent (entries are insertion-ordered, so reverse)
-    const capped = entries.slice(-200).reverse();
-    const hasMore = entries.length > 200;
-
-    // Resolve each kill — share infrastructure with handleKillDetail but lighter
-    const kills = await Promise.all(capped.map(async ([killID, hash]) => {
-      try {
-        const km = await killmailCache.get(parseInt(killID), hash);
-        if (!km) return null;
-
-        const victim = km.victim;
-        const sys = esi.getSystemDetails(km.solar_system_id);
-        const finalBlow = km.attackers?.find(a => a.final_blow) || km.attackers?.[0];
-
-        const [vName, vCorp, vAlliance, vShip, region, fbCorp] = await Promise.all([
-          esi.getCharacterName(victim.character_id),
-          esi.getCorporationName(victim.corporation_id),
-          victim.alliance_id ? esi.getAllianceName(victim.alliance_id) : Promise.resolve(null),
-          esi.getTypeName(victim.ship_type_id),
-          sys?.region_id ? esi.getRegionName(sys.region_id) : Promise.resolve('K-Space'),
-          finalBlow?.corporation_id ? esi.getCorporationName(finalBlow.corporation_id) : Promise.resolve('Unknown'),
-        ]);
-
-        const rawValue = calculateKillValue(km);
-
-        return {
-          killID: parseInt(killID),
-          time: km.killmail_time,
-          rawValue,
-          formattedValue: helpers.formatIsk(rawValue),
-          victim: {
-            name: (vName === 'Unknown' || !vName) ? vCorp : vName,
-            characterID: victim.character_id || null,
-            corp: vCorp,
-            corporationID: victim.corporation_id || null,
-            alliance: vAlliance,
-            allianceID: victim.alliance_id || null,
-            ship: vShip,
-            shipTypeID: victim.ship_type_id,
-          },
-          system: {
-            id: km.solar_system_id,
-            name: sys?.name || 'Unknown',
-            region,
-            regionID: sys?.region_id,
-            security: sys?.security_status,
-          },
-          finalBlowCorp: fbCorp,
-          attackerCount: km.attackers?.length || 0,
-        };
-      } catch (err) {
-        console.warn(`[LOG API] Failed kill ${killID}: ${err.message}`);
-        return null;
+    try {
+      // Get killID → hash entries for the day
+      let entries;
+      if (isToday) {
+        entries = hashCache.getAllToday();
+      } else {
+        const shard = await r2.get(`hashes/${date}.json`);
+        entries = shard ? Object.entries(shard) : [];
       }
-    }));
 
-    const validKills = kills.filter(Boolean);
+      if (!entries.length) {
+        return res.json({ date, count: 0, total: 0, hasMore: false, kills: [] });
+      }
 
-    res.set('Cache-Control', isToday
-      ? 'public, max-age=30'
-      : 'public, max-age=31536000, immutable');
 
-    res.json({
-      date,
-      count: validKills.length,
-      total: entries.length,
-      hasMore,
-      kills: validKills,
-    });
+      const capped = entries.slice(-1000).reverse();
+      const hasMore = entries.length > 200;
 
-  } catch (err) {
-    console.error(`[LOG API] Error for ${date}: ${err.message}`);
-    res.status(500).json({ error: 'Internal error' });
-  }
-});
+
+      const kills = await Promise.all(capped.map(async ([killID, hash]) => {
+        try {
+          const km = await killmailCache.get(parseInt(killID), hash);
+          if (!km) return null;
+
+          const victim = km.victim;
+          const sys = esi.getSystemDetails(km.solar_system_id);
+          const finalBlow = km.attackers?.find(a => a.final_blow) || km.attackers?.[0];
+
+          const [vName, vCorp, vAlliance, vShip, region, fbCorp] = await Promise.all([
+            esi.getCharacterName(victim.character_id),
+            esi.getCorporationName(victim.corporation_id),
+            victim.alliance_id ? esi.getAllianceName(victim.alliance_id) : Promise.resolve(null),
+            esi.getTypeName(victim.ship_type_id),
+            sys?.region_id ? esi.getRegionName(sys.region_id) : Promise.resolve('K-Space'),
+            finalBlow?.corporation_id ? esi.getCorporationName(finalBlow.corporation_id) : Promise.resolve('Unknown'),
+          ]);
+
+          const rawValue = calculateKillValue(km);
+
+          return {
+            killID: parseInt(killID),
+            time: km.killmail_time,
+            rawValue,
+            formattedValue: helpers.formatIsk(rawValue),
+            victim: {
+              name: (vName === 'Unknown' || !vName) ? vCorp : vName,
+              characterID: victim.character_id || null,
+              corp: vCorp,
+              corporationID: victim.corporation_id || null,
+              alliance: vAlliance,
+              allianceID: victim.alliance_id || null,
+              ship: vShip,
+              shipTypeID: victim.ship_type_id,
+            },
+            system: {
+              id: km.solar_system_id,
+              name: sys?.name || 'Unknown',
+              region,
+              regionID: sys?.region_id,
+              security: sys?.security_status,
+            },
+            finalBlowCorp: fbCorp,
+            attackerCount: km.attackers?.length || 0,
+          };
+        } catch (err) {
+          console.warn(`[LOG API] Failed kill ${killID}: ${err.message}`);
+          return null;
+        }
+      }));
+
+      const validKills = kills.filter(Boolean);
+
+      res.set('Cache-Control', isToday
+        ? 'public, max-age=30'
+        : 'public, max-age=31536000, immutable');
+
+      res.json({
+        date,
+        count: validKills.length,
+        total: entries.length,
+        hasMore,
+        kills: validKills,
+      });
+
+    } catch (err) {
+      console.error(`[LOG API] Error for ${date}: ${err.message}`);
+      res.status(500).json({ error: 'Internal error' });
+    }
+  });
 
   app.get('/api/stats', (req, res) => {
     const mem = process.memoryUsage();
