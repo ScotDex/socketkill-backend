@@ -50,8 +50,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
         "https://socketkill.com/map/",
         "https://socketkill.com/about/",
         "https://test-enviroment-4b4.pages.dev",
-        "https://beta.socketkill.com/",
-        "https://31.111.83.176"
+        "https://beta.socketkill.com/"
       ], // Web Socket whitelist
       methods: ["GET", "POST"],
     },
