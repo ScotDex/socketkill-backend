@@ -33,11 +33,6 @@ const STATE_PERSIST_INTERVAL = 50;
 
 let systems = null;
 
-//(async () => {
-// await kv.put('systems:all', systems);
-//   console.log(`Uploaded ${Object.keys(systems).length} systems to KV`);
-// })();
-
 async function loadSystems() {
   systems = await kv.get('systems:all');
   if (!systems) throw new Error('systems:all missing from KV');
