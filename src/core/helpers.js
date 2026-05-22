@@ -41,6 +41,10 @@ class utils {
     return `https://socketkill.com/kill/${killId}`;
   }
 
+  static getEveKillLink(killId) {
+    return `https://evekill.com/kill/${killId}/`;
+  }
+
   static async getPlayerCount() {
     try {
       const url = "https://esi.evetech.net/latest/status/";

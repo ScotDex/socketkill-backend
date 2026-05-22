@@ -55,6 +55,7 @@ function buildPayload(input) {
             links: {
                 socketkill: helpers.getSocketKillLink(killID),
                 zkillboard: helpers.getZkillLink(killID),
+                evekill: helpers.getEveKillLink(killID),
                 esi: zkb.href,
             },
 
