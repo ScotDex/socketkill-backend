@@ -37,6 +37,8 @@ jobs:
             echo "SECOND_HOOK=${{ secrets.SECOND_HOOK }}" >> .env
             echo "CF_API_TOKEN=${{ secrets.CF_API_TOKEN }}" >> .env
             echo "CF_KV_NAMESPACE_ID=${{ secrets.CF_KV_NAMESPACE_ID }}" >> .env
+            echo "PUBLIC_STREAM_SECRET=${{ secrets.PUBLIC_STREAM_SECRET }}" >> .env
+            echo "PUBLIC_STREAM_ENDPOINT=${{ secrets.PUBLIC_STREAM_ENDPOINT }}" >> .env
             git pull
             docker compose down
             docker compose up -d --build

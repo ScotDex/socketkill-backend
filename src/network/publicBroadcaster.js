@@ -2,7 +2,7 @@ require("dotenv").config();
 const talker = require("./agent");
 
 const DO_ENDPOINT = process.env.PUBLIC_STREAM_ENDPOINT;
-const DO_SECRET = process.env.PUBLICE_STREAM_SECRET;
+const DO_SECRET = process.env.PUBLIC_STREAM_SECRET;
 const TIMEOUT_MS = 2000;
 const LOG_EVERY_N_FAILURES = 100;
 
