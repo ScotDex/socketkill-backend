@@ -4,12 +4,12 @@ const { resolveKillmail, resolveFinalBlowCorp, resolveTriggerAttacker } = requir
 const { TRIGLAVIAN_SYSTEMS } = require('../core/shipIDs');
 const hashCache = require('../state/hashCache')
 const todayStats = require('../state/todayStats');
-const publicBroadcaster = require('../network/publicBroadcaster');
+const publicStream = require('../services/publicStreamService');
 
 module.exports = (esi, io, statsManager) => {
     async function processPackage(packageData) {
         const startProcessing = process.hrtime.bigint();
-          const { zkb, killID, isR2, esiData, hash } = packageData;
+        const { zkb, killID, isR2, esiData, hash } = packageData;
 
         try {
             const killmail = await resolveKillmail(isR2, esiData, zkb);
@@ -71,10 +71,20 @@ module.exports = (esi, io, statsManager) => {
             };
 
             io.emit("raw-kill", rawKillPayload);
-            publicBroadcaster.publish({
-                schema: 1,
-                data: rawKillPayload,
-            }).catch(() => { });
+
+            publicStream.broadcast({
+                killmail,
+                zkb,
+                killID,
+                shipName,
+                systemName,
+                regionName,
+                corpName,
+                victimName: finalVictimName,
+                finalBlowCorp,
+                allianceName,
+                attackerCount,
+            });
 
             // Gated filter for web hooks
 
