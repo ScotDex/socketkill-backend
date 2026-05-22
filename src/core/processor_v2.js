@@ -4,6 +4,7 @@ const { resolveKillmail, resolveFinalBlowCorp, resolveTriggerAttacker } = requir
 const { TRIGLAVIAN_SYSTEMS } = require('../core/shipIDs');
 const hashCache = require('../state/hashCache')
 const todayStats = require('../state/todayStats');
+const publicBroadcaster = require('../network/publicBroadcaster');
 
 module.exports = (esi, io, statsManager) => {
     async function processPackage(packageData) {
@@ -46,7 +47,7 @@ module.exports = (esi, io, statsManager) => {
                 totalScanned: statsManager.getTotal(),
                 totalIsk: statsManager.totalIsk
             });
-            io.emit("raw-kill", {
+            const rawKillPayload = {
                 id: killID,
                 val: rawValue,
                 ship: shipName,
@@ -67,7 +68,13 @@ module.exports = (esi, io, statsManager) => {
                 attackerCount: attackerCount,
                 isTriglavian: TRIGLAVIAN_SYSTEMS.has(killmail.solar_system_id),
                 allianceName: allianceName,
-            });
+            };
+
+            io.emit("raw-kill", rawKillPayload);
+            publicBroadcaster.publish({
+                schema: 1,
+                data: rawKillPayload,
+            }).catch(() => { });
 
             // Gated filter for web hooks
 
