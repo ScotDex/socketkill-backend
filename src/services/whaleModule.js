@@ -10,7 +10,7 @@ const NewsEmbedFactory = require("./genericFactory");
 
 let channels = {};
 
-const WHALE_THRESHOLD = 20000000000;
+const WHALE_THRESHOLD = 40000000000;
 const VALUE_1B = 1000000000;
 const VALUE_10B = 10000000000;
 const VALUE_100M = 100_000_000;
