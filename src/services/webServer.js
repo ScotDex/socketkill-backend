@@ -53,6 +53,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
         "https://socket-kill-front-end.pages.dev",
         "http://localhost:4321",
         "http://localhost:5173",
+        "https://socketkill-v2.themadlyscientific.workers.dev"
       ], // Web Socket whitelist
       methods: ["GET", "POST"],
     },
@@ -252,7 +253,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
         entries = shard ? Object.entries(shard) : [];
       }
 
-if (!entries.length) {
+      if (!entries.length) {
         return res.json({ date, count: 0, total: 0, hasMore: false, hasPrev: false, kills: [], shipFilter: null });
       }
 
