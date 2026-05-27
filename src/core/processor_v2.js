@@ -1,6 +1,6 @@
 const helpers = require("./helpers");
 const handleWhale = require("../services/whaleModule");
-const { resolveKillmail, resolveFinalBlowCorp, resolveTriggerAttacker } = require('./processorHelpers');
+const { resolveKillmail, resolveFinalBlowCorp, resolveTriggerAttacker, resolveSpace } = require('./processorHelpers');
 const { TRIGLAVIAN_SYSTEMS } = require('../core/shipIDs');
 const hashCache = require('../state/hashCache')
 const todayStats = require('../state/todayStats');
