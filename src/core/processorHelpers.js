@@ -7,6 +7,16 @@ async function resolveKillmail(isR2, esiData, zkb) {
     return response.data;
 }
 
+function resolveSpace(systemId, securityStatus) {
+    if (systemId >= 31000000 && systemId < 32000000) return 'wh'
+    if (TRIGLAVIAN_SYSTEMS.has(systemId)) return 'pochven'
+    if (securityStatus == null) return 'unknown'
+    if (securityStatus >= 0.5) return 'high'
+    if (securityStatus >= 0.1) return 'low'
+    return 'null'
+}
+
+
 async function resolveFinalBlowCorp(killmail, esi) {
     const attacker = killmail.attackers?.find(a => a.final_blow);
     if (!attacker) return "Unknown";

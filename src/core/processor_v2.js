@@ -68,6 +68,7 @@ module.exports = (esi, io, statsManager) => {
                 attackerCount: attackerCount,
                 isTriglavian: TRIGLAVIAN_SYSTEMS.has(killmail.solar_system_id),
                 allianceName: allianceName,
+                space: resolveSpace(killmail.solar_system_id, systemDetails?.security_status),
             };
 
             io.emit("raw-kill", rawKillPayload);
