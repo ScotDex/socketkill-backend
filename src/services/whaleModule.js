@@ -100,9 +100,9 @@ async function postCorpIntel(kill, zkb, names) {
     const payload = CorpIntelFactory.createKillEmbed(kill, zkb, names);
     try {
         await axios.post(process.env.BLANKSPACE_HOOK, payload);
-        console.log(`[BLANKSPACE 20BILL PAYLOAD FIRING] Kill ${kill.killmail_id} posted`);
+        console.log(`[BLANKSPACE 40BILL PAYLOAD FIRING] Kill ${kill.killmail_id} posted`);
     } catch (err) {
-        console.error(`[BLANKSAPCE 20BILL PAYLOAD FAILED] Webhook failed: ${err.message}`);
+        console.error(`[BLANKSPACE 40BILL PAYLOAD FAILED] Webhook failed: ${err.message}`);
     }
 }
 

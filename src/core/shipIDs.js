@@ -29,7 +29,7 @@ const AT_SHIP_IDS = new Set([
     11940, // Gold Magnate
     74141, // Geri
     85236, // Python
-    // 29990, // Loki - Test
+    33675, // Chameleon
 ]);
 
 
@@ -50,7 +50,7 @@ const OFFICER_SHIP_IDS = new Set([
 
 const RORQUAL_SHIP_IDS = new Set([
     42241, // Molok
-    28352
+    33675 // Chameleon
 ]);
 
 
