@@ -39,4 +39,4 @@ async function resolveTriggerAttacker(killmail, esi) {
     return { triggerShipName, triggerCharName, triggerCorpName, triggerShipId: attacker.ship_type_id };
 }
 
-module.exports = { resolveKillmail, resolveFinalBlowCorp, resolveTriggerAttacker };
+module.exports = { resolveKillmail, resolveFinalBlowCorp, resolveTriggerAttacker, resolveSpace };
