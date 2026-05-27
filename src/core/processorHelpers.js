@@ -1,5 +1,5 @@
 const axios = require("../network/agent");
-const { AT_SHIP_IDS, OFFICER_SHIP_IDS, RORQUAL_SHIP_IDS } = require('../core/shipIDs');
+const { AT_SHIP_IDS, OFFICER_SHIP_IDS, RORQUAL_SHIP_IDS, TRIGLAVIAN_SYSTEMS} = require('../core/shipIDs');
 
 async function resolveKillmail(isR2, esiData, zkb) {
     if (isR2 && esiData) return esiData
