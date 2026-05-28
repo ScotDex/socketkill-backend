@@ -74,7 +74,6 @@ io.on("connection", async (socket) => {
     totalScanned: statsManager.getTotal(),
     totalIsk: statsManager.totalIsk,
   });
-  socket.emit("today-stats", await buildTodayStatsPayload());
 
   const playerCount = await utils.getPlayerCount();
   if (playerCount) socket.emit("player-count", playerCount);
@@ -272,26 +271,6 @@ async function shutdown(signal) {
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT", () => shutdown("SIGINT"));
 
-async function buildTodayStatsPayload() {
-  const top = todayStats.topN(25);
-  const withNames = await Promise.all(
-    top.map(async ([typeID, count]) => ({
-      typeID,
-      count,
-      name: await esi.getTypeName(typeID),
-    }))
-  );
-  return { ships: withNames };
-}
-
-async function emitTodayStats() {
-  try {
-    const payload = await buildTodayStatsPayload();
-    io.emit('today-stats', payload);
-  } catch (err) {
-    console.warn(`[TODAY] Emit failed: ${err.message}`);
-  }
-}
 
 (async () => {
   console.log("Initializing Socket.Kill...");
