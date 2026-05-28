@@ -16,13 +16,11 @@ function shardKey(date) {
   return `hashes/${date}.json`;
 }
 
-// Extract hash from either format
 function entryHash(entry) {
   if (!entry) return null;
   return typeof entry === 'string' ? entry : entry.hash;
 }
 
-// Extract shipID from new format, null for old format
 function entryShipID(entry) {
   if (!entry || typeof entry !== 'object') return null;
   return entry.shipID || null;

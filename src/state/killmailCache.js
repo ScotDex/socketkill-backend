@@ -5,19 +5,14 @@ const MAX_ENTRIES = 5000;
 const ESI_BASE = "https://esi.evetech.net/latest/killmails";
 const ESI_HEADERS = { "X-Compatibility-Date": "2025-12-16" };
 
-// LRU: Map preserves insertion order, so we delete + re-set on access
-// to move "recently used" entries to the end. Eviction pops the oldest (first).
 const cache = new Map();
-
-// In-flight dedup: if a fetch is already running for a killID,
-// concurrent requests await the same Promise instead of starting their own.
 const inflight = new Map();
 
 function lruGet(killID) {
     if (!cache.has(killID)) return null;
     const value = cache.get(killID);
     cache.delete(killID);
-    cache.set(killID, value);  // re-insert to mark as most recently used
+    cache.set(killID, value);  
     return value;
 }
 
@@ -44,16 +39,12 @@ async function fetchFromESI(killID, hash) {
 }
 
 async function get(killID, hash) {
-    // Cache hit — fast path
+
     const cached = lruGet(killID);
     if (cached) return cached;
-
-    // In-flight dedup — second caller awaits the first one's promise
     if (inflight.has(killID)) {
         return await inflight.get(killID);
     }
-
-    // First caller starts the fetch
     const promise = fetchFromESI(killID, hash)
         .then(data => {
             lruSet(killID, data);
@@ -61,7 +52,7 @@ async function get(killID, hash) {
             return data;
         })
         .catch(err => {
-            inflight.delete(killID);  // critical: clear on error so retry is possible
+            inflight.delete(killID);  
             console.error(`[KILLCACHE] ESI fetch failed for kill ${killID}: ${err.message}`);
             throw err;
         });

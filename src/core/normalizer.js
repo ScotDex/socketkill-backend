@@ -19,7 +19,7 @@ module.exports = {
             },
             isR2: true,
             esiData: esiPayload,
-            sequence: data.sequence_id, // Good for tracking lag
+            sequence: data.sequence_id, 
             sequenceUpdated: data.sequence_updated || null 
         };
     },

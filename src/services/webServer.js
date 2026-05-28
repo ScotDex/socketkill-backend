@@ -27,7 +27,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
 
   const server = https.createServer(options, app);
 
-  // 1. SECURITY & PARSING MIDDLEWARE
+ 
   app.use(
     helmet({
       contentSecurityPolicy: false,
@@ -118,19 +118,18 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
 
     console.log(`[KILL API] Request for kill ${id}${date ? ` (date: ${date})` : ''}`);
     try {
-      // 1. Hash lookup
+    
       const hash = await hashCache.getHashFromShard(date, id);
       if (!hash) {
         return res.status(404).json({ error: `Kill ${id} not found in archive - CTRL + F5 incase not cached yet - for ${date}.` });
       }
 
-      // 2. Killmail fetch
+  
       const killmail = await killmailCache.get(id, hash);
       if (!killmail) {
         return res.status(502).json({ error: 'Failed to fetch killmail - CTRL + F5 incase not cached yet.' });
       }
 
-      // 3. Resolve names
       const victim = killmail.victim;
       const finalBlow = killmail.attackers.find(a => a.final_blow) || killmail.attackers[0];
       const systemDetails = esi.getSystemDetails(killmail.solar_system_id);
@@ -175,7 +174,6 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
         finalBlow: !!a.final_blow
       }));
 
-      // 4. Build response
       const payload = {
         killID: id,
         killmailHash: hash,
@@ -216,7 +214,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
         attackerCount: attackers.length
       };
 
-      // 5. Cache headers
+      
       const isToday = date === new Date().toISOString().slice(0, 10);
       res.set('Cache-Control', isToday
         ? 'public, max-age=60'
@@ -420,14 +418,14 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     }
   });
 
-  // 3. STATIC FILES & ROOT (Last priority)
+ 
   app.use(express.static(path.join(__dirname, "..", "..", "public")));
 
   app.get("/", (req, res) => {
     res.sendFile(path.join(publicPath, "index.html"));
   });
 
-  // 4. SOCKET LOGIC
+ 
   io.on("connection", (socket) => {
     console.log(`Client connected to Web Socket Stream: ${socket.id}`);
     socket.on("disconnect", (reason) => {

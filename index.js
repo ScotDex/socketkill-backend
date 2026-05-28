@@ -12,9 +12,9 @@ const hashCache = require("./src/state/hashCache")
 const { syncMarketPrices, loadMarketPrices } = require("./src/services/priceService");
 const kv = require('./src/network/kvClient');
 //const systems = require ('./data/systems.json')
-const todayStats = require("./src/state/todayStats");
+// const todayStats = require("./src/state/todayStats");
 
-// --- Constants ---
+
 
 const R2_BASE_URL = process.env.R2_BASE_URL;
 const SEQUENCE_CACHE_URL = `${R2_BASE_URL}/sequence.json`;
@@ -40,8 +40,6 @@ async function loadSystems() {
 }
 
 
-// --- Shared State (single source of truth) ---
-
 const state = {
   sequence: 0,
   isThrottled: false,
@@ -50,7 +48,6 @@ const state = {
   lastSuccessfulIngest: Date.now(),
 };
 
-// --- Web Server & Socket ---
 
 const { io, app } = startWebServer(esi, statsManager, state, () => processor);
 
@@ -83,7 +80,6 @@ io.on("connection", async (socket) => {
   if (playerCount) socket.emit("player-count", playerCount);
 });
 
-// --- Nebula Background ---
 
 async function refreshNebulaBackground() {
   const data = await utils.getBackPhoto();
@@ -94,14 +90,14 @@ async function refreshNebulaBackground() {
   }
 }
 
-// --- Player Count ---
+
 
 async function syncPlayerCount() {
   const status = await utils.getPlayerCount();
   if (status) io.emit("player-count", status);
 }
 
-// --- Kill Processing ---
+
 
 const processedKills = new Set();
 
@@ -138,18 +134,8 @@ async function handleSequenceUpdate(sequenceId) {
   }
 }
 
-// --- R2Z2 Poller (spec-compliant) ---
-//
-// Contract (from R2Z2 docs):
-//   1. Fetch sequence N
-//   2. On 200: process it, sleep 100ms, sequence++
-//   3. On 404: no more killmails yet. Sleep >= 6s, retry SAME sequence
-//   4. Rate limit: 20 req/s. On 429: back off significantly
-//   5. Sequences are strictly increasing, monotonic, never reused
-//
 
-let ghostStreak = 0; // consecutive normalizer failures on 200 responses
-
+let ghostStreak = 0; 
 async function prime() {
   try {
     const saved = await r2.get("worker_state.json");
@@ -193,9 +179,7 @@ async function poll() {
     const r2Package = normalizer.fromR2(response.data);
 
     if (r2Package?.killID) {
-      // --- Success: valid killmail ---
       processKill(r2Package);
-
       if (r2Package.sequenceUpdated) {
         handleSequenceUpdate(r2Package.sequenceUpdated);
       }
@@ -212,7 +196,6 @@ async function poll() {
 
       nextDelay = POLL_DELAY_MS;
     } else {
-      // --- 200 but normalizer returned nothing (ghost file) ---
       ghostStreak++;
       if (ghostStreak >= GHOST_SKIP_AFTER) {
         console.warn(`[SKIP] Seq ${state.sequence} — ${GHOST_SKIP_AFTER} consecutive ghost files. Advancing.`);
@@ -228,18 +211,16 @@ async function poll() {
     state.lastErrorStatus = status;
 
     if (status === 429) {
-      // --- Rate limited: full stop, wait, resume ---
       state.isThrottled = true;
       console.error(`[429] Rate limited. Pausing for ${THROTTLE_DELAY_MS / 1000}s.`);
       setTimeout(() => {
         state.isThrottled = false;
         poll();
       }, THROTTLE_DELAY_MS);
-      return; // break the setTimeout chain
+      return; 
     }
 
     if (status === 404) {
-      // --- Frontier: no more killmails yet. Hold position, wait 6s (spec) ---
       state.consecutive404s++;
       if (state.consecutive404s === 1 || state.consecutive404s % 10 === 0) {
         console.log(`[WAIT] At frontier — seq ${state.sequence}, 404 #${state.consecutive404s}. Sleeping ${STALL_DELAY_MS / 1000}s.`);
@@ -275,8 +256,6 @@ async function startPoller() {
   }
 }
 
-
-// --- Graceful Shutdown ---
 
 async function shutdown(signal) {
   console.log(`[SHUTDOWN] ${signal} received — flushing state before exit...`);
@@ -326,10 +305,10 @@ async function emitTodayStats() {
   await hashCache.prime();
   setInterval(() => hashCache.rotateIfNeeded(), 60_000);
 
-  await todayStats.prime();
-  setInterval(() => todayStats.snapshot(), 60_000);
-  setInterval(() => todayStats.rotateIfNeeded(), 60_000);
-  setInterval(emitTodayStats, 5_000);
+  // await todayStats.prime();
+  // setInterval(() => todayStats.snapshot(), 60_000);
+  // setInterval(() => todayStats.rotateIfNeeded(), 60_000);
+  // setInterval(emitTodayStats, 5_000);
 
   refreshNebulaBackground();
   syncPlayerCount();
