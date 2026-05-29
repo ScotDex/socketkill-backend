@@ -110,7 +110,7 @@ async function buildSystems() {
     out[row._key] = {
       name: getName(row.name),
       regionID: row.regionID ?? null,
-      security: row.security ?? null,
+      security: row.securityStatus ?? null,
     };
   }
   return out;
