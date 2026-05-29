@@ -27,12 +27,15 @@ module.exports = (esi, io, statsManager) => {
                     : Promise.resolve(null),
 
             ]);
+
+            const weaponTypeIDs = [... new Set(
+                (killmail.attackers || [])
+                .filter(a => a.character_id != null && a.weapon_type_id != null)
+                .map(a => a.weapon_type_id)
+            )];
             const attackerCount = killmail.attackers?.length || 0;
             const finalVictimName = (charName == "Unknown" || !charName) ? corpName : charName;
             statsManager.increment(rawValue);
-            // In processor_v2.js, somewhere in the resolve flow:
-console.log('SAMPLE ATTACKER:', JSON.stringify(killmail.attackers[0], null, 2));
-console.log('ALL WEAPON IDS:', killmail.attackers.map(a => a.weapon_type_id));
 
             const systemName = systemDetails?.name || "Unknown System";
             const regionName = systemDetails?.region_id
@@ -69,6 +72,7 @@ console.log('ALL WEAPON IDS:', killmail.attackers.map(a => a.weapon_type_id));
                 isTriglavian: TRIGLAVIAN_SYSTEMS.has(killmail.solar_system_id),
                 allianceName: allianceName,
                 space: resolveSpace(killmail.solar_system_id, systemDetails?.security_status),
+                weaponTypeIDs,
             };
 
             io.emit("raw-kill", rawKillPayload);

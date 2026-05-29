@@ -163,6 +163,27 @@ async function buildShips(groups) {
   return out;
 }
 
+// Builds sde:items — anything that can appear as weapon_type_id on a killmail.
+// That's categoryID 7 (Module: turrets, launchers, smartbombs, ECM, etc.) and
+// categoryID 18 (Drone). The corpus powers the frontend weapon keyword filter.
+// Same row-iteration pattern as buildShips; different category gate.
+async function buildItems(groups) {
+  const out = {};
+  for await (const row of readJsonl(path.join(EXTRACT_DIR, 'types.jsonl'))) {
+    if (row._key === '_meta') continue;
+    const groupID = row.groupID;
+    const group = groups[groupID];
+    if (!group) continue;
+    const cat = group.categoryID;
+    if (cat !== 7 && cat !== 18) continue;  // Modules + Drones
+    out[row._key] = {
+      name: getName(row.name),
+      groupID,
+    };
+  }
+  return out;
+}
+
 // ─── Main pipeline ────────────────────────────────────────────────────────
 
 async function main() {
@@ -250,12 +271,14 @@ async function main() {
   const systems = await buildSystems();
   const regions = await buildRegions();
   const ships = await buildShips(groups);
+  const items = await buildItems(groups);
 
   console.log(`  systems: ${Object.keys(systems).length}`);
   console.log(`  regions: ${Object.keys(regions).length}`);
   console.log(`  groups:  ${Object.keys(groups).length}`);
   console.log(`  categories: ${Object.keys(categories).length}`);
   console.log(`  ships:   ${Object.keys(ships).length}`);
+  console.log(`  items:   ${Object.keys(items).length}`);
 
   // Step 7: Write to KV.
   console.log('Writing to KV…');
@@ -264,6 +287,7 @@ async function main() {
   await kvPut('sde:groups', groups);
   await kvPut('sde:categories', categories);
   await kvPut('sde:ships', ships);
+  await kvPut('sde:items', items);
 
   // Step 8: Update meta.
   await kvPut('sde:meta', {
