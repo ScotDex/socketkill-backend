@@ -12,6 +12,7 @@ const killmailCache = require("../state/killmailCache");
 const helpers = require("../core/helpers");
 const { resolveItems } = require('../core/itemResolver');
 const pLimit = require('p-limit');
+const kvClient = require('../network/kvClient');
 
 function startWebServer(esi, statsManager, sharedState, getProcessor) {
   const app = express();
@@ -371,6 +372,53 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       }
     });
   });
+
+  app.get('/api/filter-source', async (req, res) => {
+    try {
+      const [systems, regions, groups, ships, items, meta] = await Promise.all([
+      kvClient.get('sde:systems'),
+      kvClient.get('sde:regions'),
+      kvClient.get('sde:groups'),
+      kvClient.get('sde:ships'),
+      kvClient.get('sde:items'),
+      kvClient.get('sde:meta'),
+      ]);
+
+          const missing = {
+      systems: !systems,
+      regions: !regions,
+      groups: !groups,
+      ships: !ships,
+      items: !items,
+    };
+    if (Object.values(missing).some(Boolean)) {
+      return res.status(503).json({ error: 'Filter source incomplete', missing });
+    }
+
+    const etag = meta?.buildNumber ? `"sde-${meta.buildNumber}"` : null;
+ 
+    if (etag && req.headers['if-none-match'] === etag) {
+      res.set('ETag', etag);
+      return res.status(304).end();
+    }
+ 
+    res.set('Cache-Control', 'public, max-age=3600, must-revalidate');
+    if (etag) res.set('ETag', etag);
+ 
+    res.json({
+      buildNumber: meta?.buildNumber ?? null,
+      syncedAt: meta?.lastSyncedAt ?? null,
+      systems,
+      regions,
+      groups,
+      ships,
+      items,
+    });
+  } catch (err) {
+    console.error('[filter-source] error:', err);
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
 
   app.get('/api/refire/:killId', async (req, res) => {
     const processor = getProcessor();
