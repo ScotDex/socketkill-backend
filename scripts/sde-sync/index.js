@@ -33,7 +33,7 @@ const CF_ACCOUNT = process.env.CF_ACCOUNT_ID;
 const CF_NAMESPACE = process.env.CF_KV_NAMESPACE_ID;
 
 if (!CF_TOKEN || !CF_ACCOUNT || !CF_NAMESPACE) {
-  console.error('Missing required env vars: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_KV_NAMESPACE_ID');
+  console.error('Missing required env vars: CF_API_TOKEN, CF_ACCOUNT_ID, CF_KV_NAMESPACE_ID');
   process.exit(1);
 }
 
