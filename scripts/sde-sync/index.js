@@ -1,3 +1,20 @@
+// scripts/sde-sync/index.js
+//
+// SDE sync pipeline. Run by .github/workflows/sde-sync.yml.
+//
+// Flow:
+//   1. Fetch sde:meta from KV (stored ETag + buildNumber from last sync).
+//   2. HEAD latest.jsonl with If-None-Match. If 304, exit.
+//   3. Parse latest.jsonl, get current build number.
+//   4. If build matches stored, update ETag-only in sde:meta and exit.
+//   5. Download SDE zip, extract relevant JSONL files.
+//   6. Transform each table to a compact lookup object.
+//   7. PUT each to KV under sde:* keys.
+//   8. Update sde:meta with new ETag + buildNumber.
+//
+// Requires Node 20+ (uses built-in fetch + Readable.fromWeb).
+// No npm dependencies. Uses system `unzip` (preinstalled on ubuntu-latest).
+
 const fs = require('node:fs');
 const path = require('node:path');
 const readline = require('node:readline');
@@ -11,9 +28,9 @@ const SDE_BASE = 'https://developers.eveonline.com/static-data/tranquility';
 const LATEST_URL = `${SDE_BASE}/latest.jsonl`;
 const ZIP_URL = (build) => `${SDE_BASE}/eve-online-static-data-${build}-jsonl.zip`;
 
-const CF_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
-const CF_ACCOUNT = process.env.CLOUDFLARE_ACCOUNT_ID;
-const CF_NAMESPACE = process.env.CLOUDFLARE_KV_NAMESPACE_ID;
+const CF_TOKEN = process.env.CF_API_TOKEN;
+const CF_ACCOUNT = process.env.CF_ACCOUNT_ID;
+const CF_NAMESPACE = process.env.CF_KV_NAMESPACE_ID;
 
 if (!CF_TOKEN || !CF_ACCOUNT || !CF_NAMESPACE) {
   console.error('Missing required env vars: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_KV_NAMESPACE_ID');
@@ -65,18 +82,35 @@ async function* readJsonl(filepath) {
   }
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────
+
+// SDE name fields are localised objects ({de, en, es, fr, ja, ko, ru, zh}).
+// Some files use a plain string. This helper handles both shapes.
+function getName(field) {
+  if (typeof field === 'string') return field;
+  if (field && typeof field === 'object') return field.en ?? null;
+  return null;
+}
+
 // ─── Transforms ───────────────────────────────────────────────────────────
+//
+// SDE rows inline value fields directly alongside `_key`. There is no
+// `_value` wrapper for object-valued records. Each transform projects
+// the row to the minimal lookup shape we want in KV.
 
 async function buildSystems() {
   const out = {};
+  let firstRowLogged = false;
   for await (const row of readJsonl(path.join(EXTRACT_DIR, 'mapSolarSystems.jsonl'))) {
     if (row._key === '_meta') continue;
-    const v = row._value;
-    if (!v || typeof v !== 'object') continue;
+    if (!firstRowLogged) {
+      console.log('  sample mapSolarSystems row keys:', Object.keys(row).join(', '));
+      firstRowLogged = true;
+    }
     out[row._key] = {
-      name: v.name,
-      regionID: v.regionID,
-      security: v.security,
+      name: getName(row.name),
+      regionID: row.regionID ?? null,
+      security: row.security ?? null,
     };
   }
   return out;
@@ -86,9 +120,7 @@ async function buildRegions() {
   const out = {};
   for await (const row of readJsonl(path.join(EXTRACT_DIR, 'mapRegions.jsonl'))) {
     if (row._key === '_meta') continue;
-    const v = row._value;
-    if (!v || typeof v !== 'object') continue;
-    out[row._key] = { name: v.name };
+    out[row._key] = { name: getName(row.name) };
   }
   return out;
 }
@@ -97,11 +129,9 @@ async function buildGroups() {
   const out = {};
   for await (const row of readJsonl(path.join(EXTRACT_DIR, 'groups.jsonl'))) {
     if (row._key === '_meta') continue;
-    const v = row._value;
-    if (!v || typeof v !== 'object') continue;
     out[row._key] = {
-      name: v.name,
-      categoryID: v.categoryID,
+      name: getName(row.name),
+      categoryID: row.categoryID,
     };
   }
   return out;
@@ -111,9 +141,7 @@ async function buildCategories() {
   const out = {};
   for await (const row of readJsonl(path.join(EXTRACT_DIR, 'categories.jsonl'))) {
     if (row._key === '_meta') continue;
-    const v = row._value;
-    if (!v || typeof v !== 'object') continue;
-    out[row._key] = { name: v.name };
+    out[row._key] = { name: getName(row.name) };
   }
   return out;
 }
@@ -124,13 +152,11 @@ async function buildShips(groups) {
   const out = {};
   for await (const row of readJsonl(path.join(EXTRACT_DIR, 'types.jsonl'))) {
     if (row._key === '_meta') continue;
-    const v = row._value;
-    if (!v || typeof v !== 'object') continue;
-    const groupID = v.groupID;
+    const groupID = row.groupID;
     const group = groups[groupID];
     if (!group || group.categoryID !== 6) continue;  // Ship category only
     out[row._key] = {
-      name: v.name,
+      name: getName(row.name),
       groupID,
     };
   }
@@ -174,7 +200,7 @@ async function main() {
     if (!trimmed) continue;
     const row = JSON.parse(trimmed);
     if (row._key === 'sde') {
-      newBuild = row._value.buildNumber;
+      newBuild = row.buildNumber;
       break;
     }
   }
