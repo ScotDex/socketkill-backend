@@ -13,6 +13,7 @@ const helpers = require("../core/helpers");
 const { resolveItems } = require('../core/itemResolver');
 const pLimit = require('p-limit');
 const kvClient = require('../network/kvClient');
+const searchIndex = require('../state/searchIndex');
 
 function startWebServer(esi, statsManager, sharedState, getProcessor) {
   const app = express();
