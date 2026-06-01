@@ -9,6 +9,7 @@ const statsManager = require("./src/services/statsManager");
 const ProcessorFactory = require("./src/core/processor_v2");
 const r2 = require("./src/network/r2Writer");
 const hashCache = require("./src/state/hashCache")
+const searchIndex = require("./src/state/searchIndex")
 const { syncMarketPrices, loadMarketPrices } = require("./src/services/priceService");
 const kv = require('./src/network/kvClient');
 //const systems = require ('./data/systems.json')
@@ -283,6 +284,8 @@ process.on("SIGINT", () => shutdown("SIGINT"));
   processor = ProcessorFactory(esi, io, statsManager);
   await hashCache.prime();
   setInterval(() => hashCache.rotateIfNeeded(), 60_000);
+  await searchIndex.prime();
+  await searchIndex.rotateIfNeeded();
 
   // await todayStats.prime();
   // setInterval(() => todayStats.snapshot(), 60_000);

@@ -17,6 +17,23 @@ function resolveSpace(systemId, securityStatus) {
 }
 
 
+function topByDamage(attackers, field, n) {
+  const seen = new Set();
+  const result = [];
+  const sorted = [...attackers].sort(
+    (a, b) => (b.damage_done ?? 0) - (a.damage_done ?? 0)
+  );
+  for (const attacker of sorted) {
+    const id = attacker[field];
+    if (id && !seen.has(id)) {
+      seen.add(id);
+      result.push(id);
+      if (result.length >= n) break;
+    }
+  }
+  return result;
+}
+
 async function resolveFinalBlowCorp(killmail, esi) {
     const attacker = killmail.attackers?.find(a => a.final_blow);
     if (!attacker) return "Unknown";
@@ -39,4 +56,4 @@ async function resolveTriggerAttacker(killmail, esi) {
     return { triggerShipName, triggerCharName, triggerCorpName, triggerShipId: attacker.ship_type_id };
 }
 
-module.exports = { resolveKillmail, resolveFinalBlowCorp, resolveTriggerAttacker, resolveSpace };
+module.exports = { resolveKillmail, resolveFinalBlowCorp, resolveTriggerAttacker, resolveSpace, topByDamage };
