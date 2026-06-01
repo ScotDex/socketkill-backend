@@ -276,7 +276,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
 //   }
 // //});
 
-async function handleKillDetail(req, res) {
+  async function handleKillDetail(req, res) {
     let date, id;
 
     if (req.params.date) {
@@ -284,13 +284,15 @@ async function handleKillDetail(req, res) {
       id = parseInt(req.params.killID);
     } else {
       id = parseInt(req.params.killID);
-      // STOP THE DEATH SPIRAL: Fetch exact date from zKillboard instead of looping 30 days of R2 shards
-      const zkbMeta = await fetchZkbMeta(id);
-      if (zkbMeta && zkbMeta.time) {
-        date = zkbMeta.time.slice(0, 10); // Extract YYYY-MM-DD
-      } else {
-        return res.status(404).json({ error: 'Kill not found or missing date in URL. Use /api/kill/YYYY-MM-DD/ID' });
+      const now = new Date();
+      for (let i = 0; i < 30; i++) {
+        const d = new Date(now.getTime() - i * 86400000).toISOString().slice(0, 10);
+        if (await hashCache.getHashFromShard(d, id)) {
+          date = d;
+          break;
+        }
       }
+      if (!date) return res.status(404).json({ error: 'Kill not found' });
     }
 
     if (!Number.isFinite(id) || id <= 0) {
