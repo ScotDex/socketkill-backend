@@ -15,6 +15,7 @@ const pLimit = require('p-limit');
 const kvClient = require('../network/kvClient');
 const searchIndex = require('../state/searchIndex');
 const { todayUTC, parseIDList, parseSpaceList, matchesFilters } = require("../core/apiHelpers");
+const rateLimit = require("express-rate-limit");
 
 function startWebServer(esi, statsManager, sharedState, getProcessor) {
   const app = express();
@@ -38,6 +39,32 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
   );
   app.use(cors());
   app.use(express.json());
+
+  // CRITICAL: Prevent banning all users by trusting the reverse proxy (Cloudflare/Docker)
+  app.set('trust proxy', 1);
+
+  // 1. The Executioner: Drop known hostile bots before they hit the event loop
+  app.use((req, res, next) => {
+    const ua = (req.get('User-Agent') || '').toLowerCase();
+    if (ua.includes('python-requests') || ua.includes('eve-helper') || ua.includes('scraper')) {
+      // 444 No Response (Nginx standard) or 403 Forbidden
+      return res.status(403).json({ error: 'Automated scraping prohibited. Use the public ESI.' });
+    }
+    next();
+  });
+
+  // 2. The Throttle: Restrict heavy /api/kill routes
+  const heavyApiLimiter = rateLimit({
+    windowMs: 5 * 60 * 1000, // 5 minutes
+    max: 60, // Limit each IP to 60 requests per 5 minutes (12/min)
+    standardHeaders: true, 
+    legacyHeaders: false,
+    message: { error: "Rate limit exceeded. Scraping is restricted." }
+  });
+
+  // Apply the throttle ONLY to the vulnerable data endpoints, not the static assets
+  app.use('/api/kill', heavyApiLimiter);
+  app.use('/api/kills', heavyApiLimiter);
 
   const io = new Server(server, {
     pingTimeout: 20000,
