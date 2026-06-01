@@ -20,4 +20,12 @@ const talker = axios.create({
     }
 });
 
+setInterval(() => {
+    const active = Object.values(persistentAgent.sockets).reduce((acc, arr) => acc + arr.length, 0);
+    const queued = Object.values(persistentAgent.requests).reduce((acc, arr) => acc + arr.length, 0);
+    if (active > 0 || queued > 0) {
+        console.log(`[AGENT] Active Sockets: ${active}/32 | Queued Requests: ${queued}`);
+    }
+}, 2000);
+
 module.exports = talker;
