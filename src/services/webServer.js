@@ -128,122 +128,122 @@ function matchesFilters(entry, f) {
   return true;
 }
 
-//app.get('/api/kills/search', async (req, res) => {
-  try {
-    const date = req.query.date || todayUTC();
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD.' });
-    }
+// //app.get('/api/kills/search', async (req, res) => {
+//   try {
+//     const date = req.query.date || todayUTC();
+//     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+//       return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD.' });
+//     }
 
-    const filters = {
-      shipTypeIDs: parseIDList(req.query.shipType),
-      shipGroupIDs: parseIDList(req.query.shipGroup),
-      systemIDs: parseIDList(req.query.system),
-      regionIDs: parseIDList(req.query.region),
-      space: parseSpaceList(req.query.space),
-      minValue: req.query.minIsk ? parseInt(req.query.minIsk, 10) : null,
-      maxValue: req.query.maxIsk ? parseInt(req.query.maxIsk, 10) : null,
-      minAttackers: req.query.minAttackers ? parseInt(req.query.minAttackers, 10) : null,
-      maxAttackers: req.query.maxAttackers ? parseInt(req.query.maxAttackers, 10) : null,
-      victimCorpIDs: parseIDList(req.query.victimCorp),
-      victimAllianceIDs: parseIDList(req.query.victimAlliance),
-      attackerCorpIDs: parseIDList(req.query.attackerCorp),
-      attackerAllianceIDs: parseIDList(req.query.attackerAlliance),
-      solo: req.query.solo === '1',
-    };
+//     const filters = {
+//       shipTypeIDs: parseIDList(req.query.shipType),
+//       shipGroupIDs: parseIDList(req.query.shipGroup),
+//       systemIDs: parseIDList(req.query.system),
+//       regionIDs: parseIDList(req.query.region),
+//       space: parseSpaceList(req.query.space),
+//       minValue: req.query.minIsk ? parseInt(req.query.minIsk, 10) : null,
+//       maxValue: req.query.maxIsk ? parseInt(req.query.maxIsk, 10) : null,
+//       minAttackers: req.query.minAttackers ? parseInt(req.query.minAttackers, 10) : null,
+//       maxAttackers: req.query.maxAttackers ? parseInt(req.query.maxAttackers, 10) : null,
+//       victimCorpIDs: parseIDList(req.query.victimCorp),
+//       victimAllianceIDs: parseIDList(req.query.victimAlliance),
+//       attackerCorpIDs: parseIDList(req.query.attackerCorp),
+//       attackerAllianceIDs: parseIDList(req.query.attackerAlliance),
+//       solo: req.query.solo === '1',
+//     };
 
-    const shard = await searchIndex.getShard(date);
-    let entries = Object.entries(shard);
+//     const shard = await searchIndex.getShard(date);
+//     let entries = Object.entries(shard);
 
-    // Cheap filter pass on shard data — no killmail loads
-    entries = entries.filter(([, entry]) => matchesFilters(entry, filters));
+//     // Cheap filter pass on shard data — no killmail loads
+//     entries = entries.filter(([, entry]) => matchesFilters(entry, filters));
 
-    // Sort by timestamp desc by default
-    entries.sort((a, b) => (b[1].timestamp ?? 0) - (a[1].timestamp ?? 0));
+//     // Sort by timestamp desc by default
+//     entries.sort((a, b) => (b[1].timestamp ?? 0) - (a[1].timestamp ?? 0));
 
-    const total = entries.length;
-    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-    const PAGE_SIZE = 50;
-    const start = (page - 1) * PAGE_SIZE;
-    const pageSlice = entries.slice(start, start + PAGE_SIZE);
+//     const total = entries.length;
+//     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+//     const PAGE_SIZE = 50;
+//     const start = (page - 1) * PAGE_SIZE;
+//     const pageSlice = entries.slice(start, start + PAGE_SIZE);
 
-    // Load + enrich killmails for this page only
-    const limit = pLimit(5);
-    const kills = await Promise.all(pageSlice.map(([killID, entry]) => limit(async () => {
-      try {
-        const hash = await hashCache.getHashFromShard(date, parseInt(killID, 10));
-        if (!hash) return null;
+//     // Load + enrich killmails for this page only
+//     const limit = pLimit(5);
+//     const kills = await Promise.all(pageSlice.map(([killID, entry]) => limit(async () => {
+//       try {
+//         const hash = await hashCache.getHashFromShard(date, parseInt(killID, 10));
+//         if (!hash) return null;
 
-        const km = await killmailCache.get(parseInt(killID, 10), hash);
-        if (!km) return null;
+//         const km = await killmailCache.get(parseInt(killID, 10), hash);
+//         if (!km) return null;
 
-        const victim = km.victim;
-        const sys = esi.getSystemDetails(km.solar_system_id);
-        const finalBlow = km.attackers?.find(a => a.final_blow) || km.attackers?.[0];
+//         const victim = km.victim;
+//         const sys = esi.getSystemDetails(km.solar_system_id);
+//         const finalBlow = km.attackers?.find(a => a.final_blow) || km.attackers?.[0];
 
-        const [vName, vCorp, vAlliance, vShip, region, fbCorp] = await Promise.all([
-          esi.getCharacterName(victim.character_id),
-          esi.getCorporationName(victim.corporation_id),
-          victim.alliance_id ? esi.getAllianceName(victim.alliance_id) : Promise.resolve(null),
-          esi.getTypeName(victim.ship_type_id),
-          sys?.region_id ? esi.getRegionName(sys.region_id) : Promise.resolve('K-Space'),
-          finalBlow?.corporation_id ? esi.getCorporationName(finalBlow.corporation_id) : Promise.resolve('Unknown'),
-        ]);
+//         const [vName, vCorp, vAlliance, vShip, region, fbCorp] = await Promise.all([
+//           esi.getCharacterName(victim.character_id),
+//           esi.getCorporationName(victim.corporation_id),
+//           victim.alliance_id ? esi.getAllianceName(victim.alliance_id) : Promise.resolve(null),
+//           esi.getTypeName(victim.ship_type_id),
+//           sys?.region_id ? esi.getRegionName(sys.region_id) : Promise.resolve('K-Space'),
+//           finalBlow?.corporation_id ? esi.getCorporationName(finalBlow.corporation_id) : Promise.resolve('Unknown'),
+//         ]);
 
-        return {
-          killID: parseInt(killID, 10),
-          time: km.killmail_time,
-          rawValue: entry.totalValue,
-          formattedValue: helpers.formatIsk(entry.totalValue),
-          victim: {
-            name: (vName === 'Unknown' || !vName) ? vCorp : vName,
-            characterID: victim.character_id || null,
-            corp: vCorp,
-            corporationID: victim.corporation_id || null,
-            alliance: vAlliance,
-            allianceID: victim.alliance_id || null,
-            ship: vShip,
-            shipTypeID: victim.ship_type_id,
-          },
-          system: {
-            id: km.solar_system_id,
-            name: sys?.name || 'Unknown',
-            region,
-            regionID: sys?.region_id,
-            security: sys?.security_status,
-            space: entry.space,
-          },
-          finalBlowCorp: fbCorp,
-          attackerCount: km.attackers?.length || 0,
-        };
-      } catch (err) {
-        console.warn(`[SEARCH API] Failed kill ${killID}: ${err.message}`);
-        return null;
-      }
-    })));
+//         return {
+//           killID: parseInt(killID, 10),
+//           time: km.killmail_time,
+//           rawValue: entry.totalValue,
+//           formattedValue: helpers.formatIsk(entry.totalValue),
+//           victim: {
+//             name: (vName === 'Unknown' || !vName) ? vCorp : vName,
+//             characterID: victim.character_id || null,
+//             corp: vCorp,
+//             corporationID: victim.corporation_id || null,
+//             alliance: vAlliance,
+//             allianceID: victim.alliance_id || null,
+//             ship: vShip,
+//             shipTypeID: victim.ship_type_id,
+//           },
+//           system: {
+//             id: km.solar_system_id,
+//             name: sys?.name || 'Unknown',
+//             region,
+//             regionID: sys?.region_id,
+//             security: sys?.security_status,
+//             space: entry.space,
+//           },
+//           finalBlowCorp: fbCorp,
+//           attackerCount: km.attackers?.length || 0,
+//         };
+//       } catch (err) {
+//         console.warn(`[SEARCH API] Failed kill ${killID}: ${err.message}`);
+//         return null;
+//       }
+// //     })));
 
-    const validKills = kills.filter(Boolean);
+//     const validKills = kills.filter(Boolean);
 
-    const isToday = date === todayUTC();
-    res.set('Cache-Control', isToday ? 'public, max-age=30' : 'public, max-age=300');
+//     const isToday = date === todayUTC();
+//     res.set('Cache-Control', isToday ? 'public, max-age=30' : 'public, max-age=300');
 
-    res.json({
-      date,
-      filters,
-      page,
-      pageSize: PAGE_SIZE,
-      total,
-      count: validKills.length,
-      hasMore: total > start + PAGE_SIZE,
-      hasPrev: page > 1,
-      kills: validKills,
-    });
+//     res.json({
+//       date,
+//       filters,
+//       page,
+//       pageSize: PAGE_SIZE,
+//       total,
+//       count: validKills.length,
+//       hasMore: total > start + PAGE_SIZE,
+//       hasPrev: page > 1,
+//       kills: validKills,
+//     });
 
-  } catch (err) {
-    console.error('[SEARCH API] Error:', err);
-    res.status(500).json({ error: 'Internal error' });
-  }
-//});
+//   } catch (err) {
+//     console.error('[SEARCH API] Error:', err);
+//     res.status(500).json({ error: 'Internal error' });
+//   }
+// //});
 
   async function handleKillDetail(req, res) {
     let date, id;
