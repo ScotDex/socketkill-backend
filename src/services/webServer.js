@@ -268,7 +268,8 @@ app.get('/api/kills/search', async (req, res) => {
       return res.status(400).json({ error: 'Invalid killID.' });
     }
 
-    console.log(`[KILL API] Request for kill ${id}${date ? ` (date: ${date})` : ''}`);
+    const ua = (req.get('user-agent') || '').slice(0, 80);
+    console.log(`[KILL API] Request for kill ${id}${date ? ` (date: ${date})` : ''} | UA: ${ua}`);
     try {
     
       const hash = await hashCache.getHashFromShard(date, id);
