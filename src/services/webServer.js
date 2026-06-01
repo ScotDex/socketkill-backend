@@ -266,7 +266,10 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     }
 
     const ua = (req.get('user-agent') || '').slice(0, 80);
-    console.log(`[KILL API] Request for kill ${id}${date ? ` (date: ${date})` : ''} | UA: ${ua}`);
+    const rawIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'Unknown';
+    const clientIp = rawIp.split(',')[0].trim();
+    
+    console.log(`[KILL API] Request for kill ${id}${date ? ` (date: ${date})` : ''} | IP: ${clientIp} | UA: ${ua}`);
     try {
     
       const hash = await hashCache.getHashFromShard(date, id);
