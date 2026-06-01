@@ -48,7 +48,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     const ua = (req.get('User-Agent') || '').toLowerCase();
     if (ua.includes('python-requests') || ua.includes('eve-helper') || ua.includes('scraper')) {
       // 444 No Response (Nginx standard) or 403 Forbidden
-      return res.status(403).json({ error: 'Automated scraping prohibited. Use the public ESI.' });
+      return res.status(403).json({ error: 'Automated scraping prohibited. Use the public API.' });
     }
     next();
   });
