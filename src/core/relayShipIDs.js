@@ -1,4 +1,4 @@
-// Note for anyone, if I am missing any let me know :)
+
 
 const TITAN_SHIP_IDS = new Set([
         671,
