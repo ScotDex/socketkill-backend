@@ -39,8 +39,8 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
   app.use(express.json());
 
   const io = new Server(server, {
-    pingTimeout: 2000,
-    pingInterval: 5000,
+    pingTimeout: 20000,
+    pingInterval: 25000,
     cors: {
       origin: [
         "https://socketkill.com",
