@@ -91,6 +91,40 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     transports: ["websocket", "polling"],
   });
 
+  // --- BEGIN SECURITY SUITE ---
+  const BANNED_IPS = new Set([
+    '172.14.68.223', // Abusive Python scraper
+  ]);
+
+  function getClientIp(rawIp) {
+    if (!rawIp) return '';
+    return rawIp.split(',')[0].trim();
+  }
+
+  // Restrict REST API by IP
+  app.use((req, res, next) => {
+    const clientIp = getClientIp(req.headers['x-forwarded-for'] || req.socket.remoteAddress);
+    if (BANNED_IPS.has(clientIp)) {
+      return res.status(403).json({ error: 'Your IP is banned.' });
+    }
+    next();
+  });
+
+  // Restrict WebSocket by IP and User-Agent
+  io.use((socket, next) => {
+    const clientIp = getClientIp(socket.handshake.headers['x-forwarded-for'] || socket.handshake.address);
+    if (BANNED_IPS.has(clientIp)) {
+      return next(new Error('Connection refused by IP'));
+    }
+
+    const ua = (socket.handshake.headers['user-agent'] || '').toLowerCase();
+    if (ua.includes('python-requests') || ua.includes('eve-helper') || ua.includes('scraper')) {
+      return next(new Error('Automated scraping prohibited'));
+    }
+    next();
+  });
+  // --- END SECURITY SUITE ---
+
   const PORT = process.env.PORT;
   const publicPath = path.join(__dirname, "..", "..", "public");
 
@@ -242,7 +276,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
 //   }
 // //});
 
-  async function handleKillDetail(req, res) {
+async function handleKillDetail(req, res) {
     let date, id;
 
     if (req.params.date) {
@@ -250,15 +284,13 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       id = parseInt(req.params.killID);
     } else {
       id = parseInt(req.params.killID);
-      const now = new Date();
-      for (let i = 0; i < 30; i++) {
-        const d = new Date(now.getTime() - i * 86400000).toISOString().slice(0, 10);
-        if (await hashCache.getHashFromShard(d, id)) {
-          date = d;
-          break;
-        }
+      // STOP THE DEATH SPIRAL: Fetch exact date from zKillboard instead of looping 30 days of R2 shards
+      const zkbMeta = await fetchZkbMeta(id);
+      if (zkbMeta && zkbMeta.time) {
+        date = zkbMeta.time.slice(0, 10); // Extract YYYY-MM-DD
+      } else {
+        return res.status(404).json({ error: 'Kill not found or missing date in URL. Use /api/kill/YYYY-MM-DD/ID' });
       }
-      if (!date) return res.status(404).json({ error: 'Kill not found' });
     }
 
     if (!Number.isFinite(id) || id <= 0) {
@@ -269,7 +301,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     const rawIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'Unknown';
     const clientIp = rawIp.split(',')[0].trim();
     
-    console.log(`[KILL API] Request for kill ${id}${date ? ` (date: ${date})` : ''} | IP: ${clientIp} | UA: ${ua}`);
+    console.log(`[KILL API] Request for kill ${id} (date: ${date}) | IP: ${clientIp} | UA: ${ua}`);
     try {
     
       const hash = await hashCache.getHashFromShard(date, id);
