@@ -128,7 +128,7 @@ function matchesFilters(entry, f) {
   return true;
 }
 
-app.get('/api/kills/search', async (req, res) => {
+//app.get('/api/kills/search', async (req, res) => {
   try {
     const date = req.query.date || todayUTC();
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
@@ -243,7 +243,7 @@ app.get('/api/kills/search', async (req, res) => {
     console.error('[SEARCH API] Error:', err);
     res.status(500).json({ error: 'Internal error' });
   }
-});
+//});
 
   async function handleKillDetail(req, res) {
     let date, id;
