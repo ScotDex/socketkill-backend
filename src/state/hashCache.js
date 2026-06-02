@@ -108,4 +108,4 @@ function findDateForKill(killID) {
   return null;
 }
 
-module.exports = { prime, set, get, getShipID, flush, rotateIfNeeded, getHashFromShard, getAllToday };
+module.exports = { prime, set, get, getShipID, flush, rotateIfNeeded, getHashFromShard, getAllToday, findDateForKill };
