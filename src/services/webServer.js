@@ -42,8 +42,8 @@ try {
 const rateLimit = require('express-rate-limit');
 
 const searchLimiter = rateLimit({
-  windowMs: 60 * 1000,   // per minute
-  max: 30,               // 30 searches per IP per minute
+  windowMs: 60 * 1000,  
+  max: 30,               
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) =>
