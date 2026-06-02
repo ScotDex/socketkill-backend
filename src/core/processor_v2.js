@@ -16,7 +16,7 @@ module.exports = (esi, io, statsManager) => {
 
 
 
-            const [systemDetails, shipName, charName, corpName, finalBlowCorp, allianceName] = await Promise.all([
+            const [systemDetails, shipName, charName, corpName, finalBlowCorp, allianceName, shipGroupID] = await Promise.all([
                 esi.getSystemDetails(killmail.solar_system_id),
                 esi.getTypeName(killmail.victim.ship_type_id),
                 esi.getCharacterName(killmail.victim?.character_id),
@@ -25,28 +25,32 @@ module.exports = (esi, io, statsManager) => {
                 killmail.victim?.alliance_id
                     ? esi.getAllianceName(killmail.victim.alliance_id)
                     : Promise.resolve(null),
+                esi.getShipGroupID(killmail.victim.ship_type_id),
 
             ]);
-
-                        hashCache.set(killID, {
-  hash,
-  shipID: killmail.victim.ship_type_id,
-  shipGroupID: esi.getShipGroupID(killmail.victim.ship_type_id),
-  systemID: killmail.solar_system_id,
-  regionID: systemDetails?.region_id ?? null,
-  space: resolveSpace(killmail.solar_system_id, systemDetails?.security_status),
-  totalValue: Number(zkb?.totalValue) || 0,
-  attackerCount: killmail.attackers?.length || 0,
-  victimCorpID: killmail.victim.corporation_id ?? null,
-  victimAllianceID: killmail.victim.alliance_id ?? null,
-});
+            const finalVictimName = (charName == "Unknown" || !charName) ? corpName : charName;
+             hashCache.set(killID, {
+                hash,
+                shipID: killmail.victim.ship_type_id,
+                shipGroupID: esi.getShipGroupID(killmail.victim.ship_type_id),
+                systemID: killmail.solar_system_id,
+                regionID: systemDetails?.region_id ?? null,
+                space: resolveSpace(killmail.solar_system_id, systemDetails?.security_status),
+                totalValue: Number(zkb?.totalValue) || 0,
+                attackerCount: killmail.attackers?.length || 0,
+                victimCorpID: killmail.victim.corporation_id ?? null,
+                victimAllianceID: killmail.victim.alliance_id ?? null,
+                time: killmail.killmail_time,
+                victimName: finalVictimName,
+                corpName,
+            });
             const weaponTypeIDs = [... new Set(
                 (killmail.attackers || [])
-                .filter(a => a.character_id != null && a.weapon_type_id != null)
-                .map(a => a.weapon_type_id)
+                    .filter(a => a.character_id != null && a.weapon_type_id != null)
+                    .map(a => a.weapon_type_id)
             )];
             const attackerCount = killmail.attackers?.length || 0;
-            const finalVictimName = (charName == "Unknown" || !charName) ? corpName : charName;
+            
             statsManager.increment(rawValue);
 
             const systemName = systemDetails?.name || "Unknown System";

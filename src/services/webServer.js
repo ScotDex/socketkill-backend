@@ -17,6 +17,7 @@ const killmailResolver = require('../core/killmailResolver');
 
 function startWebServer(esi, statsManager, sharedState, getProcessor) {
   const app = express();
+  app.set('trust proxy', 1);
 
   const options = {
     key: fs.readFileSync(
@@ -37,6 +38,20 @@ try {
 } catch (err) {
   console.warn(`[AUTH] No API keys file — /api/search will reject all requests: ${err.message}`);
 }
+
+const rateLimit = require('express-rate-limit');
+
+const searchLimiter = rateLimit({
+  windowMs: 60 * 1000,   // per minute
+  max: 30,               // 30 searches per IP per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) =>
+    req.get('CF-Connecting-IP') ||
+    (req.headers['x-forwarded-for'] || '').split(',')[0].trim() ||
+    req.ip,
+  message: { error: 'Too many searches — slow down.' },
+});
 
 function requireApiKey(req, res, next) {
   const key = req.get('X-API-Key');
@@ -268,44 +283,43 @@ function requireApiKey(req, res, next) {
     }
   });
 
-  app.get('/api/search', requireApiKey, (req, res) => {
-  const { parseIDList, parseSpaceList } = require('../core/apiHelpers');
+app.get('/api/search', searchLimiter, (req, res) => {
+    const { parseIDList, parseSpaceList } = require('../core/apiHelpers');
 
-  const filters = {
-    shipGroups: parseIDList(req.query.shipGroup),
-    systems: parseIDList(req.query.system),
-    regions: parseIDList(req.query.region),
-    spaces: parseSpaceList(req.query.space),
-    minValue: parseInt(req.query.minValue) || 0,
-    maxValue: parseInt(req.query.maxValue) || Infinity,
-    minAttackers: parseInt(req.query.minAttackers) || 0,
-    maxAttackers: parseInt(req.query.maxAttackers) || Infinity,
-    victimCorps: parseIDList(req.query.victimCorp),
-    victimAlliances: parseIDList(req.query.victimAlliance),
-    solo: req.query.solo === 'true',
-  };
+    const filters = {
+      shipGroups: parseIDList(req.query.shipGroup),
+      systems: parseIDList(req.query.system),
+      regions: parseIDList(req.query.region),
+      spaces: parseSpaceList(req.query.space),
+      victimCorps: parseIDList(req.query.victimCorp),
+      victimAlliances: parseIDList(req.query.victimAlliance),
+      minValue: parseInt(req.query.minValue) || 0,
+      maxValue: parseInt(req.query.maxValue) || Infinity,
+      minAttackers: parseInt(req.query.minAttackers) || 0,
+      maxAttackers: parseInt(req.query.maxAttackers) || Infinity,
+      solo: req.query.solo === 'true',
+    };
 
-  const results = hashCache.search(filters);
+    const results = hashCache.search(filters); // already newest-first
 
-  // Sort newest first (killIDs are monotonic in EVE)
-  results.sort((a, b) => b.killID - a.killID);
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const PAGE_SIZE = 50;
+    const start = (page - 1) * PAGE_SIZE;
+    const slice = results.slice(start, start + PAGE_SIZE);
 
-  const page = Math.max(1, parseInt(req.query.page) || 1);
-  const PAGE_SIZE = 50;
-  const start = (page - 1) * PAGE_SIZE;
-  const slice = results.slice(start, start + PAGE_SIZE);
+    console.log(`[SEARCH] ip=${req.get('CF-Connecting-IP') || req.ip} matches=${results.length} page=${page}`);
 
-  console.log(`[SEARCH] owner=${req.apiKeyOwner} matches=${results.length} page=${page}`);
-
-  res.set('Cache-Control', 'private, max-age=15');
-  res.json({
-    total: results.length,
-    page,
-    pageSize: PAGE_SIZE,
-    hasMore: results.length > start + PAGE_SIZE,
-    kills: slice,
+    // Identical query strings get served from Cloudflare's edge, never reaching Node:
+    res.set('Cache-Control', 'public, max-age=30');
+    res.json({
+      total: results.length,
+      page,
+      pageSize: PAGE_SIZE,
+      hasMore: results.length > start + PAGE_SIZE,
+      hasPrev: page > 1,
+      kills: slice,
+    });
   });
-});
 
   app.get('/api/stats', (req, res) => {
     const mem = process.memoryUsage();

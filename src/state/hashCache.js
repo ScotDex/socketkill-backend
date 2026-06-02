@@ -109,25 +109,36 @@ function findDateForKill(killID) {
 }
 
 function search(filters) {
-  const results = [];
+  const {
+    shipGroups = [], systems = [], regions = [], spaces = [],
+    victimCorps = [], victimAlliances = [],
+    minValue = 0, maxValue = Infinity,
+    minAttackers = 0, maxAttackers = Infinity,
+    solo = false,
+  } = filters;
+
+  const matches = [];
   for (const [killID, entry] of cache.entries()) {
     if (!entry || typeof entry !== 'object') continue;
 
-    if (filters.shipGroups?.size && !filters.shipGroups.has(entry.shipGroupID)) continue;
-    if (filters.systems?.size && !filters.systems.has(entry.systemID)) continue;
-    if (filters.regions?.size && !filters.regions.has(entry.regionID)) continue;
-    if (filters.spaces?.size && !filters.spaces.has(entry.space)) continue;
-    if (filters.minValue && (entry.totalValue || 0) < filters.minValue) continue;
-    if (filters.maxValue !== Infinity && (entry.totalValue || 0) > filters.maxValue) continue;
-    if (filters.minAttackers && (entry.attackerCount || 0) < filters.minAttackers) continue;
-    if (filters.maxAttackers !== Infinity && (entry.attackerCount || 0) > filters.maxAttackers) continue;
-    if (filters.victimCorps?.size && !filters.victimCorps.has(entry.victimCorpID)) continue;
-    if (filters.victimAlliances?.size && !filters.victimAlliances.has(entry.victimAllianceID)) continue;
-    if (filters.solo && (entry.attackerCount || 0) !== 1) continue;
+    if (shipGroups.length      && !shipGroups.includes(entry.shipGroupID)) continue;
+    if (systems.length         && !systems.includes(entry.systemID)) continue;
+    if (regions.length         && !regions.includes(entry.regionID)) continue;
+    if (spaces.length          && !spaces.includes(entry.space)) continue;
+    if (victimCorps.length     && !victimCorps.includes(entry.victimCorpID)) continue;
+    if (victimAlliances.length && !victimAlliances.includes(entry.victimAllianceID)) continue;
 
-    results.push({ killID, ...entry });
+    if ((entry.totalValue || 0) < minValue) continue;
+    if (maxValue !== Infinity && (entry.totalValue || 0) > maxValue) continue;
+    if ((entry.attackerCount || 0) < minAttackers) continue;
+    if (maxAttackers !== Infinity && (entry.attackerCount || 0) > maxAttackers) continue;
+    if (solo && (entry.attackerCount || 0) !== 1) continue;
+
+    matches.push({ killID: Number(killID), ...entry });
   }
-  return results;
+
+  matches.reverse(); 
+  return matches;
 }
 
 module.exports = { prime, set, get, getShipID, flush, rotateIfNeeded, getHashFromShard, getAllToday, findDateForKill, search };
