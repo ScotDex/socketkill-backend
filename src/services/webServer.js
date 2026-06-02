@@ -29,6 +29,24 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
 
   const server = https.createServer(options, app);
 
+  let apiKeys = {};
+try {
+  const keysFile = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'data', 'api-keys.json'), 'utf-8'));
+  apiKeys = keysFile.keys || {};
+  console.log(`[AUTH] Loaded ${Object.keys(apiKeys).length} API keys`);
+} catch (err) {
+  console.warn(`[AUTH] No API keys file — /api/search will reject all requests: ${err.message}`);
+}
+
+function requireApiKey(req, res, next) {
+  const key = req.get('X-API-Key');
+  if (!key || !apiKeys[key]) {
+    return res.status(401).json({ error: 'Valid X-API-Key header required.' });
+  }
+  req.apiKeyOwner = apiKeys[key];
+  next();
+}
+
   app.use(
     helmet({
       contentSecurityPolicy: false,
