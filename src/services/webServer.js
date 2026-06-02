@@ -75,19 +75,6 @@ app.use((req, res, next) => {
   const PORT = process.env.PORT;
   const publicPath = path.join(__dirname, "..", "..", "public");
 
-  async function fetchZkbMeta(killID) {
-    try {
-      const res = await axios.get(`https://zkillboard.com/api/killID/${killID}/`, {
-        timeout: 3000,
-        headers: { 'User-Agent': 'Socket.Kill / Dexomus Viliana' }
-      });
-      const entry = res.data?.[0];
-      return entry?.zkb || null;
-    } catch (err) {
-      console.warn(`[ZKB FETCH] ${killID} failed: ${err.message}`);
-      return null;
-    }
-  }
 
   app.get("/api/character/:id", async (req, res) => {
     console.log(`[API] Character lookup: ${req.params.id}`);
@@ -168,86 +155,6 @@ console.log(`[KILL API] kill=${id} date=${date} ip=${ip} ua="${ua}" ref="${ref}"
       const victim = killmail.victim;
       const finalBlow = killmail.attackers.find(a => a.final_blow) || killmail.attackers[0];
       const systemDetails = esi.getSystemDetails(killmail.solar_system_id);
-
-      const [
-        victimName, victimCorp, victimAlliance, victimShip,
-        finalBlowName, finalBlowCorp, finalBlowShip,
-        regionName, zkb, items,
-        ...attackerData
-      ] = await Promise.all([
-        esi.getCharacterName(victim.character_id),
-        esi.getCorporationName(victim.corporation_id),
-        victim.alliance_id ? esi.getAllianceName(victim.alliance_id) : Promise.resolve(null),
-        esi.getTypeName(victim.ship_type_id),
-        esi.getCharacterName(finalBlow.character_id),
-        esi.getCorporationName(finalBlow.corporation_id),
-        esi.getTypeName(finalBlow.ship_type_id),
-        systemDetails?.region_id ? esi.getRegionName(systemDetails.region_id) : Promise.resolve('K-Space'),
-        fetchZkbMeta(id),
-        resolveItems(victim.items, esi),
-        ...killmail.attackers.flatMap(a => [
-          esi.getCharacterName(a.character_id),
-          esi.getCorporationName(a.corporation_id),
-          esi.getTypeName(a.ship_type_id),
-        ])
-      ]);
-
-      const damageTaken = victim.damage_taken || 0;
-
-      const attackers = killmail.attackers.map((a, i) => ({
-        name: attackerData[i * 3],
-        characterID: a.character_id || null,
-        corp: attackerData[i * 3 + 1],
-        corporationID: a.corporation_id || null,
-        allianceID: a.alliance_id || null,
-        ship: attackerData[i * 3 + 2],
-        shipTypeID: a.ship_type_id || null,
-        damage: a.damage_done,
-        damagePercent: damageTaken > 0
-          ? Math.round((a.damage_done / damageTaken) * 1000) / 10
-          : 0,
-        finalBlow: !!a.final_blow
-      }));
-
-      const payload = {
-        killID: id,
-        killmailHash: hash,
-        killmailTime: killmail.killmail_time,
-        rawValue: zkb?.totalValue || 0,
-        totalValue: zkb?.totalValue ? helpers.formatIsk(zkb.totalValue) : null,
-        droppedValue: zkb?.droppedValue ? helpers.formatIsk(zkb.droppedValue) : null,
-        destroyedValue: zkb?.destroyedValue ? helpers.formatIsk(zkb.destroyedValue) : null,
-        fittedValue: zkb?.fittedValue ? helpers.formatIsk(zkb.fittedValue) : null,
-        items,
-        victim: {
-          name: (victimName === "Unknown" || !victimName) ? victimCorp : victimName,
-          characterID: victim.character_id,
-          corp: victimCorp,
-          corporationID: victim.corporation_id,
-          alliance: victimAlliance,
-          allianceID: victim.alliance_id || null,
-          ship: victimShip,
-          shipTypeID: victim.ship_type_id,
-          damageTaken: victim.damage_taken
-        },
-        system: {
-          id: killmail.solar_system_id,
-          name: systemDetails?.name || 'Unknown System',
-          region: regionName,
-          regionID: systemDetails?.region_id,
-          security: systemDetails?.security_status
-        },
-        finalBlow: {
-          name: finalBlowName,
-          characterID: finalBlow.character_id || null,
-          corp: finalBlowCorp,
-          corporationID: finalBlow.corporation_id || null,
-          ship: finalBlowShip,
-          shipTypeID: finalBlow.ship_type_id || null,
-        },
-        attackers,
-        attackerCount: attackers.length
-      };
 
       
       res.set('Cache-Control', isToday
