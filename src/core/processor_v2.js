@@ -4,7 +4,6 @@ const { resolveKillmail, resolveFinalBlowCorp, resolveTriggerAttacker, resolveSp
 const { TRIGLAVIAN_SYSTEMS } = require('../core/shipIDs');
 const hashCache = require('../state/hashCache')
 const publicStream = require('../services/publicStreamService');
-//const searchIndex = require('../state/searchIndex');
 
 module.exports = (esi, io, statsManager) => {
     async function processPackage(packageData) {
@@ -15,7 +14,18 @@ module.exports = (esi, io, statsManager) => {
             const killmail = await resolveKillmail(isR2, esiData, zkb);
             const rawValue = Number(zkb.totalValue) || 0
 
-            if (hash) hashCache.set(killID, hash, killmail?.victim?.ship_type_id);
+            hashCache.set(killID, {
+  hash,
+  shipID: killmail.victim.ship_type_id,
+  shipGroupID: esi.getShipGroupID(killmail.victim.ship_type_id),
+  systemID: killmail.solar_system_id,
+  regionID: systemDetails?.region_id ?? null,
+  space: resolveSpace(killmail.solar_system_id, systemDetails?.security_status),
+  totalValue: Number(zkb?.totalValue) || 0,
+  attackerCount: killmail.attackers?.length || 0,
+  victimCorpID: killmail.victim.corporation_id ?? null,
+  victimAllianceID: killmail.victim.alliance_id ?? null,
+});
 
             const [systemDetails, shipName, charName, corpName, finalBlowCorp, allianceName] = await Promise.all([
                 esi.getSystemDetails(killmail.solar_system_id),
@@ -28,24 +38,6 @@ module.exports = (esi, io, statsManager) => {
                     : Promise.resolve(null),
 
             ]);
-
-//             const indexEntry = {
-//   shipID: killmail.victim.ship_type_id,
-//   shipGroupID: esi.getShipGroupID?.(killmail.victim.ship_type_id) ?? null,
-//   systemID: killmail.solar_system_id,
-//   regionID: systemDetails?.region_id ?? null,
-//   space: resolveSpace(killmail.solar_system_id, systemDetails?.security_status),
-//   totalValue: zkb?.totalValue ?? 0,
-//   attackerCount: killmail.attackers.length,
-//   victimCorpID: killmail.victim.corporation_id ?? null,
-//   victimAllianceID: killmail.victim.alliance_id ?? null,
-//   attackerCorpIDs: topByDamage(killmail.attackers, 'corporation_id', 5),
-//   attackerAllianceIDs: topByDamage(killmail.attackers, 'alliance_id', 5),
-//   timestamp: Math.floor(new Date(killmail.killmail_time).getTime() / 1000),
-// };
-
-// searchIndex.set(killID, indexEntry);
-
             const weaponTypeIDs = [... new Set(
                 (killmail.attackers || [])
                 .filter(a => a.character_id != null && a.weapon_type_id != null)

@@ -158,7 +158,6 @@ async function prime() {
       }
     }
   } catch (_) {
-    // No saved state — fall through to sequence.json
   }
 
   const res = await talker.get(SEQUENCE_CACHE_URL, { timeout: 5000 });
@@ -284,14 +283,7 @@ process.on("SIGINT", () => shutdown("SIGINT"));
   processor = ProcessorFactory(esi, io, statsManager);
   await hashCache.prime();
   setInterval(() => hashCache.rotateIfNeeded(), 60_000);
-  //await searchIndex.prime();
-  //await searchIndex.rotateIfNeeded();
-
-  // await todayStats.prime();
-  // setInterval(() => todayStats.snapshot(), 60_000);
-  // setInterval(() => todayStats.rotateIfNeeded(), 60_000);
-  // setInterval(emitTodayStats, 5_000);
-
+  await esi.loadShipCache(); 
   refreshNebulaBackground();
   syncPlayerCount();
   setInterval(refreshNebulaBackground, NEBULA_ROTATION_MS);

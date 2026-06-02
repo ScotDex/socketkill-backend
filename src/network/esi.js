@@ -16,7 +16,7 @@ class ESIClient {
             regions: new Map(),
             alliances: new Map()
         };
-
+        this.staticShipData = {};  
         this.staticSystemData = {};
         this.isDirty = false;
 
@@ -117,6 +117,24 @@ class ESIClient {
             return null;
         }
     }
+
+    async loadShipCache() {
+  try {
+    const ships = await kvClient.get('sde:ships');
+    if (ships) {
+      this.staticShipData = ships;
+      console.log(`[ESI] Loaded ${Object.keys(ships).length} ship type → group mappings`);
+    } else {
+      console.warn('[ESI] sde:ships not in KV — shipGroupID will be null until SDE sync runs');
+    }
+  } catch (err) {
+    console.error(`[ESI] Ship cache load failed: ${err.message}`);
+  }
+}
+
+getShipGroupID(typeID) {
+  return this.staticShipData[typeID]?.groupID ?? null;
+}
 
     async getCharacterName(id) {
         return this.fetchAndCache(id, 'characters', '/characters');

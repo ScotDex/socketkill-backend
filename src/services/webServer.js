@@ -37,7 +37,6 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
   app.use(cors());
   app.use(express.json());
 
-  // Block requests with no User-Agent header (browsers always send one)
   app.use((req, res, next) => {
     const ua = req.get('User-Agent');
     if (!ua || ua.trim() === '') {
@@ -250,6 +249,45 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       res.status(500).json({ error: 'Internal error' });
     }
   });
+
+  app.get('/api/search', requireApiKey, (req, res) => {
+  const { parseIDList, parseSpaceList } = require('../core/apiHelpers');
+
+  const filters = {
+    shipGroups: parseIDList(req.query.shipGroup),
+    systems: parseIDList(req.query.system),
+    regions: parseIDList(req.query.region),
+    spaces: parseSpaceList(req.query.space),
+    minValue: parseInt(req.query.minValue) || 0,
+    maxValue: parseInt(req.query.maxValue) || Infinity,
+    minAttackers: parseInt(req.query.minAttackers) || 0,
+    maxAttackers: parseInt(req.query.maxAttackers) || Infinity,
+    victimCorps: parseIDList(req.query.victimCorp),
+    victimAlliances: parseIDList(req.query.victimAlliance),
+    solo: req.query.solo === 'true',
+  };
+
+  const results = hashCache.search(filters);
+
+  // Sort newest first (killIDs are monotonic in EVE)
+  results.sort((a, b) => b.killID - a.killID);
+
+  const page = Math.max(1, parseInt(req.query.page) || 1);
+  const PAGE_SIZE = 50;
+  const start = (page - 1) * PAGE_SIZE;
+  const slice = results.slice(start, start + PAGE_SIZE);
+
+  console.log(`[SEARCH] owner=${req.apiKeyOwner} matches=${results.length} page=${page}`);
+
+  res.set('Cache-Control', 'private, max-age=15');
+  res.json({
+    total: results.length,
+    page,
+    pageSize: PAGE_SIZE,
+    hasMore: results.length > start + PAGE_SIZE,
+    kills: slice,
+  });
+});
 
   app.get('/api/stats', (req, res) => {
     const mem = process.memoryUsage();

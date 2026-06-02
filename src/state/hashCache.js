@@ -108,4 +108,26 @@ function findDateForKill(killID) {
   return null;
 }
 
-module.exports = { prime, set, get, getShipID, flush, rotateIfNeeded, getHashFromShard, getAllToday, findDateForKill };
+function search(filters) {
+  const results = [];
+  for (const [killID, entry] of cache.entries()) {
+    if (!entry || typeof entry !== 'object') continue;
+
+    if (filters.shipGroups?.size && !filters.shipGroups.has(entry.shipGroupID)) continue;
+    if (filters.systems?.size && !filters.systems.has(entry.systemID)) continue;
+    if (filters.regions?.size && !filters.regions.has(entry.regionID)) continue;
+    if (filters.spaces?.size && !filters.spaces.has(entry.space)) continue;
+    if (filters.minValue && (entry.totalValue || 0) < filters.minValue) continue;
+    if (filters.maxValue !== Infinity && (entry.totalValue || 0) > filters.maxValue) continue;
+    if (filters.minAttackers && (entry.attackerCount || 0) < filters.minAttackers) continue;
+    if (filters.maxAttackers !== Infinity && (entry.attackerCount || 0) > filters.maxAttackers) continue;
+    if (filters.victimCorps?.size && !filters.victimCorps.has(entry.victimCorpID)) continue;
+    if (filters.victimAlliances?.size && !filters.victimAlliances.has(entry.victimAllianceID)) continue;
+    if (filters.solo && (entry.attackerCount || 0) !== 1) continue;
+
+    results.push({ killID, ...entry });
+  }
+  return results;
+}
+
+module.exports = { prime, set, get, getShipID, flush, rotateIfNeeded, getHashFromShard, getAllToday, findDateForKill, search };
