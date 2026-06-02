@@ -122,12 +122,26 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       const cached = await r2.get(`kill-responses/${date}/${id}.json`).catch(() => null);
       if (cached) {
         res.set('Cache-Control', 'public, max-age=31536000, immutable');
-        console.log(`[KILL API] Cache hit for ${id} (date: ${date})`);
+        const ua = (req.get('User-Agent') || '').slice(0, 80);
+const ref = (req.get('Referer') || 'Direct').slice(0, 60);
+const ip = req.get('CF-Connecting-IP')
+        || (req.headers['x-forwarded-for'] || '').split(',')[0].trim()
+        || req.socket.remoteAddress
+        || 'unknown';
+
+console.log(`[KILL API] CACHE kill=${id} date=${date} ip=${ip} ua="${ua}" ref="${ref}"`);
         return res.json(cached);
       }
     }
 
-    console.log(`[KILL API] Request for kill ${id}${date ? ` (date: ${date})` : ''}`);
+    const ua = (req.get('User-Agent') || '').slice(0, 80);
+const ref = (req.get('Referer') || 'Direct').slice(0, 60);
+const ip = req.get('CF-Connecting-IP')
+        || (req.headers['x-forwarded-for'] || '').split(',')[0].trim()
+        || req.socket.remoteAddress
+        || 'unknown';
+
+console.log(`[KILL API] kill=${id} date=${date} ip=${ip} ua="${ua}" ref="${ref}"`);
     try {
     
       const hash = await hashCache.getHashFromShard(date, id);
