@@ -37,6 +37,15 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
   app.use(cors());
   app.use(express.json());
 
+  // Block requests with no User-Agent header (browsers always send one)
+app.use((req, res, next) => {
+  const ua = req.get('User-Agent');
+  if (!ua || ua.trim() === '') {
+    return res.status(403).json({ error: 'User-Agent required.' });
+  }
+  next();
+});
+
   const io = new Server(server, {
     pingTimeout: 2000,
     pingInterval: 5000,
