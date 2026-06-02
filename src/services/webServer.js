@@ -116,6 +116,16 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     if (!Number.isFinite(id) || id <= 0) {
       return res.status(400).json({ error: 'Invalid killID.' });
     }
+    const isToday = date === new Date().toISOString().slice(0, 10);
+    if (!isToday) {
+      const r2 = require('../network/r2Writer');
+      const cached = await r2.get(`kill-responses/${date}/${id}.json`).catch(() => null);
+      if (cached) {
+        res.set('Cache-Control', 'public, max-age=31536000, immutable');
+        console.log(`[KILL API] Cache hit for ${id} (date: ${date})`);
+        return res.json(cached);
+      }
+    }
 
     console.log(`[KILL API] Request for kill ${id}${date ? ` (date: ${date})` : ''}`);
     try {
@@ -216,11 +226,17 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       };
 
       
-      const isToday = date === new Date().toISOString().slice(0, 10);
       res.set('Cache-Control', isToday
         ? 'public, max-age=60'
         : 'public, max-age=31536000, immutable');
       res.json(payload);
+
+      // Phase 0: persist enriched response for future hits (past kills only)
+      if (!isToday) {
+        const r2 = require('../network/r2Writer');
+        r2.put(`kill-responses/${date}/${id}.json`, payload).catch(err =>
+          console.warn(`[KILL API] R2 cache write failed for ${id}: ${err.message}`));
+      }
 
     } catch (err) {
       console.error(`[KILL API] Error resolving ${date}/${id}: ${err.message}`);
