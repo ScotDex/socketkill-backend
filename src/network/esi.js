@@ -6,7 +6,7 @@ const fs = require(`fs`).promises;
 class ESIClient {
     constructor() {
         this.api = talker;
-        this.baseURL = "https://esi.evetech.net/latest";
+        this.baseURL = "https://esi.evetech.net";
 
         this.cache = {
             characters: new Map(),
