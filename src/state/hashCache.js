@@ -99,4 +99,13 @@ function getAllToday() {
   return Array.from(cache.entries()).map(([killID, value]) => [String(killID), value]);
 }
 
+function findDateForKill(killID) {
+  const id = parseInt(killID, 10);
+  if (cache.has(id)) return todayUTC();
+  for (const [date, shard] of shardCache) {
+    if (shard[id] || shard[String(id)]) return date;
+  }
+  return null;
+}
+
 module.exports = { prime, set, get, getShipID, flush, rotateIfNeeded, getHashFromShard, getAllToday };

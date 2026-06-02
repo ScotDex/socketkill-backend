@@ -283,21 +283,24 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       date = req.params.date;
       id = parseInt(req.params.killID);
     } else {
-      id = parseInt(req.params.killID);
-      const now = new Date();
-      for (let i = 0; i < 30; i++) {
-        const d = new Date(now.getTime() - i * 86400000).toISOString().slice(0, 10);
-        if (await hashCache.getHashFromShard(d, id)) {
-          date = d;
-          break;
-        }
-      }
-      if (!date) return res.status(404).json({ error: 'Kill not found' });
-    }
+  id = parseInt(req.params.killID);
+  const r2 = require('../network/r2Writer');
 
-    if (!Number.isFinite(id) || id <= 0) {
-      return res.status(400).json({ error: 'Invalid killID.' });
+  // Tier 1 + 2: in-memory (today's cache + LRU shardCache of past dates)
+  date = hashCache.findDateForKill(id);
+
+  // Tier 3: probe the killmail's own R2 file — one bounded GET, no cascade
+  if (!date) {
+    const cachedKM = await r2.get(`killmails/${id}.json`).catch(() => null);
+    if (cachedKM?.killmail_time) {
+      date = cachedKM.killmail_time.slice(0, 10);
     }
+  }
+
+  if (!date) {
+    return res.status(404).json({ error: 'Kill not found.' });
+  }
+}
 
     const ua = (req.get('user-agent') || '').slice(0, 80);
     const rawIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'Unknown';
