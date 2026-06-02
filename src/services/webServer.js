@@ -13,9 +13,6 @@ const helpers = require("../core/helpers");
 const { resolveItems } = require('../core/itemResolver');
 const pLimit = require('p-limit');
 const kvClient = require('../network/kvClient');
-const searchIndex = require('../state/searchIndex');
-const { todayUTC, parseIDList, parseSpaceList, matchesFilters } = require("../core/apiHelpers");
-const rateLimit = require("express-rate-limit");
 
 function startWebServer(esi, statsManager, sharedState, getProcessor) {
   const app = express();
@@ -40,35 +37,9 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
   app.use(cors());
   app.use(express.json());
 
-  // CRITICAL: Prevent banning all users by trusting the reverse proxy (Cloudflare/Docker)
-  app.set('trust proxy', 1);
-
-  // 1. The Executioner: Drop known hostile bots before they hit the event loop
-  app.use((req, res, next) => {
-    const ua = (req.get('User-Agent') || '').toLowerCase();
-    if (ua.includes('python-requests') || ua.includes('eve-helper') || ua.includes('scraper')) {
-      // 444 No Response (Nginx standard) or 403 Forbidden
-      return res.status(403).json({ error: 'Automated scraping prohibited. Use the public API.' });
-    }
-    next();
-  });
-
-  // 2. The Throttle: Restrict heavy /api/kill routes
-  const heavyApiLimiter = rateLimit({
-    windowMs: 5 * 60 * 1000, // 5 minutes
-    max: 60, // Limit each IP to 60 requests per 5 minutes (12/min)
-    standardHeaders: true, 
-    legacyHeaders: false,
-    message: { error: "Rate limit exceeded. Scraping is restricted." }
-  });
-
-  // Apply the throttle ONLY to the vulnerable data endpoints, not the static assets
-  app.use('/api/kill', heavyApiLimiter);
-  app.use('/api/kills', heavyApiLimiter);
-
   const io = new Server(server, {
-    pingTimeout: 20000,
-    pingInterval: 25000,
+    pingTimeout: 2000,
+    pingInterval: 5000,
     cors: {
       origin: [
         "https://socketkill.com",
@@ -90,40 +61,6 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     },
     transports: ["websocket", "polling"],
   });
-
-  // --- BEGIN SECURITY SUITE ---
-  const BANNED_IPS = new Set([
-    '172.14.68.223', // Abusive Python scraper
-  ]);
-
-  function getClientIp(rawIp) {
-    if (!rawIp) return '';
-    return rawIp.split(',')[0].trim();
-  }
-
-  // Restrict REST API by IP
-  app.use((req, res, next) => {
-    const clientIp = getClientIp(req.headers['x-forwarded-for'] || req.socket.remoteAddress);
-    if (BANNED_IPS.has(clientIp)) {
-      return res.status(403).json({ error: 'Your IP is banned.' });
-    }
-    next();
-  });
-
-  // Restrict WebSocket by IP and User-Agent
-  io.use((socket, next) => {
-    const clientIp = getClientIp(socket.handshake.headers['x-forwarded-for'] || socket.handshake.address);
-    if (BANNED_IPS.has(clientIp)) {
-      return next(new Error('Connection refused by IP'));
-    }
-
-    const ua = (socket.handshake.headers['user-agent'] || '').toLowerCase();
-    if (ua.includes('python-requests') || ua.includes('eve-helper') || ua.includes('scraper')) {
-      return next(new Error('Automated scraping prohibited'));
-    }
-    next();
-  });
-  // --- END SECURITY SUITE ---
 
   const PORT = process.env.PORT;
   const publicPath = path.join(__dirname, "..", "..", "public");
@@ -157,125 +94,6 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     }
   });
 
-
-
-// //app.get('/api/kills/search', async (req, res) => {
-//   try {
-//     const date = req.query.date || todayUTC();
-//     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-//       return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD.' });
-//     }
-
-//     const filters = {
-//       shipTypeIDs: parseIDList(req.query.shipType),
-//       shipGroupIDs: parseIDList(req.query.shipGroup),
-//       systemIDs: parseIDList(req.query.system),
-//       regionIDs: parseIDList(req.query.region),
-//       space: parseSpaceList(req.query.space),
-//       minValue: req.query.minIsk ? parseInt(req.query.minIsk, 10) : null,
-//       maxValue: req.query.maxIsk ? parseInt(req.query.maxIsk, 10) : null,
-//       minAttackers: req.query.minAttackers ? parseInt(req.query.minAttackers, 10) : null,
-//       maxAttackers: req.query.maxAttackers ? parseInt(req.query.maxAttackers, 10) : null,
-//       victimCorpIDs: parseIDList(req.query.victimCorp),
-//       victimAllianceIDs: parseIDList(req.query.victimAlliance),
-//       attackerCorpIDs: parseIDList(req.query.attackerCorp),
-//       attackerAllianceIDs: parseIDList(req.query.attackerAlliance),
-//       solo: req.query.solo === '1',
-//     };
-
-//     const shard = await searchIndex.getShard(date);
-//     let entries = Object.entries(shard);
-
-//     // Cheap filter pass on shard data — no killmail loads
-//     entries = entries.filter(([, entry]) => matchesFilters(entry, filters));
-
-//     // Sort by timestamp desc by default
-//     entries.sort((a, b) => (b[1].timestamp ?? 0) - (a[1].timestamp ?? 0));
-
-//     const total = entries.length;
-//     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-//     const PAGE_SIZE = 50;
-//     const start = (page - 1) * PAGE_SIZE;
-//     const pageSlice = entries.slice(start, start + PAGE_SIZE);
-
-//     // Load + enrich killmails for this page only
-//     const limit = pLimit(5);
-//     const kills = await Promise.all(pageSlice.map(([killID, entry]) => limit(async () => {
-//       try {
-//         const hash = await hashCache.getHashFromShard(date, parseInt(killID, 10));
-//         if (!hash) return null;
-
-//         const km = await killmailCache.get(parseInt(killID, 10), hash);
-//         if (!km) return null;
-
-//         const victim = km.victim;
-//         const sys = esi.getSystemDetails(km.solar_system_id);
-//         const finalBlow = km.attackers?.find(a => a.final_blow) || km.attackers?.[0];
-
-//         const [vName, vCorp, vAlliance, vShip, region, fbCorp] = await Promise.all([
-//           esi.getCharacterName(victim.character_id),
-//           esi.getCorporationName(victim.corporation_id),
-//           victim.alliance_id ? esi.getAllianceName(victim.alliance_id) : Promise.resolve(null),
-//           esi.getTypeName(victim.ship_type_id),
-//           sys?.region_id ? esi.getRegionName(sys.region_id) : Promise.resolve('K-Space'),
-//           finalBlow?.corporation_id ? esi.getCorporationName(finalBlow.corporation_id) : Promise.resolve('Unknown'),
-//         ]);
-
-//         return {
-//           killID: parseInt(killID, 10),
-//           time: km.killmail_time,
-//           rawValue: entry.totalValue,
-//           formattedValue: helpers.formatIsk(entry.totalValue),
-//           victim: {
-//             name: (vName === 'Unknown' || !vName) ? vCorp : vName,
-//             characterID: victim.character_id || null,
-//             corp: vCorp,
-//             corporationID: victim.corporation_id || null,
-//             alliance: vAlliance,
-//             allianceID: victim.alliance_id || null,
-//             ship: vShip,
-//             shipTypeID: victim.ship_type_id,
-//           },
-//           system: {
-//             id: km.solar_system_id,
-//             name: sys?.name || 'Unknown',
-//             region,
-//             regionID: sys?.region_id,
-//             security: sys?.security_status,
-//             space: entry.space,
-//           },
-//           finalBlowCorp: fbCorp,
-//           attackerCount: km.attackers?.length || 0,
-//         };
-//       } catch (err) {
-//         console.warn(`[SEARCH API] Failed kill ${killID}: ${err.message}`);
-//         return null;
-//       }
-// //     })));
-
-//     const validKills = kills.filter(Boolean);
-
-//     const isToday = date === todayUTC();
-//     res.set('Cache-Control', isToday ? 'public, max-age=30' : 'public, max-age=300');
-
-//     res.json({
-//       date,
-//       filters,
-//       page,
-//       pageSize: PAGE_SIZE,
-//       total,
-//       count: validKills.length,
-//       hasMore: total > start + PAGE_SIZE,
-//       hasPrev: page > 1,
-//       kills: validKills,
-//     });
-
-//   } catch (err) {
-//     console.error('[SEARCH API] Error:', err);
-//     res.status(500).json({ error: 'Internal error' });
-//   }
-// //});
-
   async function handleKillDetail(req, res) {
     let date, id;
 
@@ -283,30 +101,23 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       date = req.params.date;
       id = parseInt(req.params.killID);
     } else {
-  id = parseInt(req.params.killID);
-  const r2 = require('../network/r2Writer');
-
-  // Tier 1 + 2: in-memory (today's cache + LRU shardCache of past dates)
-  date = hashCache.findDateForKill(id);
-
-  // Tier 3: probe the killmail's own R2 file — one bounded GET, no cascade
-  if (!date) {
-    const cachedKM = await r2.get(`killmails/${id}.json`).catch(() => null);
-    if (cachedKM?.killmail_time) {
-      date = cachedKM.killmail_time.slice(0, 10);
+      id = parseInt(req.params.killID);
+      const now = new Date();
+      for (let i = 0; i < 30; i++) {
+        const d = new Date(now.getTime() - i * 86400000).toISOString().slice(0, 10);
+        if (await hashCache.getHashFromShard(d, id)) {
+          date = d;
+          break;
+        }
+      }
+      if (!date) return res.status(404).json({ error: 'Kill not found' });
     }
-  }
 
-  if (!date) {
-    return res.status(404).json({ error: 'Kill not found.' });
-  }
-}
+    if (!Number.isFinite(id) || id <= 0) {
+      return res.status(400).json({ error: 'Invalid killID.' });
+    }
 
-    const ua = (req.get('user-agent') || '').slice(0, 80);
-    const rawIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'Unknown';
-    const clientIp = rawIp.split(',')[0].trim();
-    
-    console.log(`[KILL API] Request for kill ${id} (date: ${date}) | IP: ${clientIp} | UA: ${ua}`);
+    console.log(`[KILL API] Request for kill ${id}${date ? ` (date: ${date})` : ''}`);
     try {
     
       const hash = await hashCache.getHashFromShard(date, id);
@@ -608,8 +419,6 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     res.status(500).json({ error: 'Internal error' });
   }
 });
-
-
 
   app.get('/api/refire/:killId', async (req, res) => {
     const processor = getProcessor();
