@@ -13,6 +13,7 @@ const helpers = require("../core/helpers");
 const { resolveItems } = require('../core/itemResolver');
 const pLimit = require('p-limit');
 const kvClient = require('../network/kvClient');
+const killmailResolver = require('../core/killmailResolver');
 
 function startWebServer(esi, statsManager, sharedState, getProcessor) {
   const app = express();
@@ -317,22 +318,17 @@ console.log(`[KILL API] kill=${id} date=${date} ip=${ip} ua="${ua}" ref="${ref}"
       const limit = pLimit(5);
       const kills = await Promise.all(capped.map(async ([killID, value]) => limit(async () => {
         try {
+          const kills = await Promise.all(capped.map(async ([killID, value]) => limit(async () => {
+        try {
           const hash = typeof value === 'object' ? value.hash : value;
           const km = await killmailCache.get(parseInt(killID), hash);
           if (!km) return null;
-
-          const victim = km.victim;
-          const sys = esi.getSystemDetails(km.solar_system_id);
-          const finalBlow = km.attackers?.find(a => a.final_blow) || km.attackers?.[0];
-
-          const [vName, vCorp, vAlliance, vShip, region, fbCorp] = await Promise.all([
-            esi.getCharacterName(victim.character_id),
-            esi.getCorporationName(victim.corporation_id),
-            victim.alliance_id ? esi.getAllianceName(victim.alliance_id) : Promise.resolve(null),
-            esi.getTypeName(victim.ship_type_id),
-            sys?.region_id ? esi.getRegionName(sys.region_id) : Promise.resolve('K-Space'),
-            finalBlow?.corporation_id ? esi.getCorporationName(finalBlow.corporation_id) : Promise.resolve('Unknown'),
-          ]);
+          return await killmailResolver.resolveKillSummary(km, killID, esi);
+        } catch (err) {
+          console.warn(`[LOG API] Failed kill ${killID}: ${err.message}`);
+          return null;
+        }
+      })));
 
           const rawValue = calculateKillValue(km);
 
