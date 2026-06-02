@@ -14,18 +14,7 @@ module.exports = (esi, io, statsManager) => {
             const killmail = await resolveKillmail(isR2, esiData, zkb);
             const rawValue = Number(zkb.totalValue) || 0
 
-            hashCache.set(killID, {
-  hash,
-  shipID: killmail.victim.ship_type_id,
-  shipGroupID: esi.getShipGroupID(killmail.victim.ship_type_id),
-  systemID: killmail.solar_system_id,
-  regionID: systemDetails?.region_id ?? null,
-  space: resolveSpace(killmail.solar_system_id, systemDetails?.security_status),
-  totalValue: Number(zkb?.totalValue) || 0,
-  attackerCount: killmail.attackers?.length || 0,
-  victimCorpID: killmail.victim.corporation_id ?? null,
-  victimAllianceID: killmail.victim.alliance_id ?? null,
-});
+
 
             const [systemDetails, shipName, charName, corpName, finalBlowCorp, allianceName] = await Promise.all([
                 esi.getSystemDetails(killmail.solar_system_id),
@@ -38,6 +27,19 @@ module.exports = (esi, io, statsManager) => {
                     : Promise.resolve(null),
 
             ]);
+
+                        hashCache.set(killID, {
+  hash,
+  shipID: killmail.victim.ship_type_id,
+  shipGroupID: esi.getShipGroupID(killmail.victim.ship_type_id),
+  systemID: killmail.solar_system_id,
+  regionID: systemDetails?.region_id ?? null,
+  space: resolveSpace(killmail.solar_system_id, systemDetails?.security_status),
+  totalValue: Number(zkb?.totalValue) || 0,
+  attackerCount: killmail.attackers?.length || 0,
+  victimCorpID: killmail.victim.corporation_id ?? null,
+  victimAllianceID: killmail.victim.alliance_id ?? null,
+});
             const weaponTypeIDs = [... new Set(
                 (killmail.attackers || [])
                 .filter(a => a.character_id != null && a.weapon_type_id != null)
