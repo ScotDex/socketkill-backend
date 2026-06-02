@@ -29,7 +29,6 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
 
   const server = https.createServer(options, app);
 
- 
   app.use(
     helmet({
       contentSecurityPolicy: false,
@@ -39,13 +38,13 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
   app.use(express.json());
 
   // Block requests with no User-Agent header (browsers always send one)
-app.use((req, res, next) => {
-  const ua = req.get('User-Agent');
-  if (!ua || ua.trim() === '') {
-    return res.status(403).json({ error: 'User-Agent required.' });
-  }
-  next();
-});
+  app.use((req, res, next) => {
+    const ua = req.get('User-Agent');
+    if (!ua || ua.trim() === '') {
+      return res.status(403).json({ error: 'User-Agent required.' });
+    }
+    next();
+  });
 
   const io = new Server(server, {
     pingTimeout: 2000,
@@ -66,7 +65,7 @@ app.use((req, res, next) => {
         "http://localhost:5173",
         "https://socketkill-v2.themadlyscientific.workers.dev",
         "https://beta.socketkill.com"
-      ], // Web Socket whitelist
+      ],
       methods: ["GET", "POST"],
     },
     transports: ["websocket", "polling"],
@@ -74,7 +73,6 @@ app.use((req, res, next) => {
 
   const PORT = process.env.PORT;
   const publicPath = path.join(__dirname, "..", "..", "public");
-
 
   app.get("/api/character/:id", async (req, res) => {
     console.log(`[API] Character lookup: ${req.params.id}`);
@@ -113,6 +111,7 @@ app.use((req, res, next) => {
     if (!Number.isFinite(id) || id <= 0) {
       return res.status(400).json({ error: 'Invalid killID.' });
     }
+
     const isToday = date === new Date().toISOString().slice(0, 10);
     if (!isToday) {
       const r2 = require('../network/r2Writer');
@@ -120,49 +119,42 @@ app.use((req, res, next) => {
       if (cached) {
         res.set('Cache-Control', 'public, max-age=31536000, immutable');
         const ua = (req.get('User-Agent') || '').slice(0, 80);
-const ref = (req.get('Referer') || 'Direct').slice(0, 60);
-const ip = req.get('CF-Connecting-IP')
-        || (req.headers['x-forwarded-for'] || '').split(',')[0].trim()
-        || req.socket.remoteAddress
-        || 'unknown';
-
-console.log(`[KILL API] CACHE kill=${id} date=${date} ip=${ip} ua="${ua}" ref="${ref}"`);
+        const ref = (req.get('Referer') || 'Direct').slice(0, 60);
+        const ip = req.get('CF-Connecting-IP')
+          || (req.headers['x-forwarded-for'] || '').split(',')[0].trim()
+          || req.socket.remoteAddress
+          || 'unknown';
+        console.log(`[KILL API] CACHE kill=${id} date=${date} ip=${ip} ua="${ua}" ref="${ref}"`);
         return res.json(cached);
       }
     }
 
     const ua = (req.get('User-Agent') || '').slice(0, 80);
-const ref = (req.get('Referer') || 'Direct').slice(0, 60);
-const ip = req.get('CF-Connecting-IP')
-        || (req.headers['x-forwarded-for'] || '').split(',')[0].trim()
-        || req.socket.remoteAddress
-        || 'unknown';
+    const ref = (req.get('Referer') || 'Direct').slice(0, 60);
+    const ip = req.get('CF-Connecting-IP')
+      || (req.headers['x-forwarded-for'] || '').split(',')[0].trim()
+      || req.socket.remoteAddress
+      || 'unknown';
+    console.log(`[KILL API] kill=${id} date=${date} ip=${ip} ua="${ua}" ref="${ref}"`);
 
-console.log(`[KILL API] kill=${id} date=${date} ip=${ip} ua="${ua}" ref="${ref}"`);
     try {
-    
       const hash = await hashCache.getHashFromShard(date, id);
       if (!hash) {
         return res.status(404).json({ error: `Kill ${id} not found in archive - CTRL + F5 incase not cached yet - for ${date}.` });
       }
 
-  
       const killmail = await killmailCache.get(id, hash);
       if (!killmail) {
         return res.status(502).json({ error: 'Failed to fetch killmail - CTRL + F5 incase not cached yet.' });
       }
 
-      const victim = killmail.victim;
-      const finalBlow = killmail.attackers.find(a => a.final_blow) || killmail.attackers[0];
-      const systemDetails = esi.getSystemDetails(killmail.solar_system_id);
+      const payload = await killmailResolver.resolveKillDetail(killmail, hash, id, esi);
 
-      
       res.set('Cache-Control', isToday
         ? 'public, max-age=60'
         : 'public, max-age=31536000, immutable');
       res.json(payload);
 
-      // Phase 0: persist enriched response for future hits (past kills only)
       if (!isToday) {
         const r2 = require('../network/r2Writer');
         r2.put(`kill-responses/${date}/${id}.json`, payload).catch(err =>
@@ -187,7 +179,6 @@ console.log(`[KILL API] kill=${id} date=${date} ip=${ip} ua="${ua}" ref="${ref}"
     const today = new Date().toISOString().slice(0, 10);
     const isToday = date === today;
     const r2 = require('../network/r2Writer');
-    const { calculateKillValue } = require('./priceService');
 
     console.log(`[LOG API] Request for ${date}${isToday ? ' (today)' : ''}`);
 
@@ -223,47 +214,13 @@ console.log(`[KILL API] kill=${id} date=${date} ip=${ip} ua="${ua}" ref="${ref}"
       const hasMore = reversed.length > end;
       const hasPrev = page > 1;
       const limit = pLimit(5);
-      const kills = await Promise.all(capped.map(async ([killID, value]) => limit(async () => {
-        try {
-          const kills = await Promise.all(capped.map(async ([killID, value]) => limit(async () => {
+
+      const kills = await Promise.all(capped.map(([killID, value]) => limit(async () => {
         try {
           const hash = typeof value === 'object' ? value.hash : value;
           const km = await killmailCache.get(parseInt(killID), hash);
           if (!km) return null;
           return await killmailResolver.resolveKillSummary(km, killID, esi);
-        } catch (err) {
-          console.warn(`[LOG API] Failed kill ${killID}: ${err.message}`);
-          return null;
-        }
-      })));
-
-          const rawValue = calculateKillValue(km);
-
-          return {
-            killID: parseInt(killID),
-            time: km.killmail_time,
-            rawValue,
-            formattedValue: helpers.formatIsk(rawValue),
-            victim: {
-              name: (vName === 'Unknown' || !vName) ? vCorp : vName,
-              characterID: victim.character_id || null,
-              corp: vCorp,
-              corporationID: victim.corporation_id || null,
-              alliance: vAlliance,
-              allianceID: victim.alliance_id || null,
-              ship: vShip,
-              shipTypeID: victim.ship_type_id,
-            },
-            system: {
-              id: km.solar_system_id,
-              name: sys?.name || 'Unknown',
-              region,
-              regionID: sys?.region_id,
-              security: sys?.security_status,
-            },
-            finalBlowCorp: fbCorp,
-            attackerCount: km.attackers?.length || 0,
-          };
         } catch (err) {
           console.warn(`[LOG API] Failed kill ${killID}: ${err.message}`);
           return null;
@@ -318,49 +275,49 @@ console.log(`[KILL API] kill=${id} date=${date} ip=${ip} ua="${ua}" ref="${ref}"
   app.get('/api/filter-source', async (req, res) => {
     try {
       const [systems, regions, groups, ships, items, meta] = await Promise.all([
-      kvClient.get('sde:systems'),
-      kvClient.get('sde:regions'),
-      kvClient.get('sde:groups'),
-      kvClient.get('sde:ships'),
-      kvClient.get('sde:items'),
-      kvClient.get('sde:meta'),
+        kvClient.get('sde:systems'),
+        kvClient.get('sde:regions'),
+        kvClient.get('sde:groups'),
+        kvClient.get('sde:ships'),
+        kvClient.get('sde:items'),
+        kvClient.get('sde:meta'),
       ]);
 
-          const missing = {
-      systems: !systems,
-      regions: !regions,
-      groups: !groups,
-      ships: !ships,
-      items: !items,
-    };
-    if (Object.values(missing).some(Boolean)) {
-      return res.status(503).json({ error: 'Filter source incomplete', missing });
-    }
+      const missing = {
+        systems: !systems,
+        regions: !regions,
+        groups: !groups,
+        ships: !ships,
+        items: !items,
+      };
+      if (Object.values(missing).some(Boolean)) {
+        return res.status(503).json({ error: 'Filter source incomplete', missing });
+      }
 
-    const etag = meta?.buildNumber ? `"sde-${meta.buildNumber}"` : null;
- 
-    if (etag && req.headers['if-none-match'] === etag) {
-      res.set('ETag', etag);
-      return res.status(304).end();
+      const etag = meta?.buildNumber ? `"sde-${meta.buildNumber}"` : null;
+
+      if (etag && req.headers['if-none-match'] === etag) {
+        res.set('ETag', etag);
+        return res.status(304).end();
+      }
+
+      res.set('Cache-Control', 'public, max-age=3600, must-revalidate');
+      if (etag) res.set('ETag', etag);
+
+      res.json({
+        buildNumber: meta?.buildNumber ?? null,
+        syncedAt: meta?.lastSyncedAt ?? null,
+        systems,
+        regions,
+        groups,
+        ships,
+        items,
+      });
+    } catch (err) {
+      console.error('[filter-source] error:', err);
+      res.status(500).json({ error: 'Internal error' });
     }
- 
-    res.set('Cache-Control', 'public, max-age=3600, must-revalidate');
-    if (etag) res.set('ETag', etag);
- 
-    res.json({
-      buildNumber: meta?.buildNumber ?? null,
-      syncedAt: meta?.lastSyncedAt ?? null,
-      systems,
-      regions,
-      groups,
-      ships,
-      items,
-    });
-  } catch (err) {
-    console.error('[filter-source] error:', err);
-    res.status(500).json({ error: 'Internal error' });
-  }
-});
+  });
 
   app.get('/api/refire/:killId', async (req, res) => {
     const processor = getProcessor();
@@ -408,14 +365,12 @@ console.log(`[KILL API] kill=${id} date=${date} ip=${ip} ua="${ua}" ref="${ref}"
     }
   });
 
- 
   app.use(express.static(path.join(__dirname, "..", "..", "public")));
 
   app.get("/", (req, res) => {
     res.sendFile(path.join(publicPath, "index.html"));
   });
 
- 
   io.on("connection", (socket) => {
     console.log(`Client connected to Web Socket Stream: ${socket.id}`);
     socket.on("disconnect", (reason) => {
