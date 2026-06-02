@@ -1,6 +1,7 @@
 
 const talker = require("./agent");
 const fs = require(`fs`).promises;
+const kvClient = require('../network/kvClient');
 
 
 class ESIClient {
