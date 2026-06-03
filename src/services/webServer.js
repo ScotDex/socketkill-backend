@@ -14,6 +14,8 @@ const { resolveItems } = require('../core/itemResolver');
 const pLimit = require('p-limit');
 const kvClient = require('../network/kvClient');
 const killmailResolver = require('../core/killmailResolver');
+const rateLimit = require('express-rate-limit');
+const { ipKeyGenerator } = require('express-rate-limit');
 
 function startWebServer(esi, statsManager, sharedState, getProcessor) {
   const app = express();
@@ -30,37 +32,19 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
 
   const server = https.createServer(options, app);
 
-  let apiKeys = {};
-try {
-  const keysFile = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'data', 'api-keys.json'), 'utf-8'));
-  apiKeys = keysFile.keys || {};
-  console.log(`[AUTH] Loaded ${Object.keys(apiKeys).length} API keys`);
-} catch (err) {
-  console.warn(`[AUTH] No API keys file — /api/search will reject all requests: ${err.message}`);
-}
-
-const rateLimit = require('express-rate-limit');
-
 const searchLimiter = rateLimit({
-  windowMs: 60 * 1000,  
-  max: 30,               
+  windowMs: 60 * 1000,
+  max: 30,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) =>
-    req.get('CF-Connecting-IP') ||
-    (req.headers['x-forwarded-for'] || '').split(',')[0].trim() ||
-    req.ip,
+  keyGenerator: (req) => {
+    const ip = req.get('CF-Connecting-IP')
+      || (req.headers['x-forwarded-for'] || '').split(',')[0].trim()
+      || req.ip;
+    return ipKeyGenerator(ip);   // normalizes IPv6 to a subnet, satisfies the validator
+  },
   message: { error: 'Too many searches — slow down.' },
 });
-
-function requireApiKey(req, res, next) {
-  const key = req.get('X-API-Key');
-  if (!key || !apiKeys[key]) {
-    return res.status(401).json({ error: 'Valid X-API-Key header required.' });
-  }
-  req.apiKeyOwner = apiKeys[key];
-  next();
-}
 
   app.use(
     helmet({
@@ -69,14 +53,6 @@ function requireApiKey(req, res, next) {
   );
   app.use(cors());
   app.use(express.json());
-
-  app.use((req, res, next) => {
-    const ua = req.get('User-Agent');
-    if (!ua || ua.trim() === '') {
-      return res.status(403).json({ error: 'User-Agent required.' });
-    }
-    next();
-  });
 
   const io = new Server(server, {
     pingTimeout: 2000,
@@ -105,21 +81,6 @@ function requireApiKey(req, res, next) {
 
   const PORT = process.env.PORT;
   const publicPath = path.join(__dirname, "..", "..", "public");
-
-  app.get("/api/character/:id", async (req, res) => {
-    console.log(`[API] Character lookup: ${req.params.id}`);
-    try {
-      const { id } = req.params;
-      const name = await esi.getCharacterName(id);
-      res.json({
-        id,
-        name,
-        portraitUrl: `https://images.evetech.net/characters/${id}/portrait?size=256`,
-      });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  });
 
   async function handleKillDetail(req, res) {
     let date, id;
