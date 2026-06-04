@@ -32,7 +32,7 @@ module.exports = (esi, io, statsManager) => {
              hashCache.set(killID, {
                 hash,
                 shipID: killmail.victim.ship_type_id,
-                shipGroupID: esi.getShipGroupID(killmail.victim.ship_type_id),
+                shipGroupID,
                 systemID: killmail.solar_system_id,
                 regionID: systemDetails?.region_id ?? null,
                 space: resolveSpace(killmail.solar_system_id, systemDetails?.security_status),
