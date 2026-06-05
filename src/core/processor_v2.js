@@ -89,23 +89,13 @@ module.exports = (esi, io, statsManager) => {
                 allianceName: allianceName,
                 space: resolveSpace(killmail.solar_system_id, systemDetails?.security_status),
                 weaponTypeIDs,
+                corporationId: killmail.victim.corporation_id ?? null,
+                allianceId:    killmail.victim.alliance_id ?? null,
+                characterId:   killmail.victim?.character_id ?? null,
             };
 
             io.emit("raw-kill", rawKillPayload);
-
-            publicStream.broadcast({
-                killmail,
-                zkb,
-                killID,
-                shipName,
-                systemName,
-                regionName,
-                corpName,
-                victimName: finalVictimName,
-                finalBlowCorp,
-                allianceName,
-                attackerCount,
-            });
+            publicStream.broadcast(rawKillPayload);
 
             // Gated filter for web hooks
 
