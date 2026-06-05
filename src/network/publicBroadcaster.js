@@ -16,7 +16,7 @@ const metrics = {
 }
 
 async function publish(payload) {
-    if (!DO_ENDPOINT || !DO_SECRET) return;
+    if (!DO_ENDPOINT || !DO_SECRET) console.warn("[PUBLIC BROADCAST] disabled — endpoint/secret not set");
     metrics.attempted++;
 
     try {
@@ -44,4 +44,4 @@ function getMetrics() {
     return { ...metrics };
 }
 
-module.exports = { publish, getMetrics };
+module.exports = { broadcast: publish, getMetrics };  
