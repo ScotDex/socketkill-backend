@@ -94,13 +94,14 @@ module.exports = async (killmail, zkb, names) => {
     if (TRIGLAVIAN_SYSTEMS.has(killmail.solar_system_id)) categoryPosts.push(postNewsChannel(killmail, zkb, names, 'pochven'));
     if (zkb.labels?.includes('ganked')) categoryPosts.push(postNewsChannel(killmail, zkb, names, 'ganks'));
 
-    //Bombeldo
+    // BombeldoBloc
 
     const victimId = killmail.victim?.character_id;
     const isBombeldoDeath = BOMBELDO_TRACKED_CHARACTERS.includes(victimId);
     const isBombeldoKill = !isBombeldoDeath && killmail.attackers?.some(a => BOMBELDO_TRACKED_CHARACTERS.includes(a.character_id));
 
     if (isBombeldoDeath || isBombeldoKill) {
+        console.log(`[BOMBELDO] death=${isBombeldoDeath} kill=${isBombeldoKill} victim=${victimId} urls=${(channels['bombeldo'] || []).length}`);
         categoryPosts.push(postBombeldo(killmail, zkb, names, isBombeldoDeath));
     }
 
@@ -126,6 +127,8 @@ async function postBombeldo(kill, zkb, names, isDeath) {
             console.error(`[BOMBELDO] webhook failed: ${err.message}`));
     }));
 }
+
+
 
 async function postCorpIntel(kill, zkb, names) {
     console.log(`[CORP INTEL] Firing for kill ${kill.killmail_id} | rawValue: ${names.rawValue}`);

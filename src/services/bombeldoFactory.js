@@ -23,7 +23,7 @@ class bombeldoFactory {
             : `Bombeldo the Wizard killed a ${names.shipName}`;
 
         const subject = isDeath
-            ? { name: 'Killed by', value: `${names.finalBlowName} · ${names.attackerCount} ${names.attackerCount === 1 ? 'attacker' : 'attackers'}` }
+            ? { name: 'Killed by', value: `${names.finalBlowCorp} · ${names.attackerCount} ${names.attackerCount === 1 ? 'attacker' : 'attackers'}` }
             : { name: 'Victim', value: `${names.finalVictimName} (${names.corpName})` };
 
         return {
@@ -41,7 +41,7 @@ class bombeldoFactory {
                 color: isDeath ? 0xff6b6b : 0x9b59b6,
                 fields: [
                     subject,
-                    { name: 'System', value: `**${names.solarSystemName}**` },
+                    { name: 'System', value: `**${names.SystemName}**` },
                     { name: 'Region', value: `**${names.regionName}**` },
                     { name: 'Value', value: `**${helpers.formatIsk(zkb.totalValue)} ISK**`, inline: false },
                     { name: 'Link', value: helpers.getZkillLink(kill.killmail_id) }
