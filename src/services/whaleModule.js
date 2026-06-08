@@ -7,6 +7,7 @@ const { AT_SHIP_IDS, OFFICER_SHIP_IDS, RORQUAL_SHIP_IDS } = require('../core/shi
 const { TITAN_SHIP_IDS, SUPER_SHIP_IDS, TRIGLAVIAN_SYSTEMS } = require('../core/relayShipIDs');
 const r2 = require("../network/r2Writer");
 const NewsEmbedFactory = require("./genericFactory");
+const bombeldoFactory = require('./bombeldoFactory');
 
 let channels = {};
 
@@ -14,6 +15,13 @@ const WHALE_THRESHOLD = 40000000000;
 const VALUE_1B = 1000000000;
 const VALUE_10B = 10000000000;
 const VALUE_100M = 100_000_000;
+
+
+
+const BOMBELDO_TRACKED_CHARACTERS = [
+    909008587,
+];
+
 
 async function loadChannels() {
     try {
@@ -85,6 +93,18 @@ module.exports = async (killmail, zkb, names) => {
     if (SUPER_SHIP_IDS.has(killmail.victim?.ship_type_id)) categoryPosts.push(postNewsChannel(killmail, zkb, names, 'super_loss'));
     if (TRIGLAVIAN_SYSTEMS.has(killmail.solar_system_id)) categoryPosts.push(postNewsChannel(killmail, zkb, names, 'pochven'));
     if (zkb.labels?.includes('ganked')) categoryPosts.push(postNewsChannel(killmail, zkb, names, 'ganks'));
+
+    //Bombeldo
+
+    const victimId = killmail.victim?.character_id;
+    const isBombeldoDeath = BOMBELDO_TRACKED_CHARACTERS.includes(victimId);
+    const isBombeldoKill = !isBombeldoDeath && killmail.attackers?.some(a => BOMBELDO_TRACKED_CHARACTERS.includes(a.character_id));
+
+    if (isBombeldoDeath || isBombeldoKill) {
+        categoryPosts.push(postBombeldo(killmail, zkb, names, isBombeldoDeath));
+    }
+
+
     if (categoryPosts.length) await Promise.all(categoryPosts);
 
     if (names.rawValue < WHALE_THRESHOLD) return;
@@ -94,6 +114,18 @@ module.exports = async (killmail, zkb, names) => {
         postSocial(names, helpers.formatIsk(names.rawValue), killmail.killmail_id)
     ]);
 };
+
+async function postBombeldo(kill, zkb, names, isDeath) {
+    const urls = channels['bombeldo'];
+    if (!urls?.length) return;
+    const list = Array.isArray(urls) ? urls : [urls];
+    const payload = bombeldoFactory.createEmbed(kill, zkb, names, isDeath);
+    await Promise.all(list.map(async (url) => {
+        await webhookSpacer();
+        return axios.post(url, payload).catch((err) =>
+            console.error(`[BOMBELDO] webhook failed: ${err.message}`));
+    }));
+}
 
 async function postCorpIntel(kill, zkb, names) {
     console.log(`[CORP INTEL] Firing for kill ${kill.killmail_id} | rawValue: ${names.rawValue}`);
