@@ -40,8 +40,6 @@ class BlueSkyService {
             const date = new Date().toISOString().slice(0, 10);
             const status = `BOOM! ${names.shipName} destroyed! || ${formattedValue} ISK || #TweetFleet #EveOnline #SocketKill`;
             const url = helpers.getSocketKillLink(killId, date);
-
-            // Try to upload thumbnail; degrade gracefully if it fails
             let thumb = null;
             try {
                 const imageRes = await fetch(`https://images.evetech.net/types/${shipTypeId}/render?size=512`);
