@@ -44,4 +44,4 @@ function getMetrics() {
     return { ...metrics };
 }
 
-module.exports = { broadcast: publish, getMetrics };  
+module.exports = { publish, getMetrics };  
