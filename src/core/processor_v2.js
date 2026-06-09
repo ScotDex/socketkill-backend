@@ -29,6 +29,7 @@ module.exports = (esi, io, statsManager) => {
 
             ]);
             const finalVictimName = (charName == "Unknown" || !charName) ? corpName : charName;
+            const finalBlow = killmail.attackers?.find(a => a.final_blow) || null;
              hashCache.set(killID, {
                 hash,
                 shipID: killmail.victim.ship_type_id,
@@ -43,6 +44,11 @@ module.exports = (esi, io, statsManager) => {
                 time: killmail.killmail_time,
                 victimName: finalVictimName,
                 corpName,
+                finalBlowWeaponID:   finalBlow?.weapon_type_id ?? null,
+                finalBlowShipID:     finalBlow?.ship_type_id    ?? null,
+                finalBlowCorpID:     finalBlow?.corporation_id  ?? null,
+                finalBlowAllianceID: finalBlow?.alliance_id     ?? null,
+                finalBlowIsNpc:      !finalBlow?.character_id,
             });
             const weaponTypeIDs = [... new Set(
                 (killmail.attackers || [])
