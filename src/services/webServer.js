@@ -261,7 +261,7 @@ app.get('/api/search', searchLimiter, (req, res) => {
       solo: req.query.solo === 'true',
     };
 
-    const results = hashCache.search(filters); // already newest-first
+    const results = hashCache.search(filters); 
 
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const PAGE_SIZE = 50;
@@ -270,7 +270,6 @@ app.get('/api/search', searchLimiter, (req, res) => {
 
     console.log(`[SEARCH] ip=${req.get('CF-Connecting-IP') || req.ip} matches=${results.length} page=${page}`);
 
-    // Identical query strings get served from Cloudflare's edge, never reaching Node:
     res.set('Cache-Control', 'public, max-age=30');
     res.json({
       total: results.length,
@@ -302,6 +301,59 @@ app.get('/api/search', searchLimiter, (req, res) => {
       }
     });
   });
+
+  app.get('/api/top10', async (req, res) => {
+  try {
+    const cutoff = Date.now() - 60 * 60 * 1000; 
+    const entries = hashCache.search({}).filter(e => {
+      const t = e.time ? new Date(e.time).getTime() : 0;
+      return t >= cutoff;
+    });
+
+    const tally = (keyFn) => {
+      const m = new Map();
+      for (const e of entries) {
+        const k = keyFn(e);
+        if (k == null) continue;
+        m.set(k, (m.get(k) || 0) + 1);
+      }
+      return [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
+    };
+    const idCount = (pairs) => pairs.map(([id, count]) => ({ id: Number(id), count }));
+    const corpNames = new Map();
+    for (const e of entries) if (e.victimCorpID && e.corpName) corpNames.set(e.victimCorpID, e.corpName);
+    const victimCorp = tally(e => e.victimCorpID)
+      .map(([id, count]) => ({ id: Number(id), name: corpNames.get(Number(id)) ?? null, count }));
+
+    const allyTally = tally(e => e.victimAllianceID);
+    const allyNames = await Promise.all(
+      allyTally.map(([id]) => esi.getAllianceName(Number(id)).catch(() => null))
+    );
+    const victimAlliance = allyTally.map(([id, count], i) => ({ id: Number(id), name: allyNames[i], count }));
+
+    const topValue = [...entries]
+      .sort((a, b) => (b.totalValue || 0) - (a.totalValue || 0))
+      .slice(0, 10)
+      .map(e => ({ killID: e.killID, value: e.totalValue || 0 }));
+
+    res.set('Cache-Control', 'public, max-age=60');
+    res.json({
+      window: '1h',
+      generatedAt: new Date().toISOString(),
+      sampleSize: entries.length,
+      ships:       idCount(tally(e => e.shipID)),
+      shipGroups:  idCount(tally(e => e.shipGroupID)),
+      systems:     idCount(tally(e => e.systemID)),
+      regions:     idCount(tally(e => e.regionID)),
+      victimCorp,
+      victimAlliance,
+      topValue,
+    });
+  } catch (err) {
+    console.error('[TOP10] error:', err.message);
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
 
   app.get('/api/filter-source', async (req, res) => {
     try {
