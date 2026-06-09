@@ -332,9 +332,15 @@ app.get('/api/search', searchLimiter, (req, res) => {
     const victimAlliance = allyTally.map(([id, count], i) => ({ id: Number(id), name: allyNames[i], count }));
 
     const topValue = [...entries]
-      .sort((a, b) => (b.totalValue || 0) - (a.totalValue || 0))
-      .slice(0, 10)
-      .map(e => ({ killID: e.killID, value: e.totalValue || 0 }));
+  .sort((a, b) => (b.totalValue || 0) - (a.totalValue || 0))
+  .slice(0, 10)
+  .map(e => ({
+    killID: e.killID,
+    value: e.totalValue || 0,
+    shipID: e.shipID ?? null,
+    victimName: e.victimName ?? null,
+    systemID: e.systemID ?? null,
+  }));
 
     res.set('Cache-Control', 'public, max-age=60');
     res.json({
