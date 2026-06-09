@@ -302,17 +302,17 @@ app.get('/api/search', searchLimiter, (req, res) => {
     });
   });
 
-  app.get('/api/top10', async (req, res) => {
+app.get('/api/top10', async (req, res) => {
   try {
-    const cutoff = Date.now() - 60 * 60 * 1000; 
+    const cutoff = Date.now() - 60 * 60 * 1000;
     const entries = hashCache.search({}).filter(e => {
       const t = e.time ? new Date(e.time).getTime() : 0;
       return t >= cutoff;
     });
 
-    const tally = (keyFn) => {
+    const tally = (list, keyFn) => {
       const m = new Map();
-      for (const e of entries) {
+      for (const e of list) {
         const k = keyFn(e);
         if (k == null) continue;
         m.set(k, (m.get(k) || 0) + 1);
@@ -320,39 +320,42 @@ app.get('/api/search', searchLimiter, (req, res) => {
       return [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
     };
     const idCount = (pairs) => pairs.map(([id, count]) => ({ id: Number(id), count }));
+    const resolveNames = (pairs, fn) =>
+      Promise.all(pairs.map(([id]) => fn(Number(id)).catch(() => null)))
+        .then(names => pairs.map(([id, count], i) => ({ id: Number(id), name: names[i], count })));
+
+    // victim side
     const corpNames = new Map();
     for (const e of entries) if (e.victimCorpID && e.corpName) corpNames.set(e.victimCorpID, e.corpName);
-    const victimCorp = tally(e => e.victimCorpID)
+    const victimCorp = tally(entries, e => e.victimCorpID)
       .map(([id, count]) => ({ id: Number(id), name: corpNames.get(Number(id)) ?? null, count }));
+    const victimAlliance = await resolveNames(tally(entries, e => e.victimAllianceID), id => esi.getAllianceName(id));
 
-    const allyTally = tally(e => e.victimAllianceID);
-    const allyNames = await Promise.all(
-      allyTally.map(([id]) => esi.getAllianceName(Number(id)).catch(() => null))
-    );
-    const victimAlliance = allyTally.map(([id, count], i) => ({ id: Number(id), name: allyNames[i], count }));
+    // killer side — final-blow, NPC excluded
+    const killers = entries.filter(e => !e.finalBlowIsNpc);
+    const killerCorp     = await resolveNames(tally(killers, e => e.finalBlowCorpID),     id => esi.getCorporationName(id));
+    const killerAlliance = await resolveNames(tally(killers, e => e.finalBlowAllianceID), id => esi.getAllianceName(id));
 
     const topValue = [...entries]
-  .sort((a, b) => (b.totalValue || 0) - (a.totalValue || 0))
-  .slice(0, 10)
-  .map(e => ({
-    killID: e.killID,
-    value: e.totalValue || 0,
-    shipID: e.shipID ?? null,
-    victimName: e.victimName ?? null,
-    systemID: e.systemID ?? null,
-  }));
+      .sort((a, b) => (b.totalValue || 0) - (a.totalValue || 0))
+      .slice(0, 10)
+      .map(e => ({ killID: e.killID, value: e.totalValue || 0, shipID: e.shipID ?? null, victimName: e.victimName ?? null, systemID: e.systemID ?? null }));
 
     res.set('Cache-Control', 'public, max-age=60');
     res.json({
       window: '1h',
       generatedAt: new Date().toISOString(),
       sampleSize: entries.length,
-      ships:       idCount(tally(e => e.shipID)),
-      shipGroups:  idCount(tally(e => e.shipGroupID)),
-      systems:     idCount(tally(e => e.systemID)),
-      regions:     idCount(tally(e => e.regionID)),
+      ships:           idCount(tally(entries, e => e.shipID)),
+      shipGroups:      idCount(tally(entries, e => e.shipGroupID)),
+      systems:         idCount(tally(entries, e => e.systemID)),
+      regions:         idCount(tally(entries, e => e.regionID)),
       victimCorp,
       victimAlliance,
+      finalBlowWeapon: idCount(tally(killers, e => e.finalBlowWeaponID)),
+      killerShip:      idCount(tally(killers, e => e.finalBlowShipID)),
+      killerCorp,
+      killerAlliance,
       topValue,
     });
   } catch (err) {
@@ -360,7 +363,6 @@ app.get('/api/search', searchLimiter, (req, res) => {
     res.status(500).json({ error: 'Internal error' });
   }
 });
-
   app.get('/api/filter-source', async (req, res) => {
     try {
       const [systems, regions, groups, ships, items, meta] = await Promise.all([
