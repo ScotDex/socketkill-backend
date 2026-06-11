@@ -24,7 +24,7 @@ const DEATH_LINES = [
     "At least it wasn't a fortizar this time, or maybe it was...",
     "Fuck Snuffed",
     "This one was Elijah's fault...",
-    "Still can't say URNS name properly",
+    "Still can't say URNs name properly",
     "I was too fucked off about hypernet",
     "Ndbele, ban someone on twitch...",
     "Must be toxicity week in snuffed",
@@ -44,7 +44,7 @@ class bombeldoFactory {
             : { name: 'Victim', value: `${names.finalVictimName} (${names.corpName})` };
 
         return {
-            username: "Bombeldo the Wizard",
+            username: "Kill-Tracker Bot",
             embeds: [{
                 author: {
                     name: headline,
