@@ -41,7 +41,7 @@ const searchLimiter = rateLimit({
     const ip = req.get('CF-Connecting-IP')
       || (req.headers['x-forwarded-for'] || '').split(',')[0].trim()
       || req.ip;
-    return ipKeyGenerator(ip);   // normalizes IPv6 to a subnet, satisfies the validator
+    return ipKeyGenerator(ip);  
   },
   message: { error: 'Too many searches — slow down.' },
 });
@@ -98,7 +98,7 @@ const searchLimiter = rateLimit({
           break;
         }
       }
-      if (!date) return res.status(404).json({ error: 'Kill not found' });
+      if (!date) return res.status(404).json({ Error: 'Socketkill can only go back 30 days. Check Zkill URL' });
     }
 
     if (!Number.isFinite(id) || id <= 0) {
@@ -324,14 +324,11 @@ app.get('/api/top10', async (req, res) => {
       Promise.all(pairs.map(([id]) => fn(Number(id)).catch(() => null)))
         .then(names => pairs.map(([id, count], i) => ({ id: Number(id), name: names[i], count })));
 
-    // victim side
     const corpNames = new Map();
     for (const e of entries) if (e.victimCorpID && e.corpName) corpNames.set(e.victimCorpID, e.corpName);
     const victimCorp = tally(entries, e => e.victimCorpID)
       .map(([id, count]) => ({ id: Number(id), name: corpNames.get(Number(id)) ?? null, count }));
     const victimAlliance = await resolveNames(tally(entries, e => e.victimAllianceID), id => esi.getAllianceName(id));
-
-    // killer side — final-blow, NPC excluded
     const killers = entries.filter(e => !e.finalBlowIsNpc);
     const killerCorp     = await resolveNames(tally(killers, e => e.finalBlowCorpID),     id => esi.getCorporationName(id));
     const killerAlliance = await resolveNames(tally(killers, e => e.finalBlowAllianceID), id => esi.getAllianceName(id));
@@ -422,7 +419,7 @@ app.get('/api/top10', async (req, res) => {
 
       const zkillRes = await axios.get(
         `https://zkillboard.com/api/killID/${killId}/`,
-        { headers: { 'User-Agent': 'Socket.Kill - dev@socketkill.com' } }
+        { headers: { 'User-Agent': 'Socket.Kill / Dexomus Viliana' } }
       );
       const zkillData = zkillRes.data[0];
       if (!zkillData) {
