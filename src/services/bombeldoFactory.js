@@ -28,7 +28,7 @@ const DEATH_LINES = [
     "I was too fucked off about hypernet",
     "Ndbele, ban someone on twitch...",
     "Must be toxicity week in snuffed",
-    "I've thought of a game show question!",
+    "Typical washed up bald man",
     "Fuck CVA",
     "Fuck Freddo Prices"
 ];
