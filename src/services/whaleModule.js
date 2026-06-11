@@ -101,7 +101,6 @@ module.exports = async (killmail, zkb, names) => {
     const isBombeldoKill = !isBombeldoDeath && killmail.attackers?.some(a => BOMBELDO_TRACKED_CHARACTERS.includes(a.character_id));
 
     if (isBombeldoDeath || isBombeldoKill) {
-        console.log(`[BOMBELDO] death=${isBombeldoDeath} kill=${isBombeldoKill} victim=${victimId} urls=${(channels['bombeldo'] || []).length}`); // Logging Check
         categoryPosts.push(postBombeldo(killmail, zkb, names, isBombeldoDeath));
     }
 
@@ -121,6 +120,7 @@ module.exports = async (killmail, zkb, names) => {
 
 // Bombeldo Posts Function
 // This function will post the killmail to the Bombeldo Discord channel
+
 async function postBombeldo(kill, zkb, names, isDeath) {
     const urls = channels['bombeldo'];
     if (!urls?.length) return;
@@ -141,9 +141,9 @@ async function postCorpIntel(kill, zkb, names) {
     const payload = CorpIntelFactory.createKillEmbed(kill, zkb, names);
     try {
         await axios.post(process.env.BLANKSPACE_HOOK, payload);
-        console.log(`[BLANKSPACE 40BILL PAYLOAD FIRING] Kill ${kill.killmail_id} posted`);
+        console.log(`[BLANKSPACE PAYLOAD FIRING] Kill ${kill.killmail_id} posted`);
     } catch (err) {
-        console.error(`[BLANKSPACE 40BILL PAYLOAD FAILED] Webhook failed: ${err.message}`);
+        console.error(`[BLANKSPACE PAYLOAD FAILED] Webhook failed: ${err.message}`);
     }
 }
 

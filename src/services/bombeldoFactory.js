@@ -7,20 +7,37 @@ const API_BASE = `https://api.socketkill.com/render/`;
 
 const KILL_LINES = [
     "Bombeldo casts Fireball. Target deleted.",
+    "I am a 20th level Wizard from the land of Faerûn",
+    "Remember and use the code so I can get a freddo",
+    "Bazza still crying for attention",
+    "Shame bazza can't fly anything shinier",
+    "Disguise is working well",
+    "Another generous donation to the killboard",
+    "Potential shiny pokemen",
+    "Fuck Freddo Prices",
+    "Deception roll didnt work did it fucker!"
 ];
 
 const DEATH_LINES = [
-    "Bombeldo's mana ran dry mid-cast.",
+    "I am a 20th level Wizard from the land of Faerûn",
     "Fuck, Fuck, Bugger",
-    "At least it wasn't a fortizar this time, or maybe it was..."
+    "At least it wasn't a fortizar this time, or maybe it was...",
+    "Fuck Snuffed",
+    "This one was Elijah's fault...",
+    "Still can't say URNS name properly",
+    "I was too fucked off about hypernet",
+    "Ndbele, ban someone on twitch...",
+    "Must be toxicity week in snuffed",
+    "I've thought of a game show question!",
+    "Fuck CVA",
+    "Fuck Freddo Prices"
 ];
-
 
 class bombeldoFactory {
     static createEmbed(kill, zkb, names, isDeath) {
         const headline = isDeath
-            ? `Bombeldo the Wizard lost a ${names.shipName}`
-            : `Bombeldo the Wizard killed a ${names.shipName}`;
+            ? `Bombeldo lost a ${names.shipName}`
+            : `Bombeldo killed a ${names.shipName}`;
 
         const subject = isDeath
             ? { name: 'Killed by', value: `${names.finalBlowCorp} · ${names.attackerCount} ${names.attackerCount === 1 ? 'attacker' : 'attackers'}` }
