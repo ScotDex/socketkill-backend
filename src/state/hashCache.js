@@ -114,7 +114,7 @@ function search(filters) {
     victimCorps = [], victimAlliances = [],
     minValue = 0, maxValue = Infinity,
     minAttackers = 0, maxAttackers = Infinity,
-    solo = false,
+    solo = false, minTime = 0,
   } = filters;
 
   const matches = [];
@@ -127,7 +127,7 @@ function search(filters) {
     if (spaces.length          && !spaces.includes(entry.space)) continue;
     if (victimCorps.length     && !victimCorps.includes(entry.victimCorpID)) continue;
     if (victimAlliances.length && !victimAlliances.includes(entry.victimAllianceID)) continue;
-
+    if (minTime && (!entry.time || new Date(entry.time).getTime() < minTime)) continue;
     if ((entry.totalValue || 0) < minValue) continue;
     if (maxValue !== Infinity && (entry.totalValue || 0) > maxValue) continue;
     if ((entry.attackerCount || 0) < minAttackers) continue;

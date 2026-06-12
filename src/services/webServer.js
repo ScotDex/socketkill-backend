@@ -98,7 +98,16 @@ const searchLimiter = rateLimit({
           break;
         }
       }
-      if (!date) return res.status(404).json({ Error: 'Socketkill can only go back 30 days. Check Zkill URL' });
+      if (!date) {
+        const r2 = require('../network/r2Writer');
+        const km = await r2.get(`killmails/${id}.json`).catch(() => null);
+        if (km?.killmail_time){
+          date = km.killmail_time.slice(0, 10);
+          console.log(`[KILL API] Date recovered from cached killmail for ${id}: ${date}`);
+        } else {
+          return res.status(404).json({ Error: 'Kill not found in last 30 days or cache. Check Zkill URL' });
+        }
+      }
     }
 
     if (!Number.isFinite(id) || id <= 0) {
@@ -246,11 +255,13 @@ const searchLimiter = rateLimit({
 
 app.get('/api/search', searchLimiter, (req, res) => {
     const { parseIDList, parseSpaceList } = require('../core/apiHelpers');
-
+    const WINDOWS = { '1h': 3.6e6, '6h': 2.16e7, '24h': 8.64e7 };
+    const windowMs = WINDOWS[req.query.window] || null;
     const filters = {
       shipGroups: parseIDList(req.query.shipGroup),
       systems: parseIDList(req.query.system),
       regions: parseIDList(req.query.region),
+      minTime: windowMs ? Date.now() - windowMs :0,
       spaces: parseSpaceList(req.query.space),
       victimCorps: parseIDList(req.query.victimCorp),
       victimAlliances: parseIDList(req.query.victimAlliance),
