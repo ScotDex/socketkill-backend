@@ -2,8 +2,6 @@ const axios = require('../network/agent');
 const helpers = require('./helpers');
 const { resolveItems } = require('./itemResolver');
 
-// ─── Internal helper ─────────────────────────────────────────────────────
-
 async function fetchZkbMeta(killID) {
   try {
     const res = await axios.get(`https://zkillboard.com/api/killID/${killID}/`, {
@@ -17,7 +15,6 @@ async function fetchZkbMeta(killID) {
   }
 }
 
-// ─── Full kill detail (used by /api/kill/*) ──────────────────────────────
 
 async function resolveKillDetail(killmail, hash, id, esi) {
   const victim = killmail.victim;
@@ -37,6 +34,8 @@ async function resolveKillDetail(killmail, hash, id, esi) {
     esi.getCharacterName(finalBlow.character_id),
     esi.getCorporationName(finalBlow.corporation_id),
     esi.getTypeName(finalBlow.ship_type_id),
+    a.alliance_id ? esi.getAllianceName(a.alliance_id) : Promise.resolve(null),
+    a.weapon_type_id ? esi.getTypeName(a.weapon_type_id) : Promise.resolve(null),
     systemDetails?.region_id ? esi.getRegionName(systemDetails.region_id) : Promise.resolve('K-Space'),
     fetchZkbMeta(id),
     resolveItems(victim.items, esi),
@@ -50,13 +49,16 @@ async function resolveKillDetail(killmail, hash, id, esi) {
   const damageTaken = victim.damage_taken || 0;
 
   const attackers = killmail.attackers.map((a, i) => ({
-    name: attackerData[i * 3],
+    name: attackerData[i * 5],
     characterID: a.character_id || null,
     corp: attackerData[i * 3 + 1],
     corporationID: a.corporation_id || null,
+    alliance: attackerData[i * 5 + 3],
     allianceID: a.alliance_id || null,
     ship: attackerData[i * 3 + 2],
     shipTypeID: a.ship_type_id || null,
+    weapon: attackerData[i * 5 + 4],
+    weaponTypeID: a.weapon_type_id || null,
     damage: a.damage_done,
     damagePercent: damageTaken > 0
       ? Math.round((a.damage_done / damageTaken) * 1000) / 10
