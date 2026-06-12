@@ -21,7 +21,7 @@ async function resolveKillDetail(killmail, hash, id, esi) {
   const finalBlow = killmail.attackers.find(a => a.final_blow) || killmail.attackers[0];
   const systemDetails = esi.getSystemDetails(killmail.solar_system_id);
 
-  const [
+const [
     victimName, victimCorp, victimAlliance, victimShip,
     finalBlowName, finalBlowCorp, finalBlowShip,
     regionName, zkb, items,
@@ -34,8 +34,6 @@ async function resolveKillDetail(killmail, hash, id, esi) {
     esi.getCharacterName(finalBlow.character_id),
     esi.getCorporationName(finalBlow.corporation_id),
     esi.getTypeName(finalBlow.ship_type_id),
-    a.alliance_id ? esi.getAllianceName(a.alliance_id) : Promise.resolve(null),
-    a.weapon_type_id ? esi.getTypeName(a.weapon_type_id) : Promise.resolve(null),
     systemDetails?.region_id ? esi.getRegionName(systemDetails.region_id) : Promise.resolve('K-Space'),
     fetchZkbMeta(id),
     resolveItems(victim.items, esi),
@@ -43,6 +41,8 @@ async function resolveKillDetail(killmail, hash, id, esi) {
       esi.getCharacterName(a.character_id),
       esi.getCorporationName(a.corporation_id),
       esi.getTypeName(a.ship_type_id),
+      a.alliance_id ? esi.getAllianceName(a.alliance_id) : Promise.resolve(null),
+      a.weapon_type_id ? esi.getTypeName(a.weapon_type_id) : Promise.resolve(null),
     ])
   ]);
 
@@ -51,11 +51,11 @@ async function resolveKillDetail(killmail, hash, id, esi) {
   const attackers = killmail.attackers.map((a, i) => ({
     name: attackerData[i * 5],
     characterID: a.character_id || null,
-    corp: attackerData[i * 3 + 1],
+    corp: attackerData[i * 5 + 1],
     corporationID: a.corporation_id || null,
     alliance: attackerData[i * 5 + 3],
     allianceID: a.alliance_id || null,
-    ship: attackerData[i * 3 + 2],
+    ship: attackerData[i * 5 + 2],
     shipTypeID: a.ship_type_id || null,
     weapon: attackerData[i * 5 + 4],
     weaponTypeID: a.weapon_type_id || null,
