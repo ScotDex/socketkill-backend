@@ -253,6 +253,46 @@ const searchLimiter = rateLimit({
     }
   });
 
+  const SITE = 'https://socketkill.com';
+  const SITEMAP_EPOCH = '2026-05-24';// earliest date you have shards for — set this accurately
+
+  app.get('/sitemaps/kills-index.xml', (req, res) => {
+    const days = [];
+    const start = new Date(SITEMAP_EPOCH);
+    for (let d = new Date(); d >= start; d.setDate(d.getDate() - 1)) {
+      days.push(d.toISOString().slice(0, 10));
+    }
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${
+      days.map(d => `  <sitemap><loc>${SITE}/sitemaps/kills/${d}.xml</loc><lastmod>${d}</lastmod></sitemap>`).join('\n')
+    }\n</sitemapindex>`;
+    res.set('Content-Type', 'application/xml');
+    res.set('Cache-Control', 'public, max-age=3600');
+    res.send(xml);
+  });
+
+  app.get('/sitemaps/kills/:date.xml', async (req, res) => {
+    const { date } = req.params;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).send('Invalid date');
+    const today = new Date().toISOString().slice(0, 10);
+    const isToday = date === today;
+
+    let ids;
+    if (isToday) {
+      ids = hashCache.getAllToday().map(([killID]) => killID);
+    } else {
+      const r2 = require('../network/r2Writer');
+      const shard = await r2.get(`hashes/${date}.json`);
+      ids = shard ? Object.keys(shard) : [];
+    }
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${
+      ids.map(id => `  <url><loc>${SITE}/kill/${id}</loc><lastmod>${date}</lastmod></url>`).join('\n')
+    }\n</urlset>`;
+    res.set('Content-Type', 'application/xml');
+    res.set('Cache-Control', isToday ? 'public, max-age=3600' : 'public, max-age=31536000, immutable');
+    res.send(xml);
+  });
+
 app.get('/api/search', searchLimiter, (req, res) => {
     const { parseIDList, parseSpaceList } = require('../core/apiHelpers');
     const WINDOWS = { '1h': 3.6e6, '6h': 2.16e7, '24h': 8.64e7 };
