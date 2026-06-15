@@ -17,6 +17,9 @@ const killmailResolver = require('../core/killmailResolver');
 const rateLimit = require('express-rate-limit');
 const { ipKeyGenerator } = require('express-rate-limit');
 
+const resolveLimit = pLimit(4);  
+const BOT_UA = /bot|crawler|spider|claude|gptbot|ccbot|bytespider|petalbot|slurp|bingbot|googlebot|facebookexternalhit|meta-external/i;
+
 function startWebServer(esi, statsManager, sharedState, getProcessor) {
   const app = express();
   app.set('trust proxy', 1);
@@ -131,6 +134,11 @@ const searchLimiter = rateLimit({
       }
     }
 
+     if (BOT_UA.test(req.get('User-Agent') || '')) {
+      res.set('Cache-Control', 'public, max-age=300');
+      return res.status(503).json({ error: 'Killmail not yet cached. Retry shortly.' });
+    }
+
     const ua = (req.get('User-Agent') || '').slice(0, 80);
     const ref = (req.get('Referer') || 'Direct').slice(0, 60);
     const ip = req.get('CF-Connecting-IP')
@@ -176,6 +184,11 @@ const searchLimiter = rateLimit({
     const { date } = req.params;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD.' });
+    }
+
+    if (BOT_UA.test(req.get('User-Agent') || '')) {
+      res.set('Cache-Control', 'public, max-age=300');
+      return res.status(503).json({ error: 'Archive view unavailable to crawlers.' });
     }
 
     const today = new Date().toISOString().slice(0, 10);

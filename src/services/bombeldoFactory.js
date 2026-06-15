@@ -15,7 +15,8 @@ const KILL_LINES = [
     "Another generous donation to the killboard",
     "Potential shiny pokemen",
     "Fuck Freddo Prices",
-    "Deception roll didnt work did it fucker!"
+    "Deception roll didnt work did it fucker!",
+    "Kiss, Kiss, Cuddle..."
 ];
 
 const DEATH_LINES = [
