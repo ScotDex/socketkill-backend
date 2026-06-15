@@ -16,7 +16,7 @@ const kvClient = require('../network/kvClient');
 const killmailResolver = require('../core/killmailResolver');
 const rateLimit = require('express-rate-limit');
 const { ipKeyGenerator } = require('express-rate-limit');
-const { clientIp, requestMeta } = require('../core/requestMeta')
+const { clientIp, requestMeta, setCacheHeader, IMMUTABLE } = require('../core/requestMeta')
 const r2 = require('../network/r2Writer');
 
 
@@ -120,7 +120,7 @@ const searchLimiter = rateLimit({
     if (!isToday) {
       const cached = await r2.get(`kill-responses/${date}/${id}.json`).catch(() => null);
       if (cached) {
-        res.set('Cache-Control', 'public, max-age=31536000, immutable');
+        res.set('Cache-Control', IMMUTABLE);
         const { ip, ua, ref } = requestMeta(req);
         console.log(`[KILL API] CACHE kill=${id} date=${date} ip=${ip} ua="${ua}" ref="${ref}"`);
         return res.json(cached);
@@ -148,9 +148,7 @@ const searchLimiter = rateLimit({
 
       const payload = await killmailResolver.resolveKillDetail(killmail, hash, id, esi);
 
-      res.set('Cache-Control', isToday
-        ? 'public, max-age=60'
-        : 'public, max-age=31536000, immutable');
+      setCacheHeader(res, { isToday, todayMaxAge: 60 });
       res.json(payload);
 
       if (!isToday) {
@@ -229,10 +227,7 @@ const searchLimiter = rateLimit({
 
       const validKills = kills.filter(Boolean);
 
-      res.set('Cache-Control', isToday
-        ? 'public, max-age=30'
-        : 'public, max-age=31536000, immutable');
-
+      setCacheHeader(res, { isToday, todayMaxAge: 30 });
       res.json({
         date,
         page,
@@ -286,7 +281,7 @@ const searchLimiter = rateLimit({
       ids.map(id => `  <url><loc>${SITE}/kill/${id}</loc><lastmod>${date}</lastmod></url>`).join('\n')
     }\n</urlset>`;
     res.set('Content-Type', 'application/xml');
-    res.set('Cache-Control', isToday ? 'public, max-age=3600' : 'public, max-age=31536000, immutable');
+    setCacheHeader(res, { isToday, todayMaxAge: 3600 });
     res.send(xml);
   });
 

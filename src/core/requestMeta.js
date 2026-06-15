@@ -1,3 +1,5 @@
+const IMMUTABLE = 'public, max-age=31536000, immutable';
+
 function clientIp(req) {
   return req.get('CF-Connecting-IP')
     || (req.headers['x-forwarded-for'] || '').split(',')[0].trim()
@@ -13,4 +15,8 @@ function requestMeta(req) {
   };
 }
 
-module.exports = { clientIp, requestMeta };
+function setCacheHeader(res, { isToday, todayMaxAge }) {
+  res.set('Cache-Control', isToday ? `public, max-age=${todayMaxAge}` : IMMUTABLE);
+}
+
+module.exports = { clientIp, requestMeta, setCacheHeader, IMMUTABLE };
