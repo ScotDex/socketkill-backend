@@ -17,6 +17,8 @@ const killmailResolver = require('../core/killmailResolver');
 const rateLimit = require('express-rate-limit');
 const { ipKeyGenerator } = require('express-rate-limit');
 const { clientIp, requestMeta } = require('../core/requestMeta')
+const r2 = require('../network/r2Writer');
+
 
 const resolveLimit = pLimit(4);  
 const BOT_UA = /bot|crawler|spider|claude|gptbot|ccbot|bytespider|petalbot|slurp|bingbot|googlebot|facebookexternalhit|meta-external/i;
@@ -100,7 +102,6 @@ const searchLimiter = rateLimit({
         }
       }
       if (!date) {
-        const r2 = require('../network/r2Writer');
         const km = await r2.get(`killmails/${id}.json`).catch(() => null);
         if (km?.killmail_time){
           date = km.killmail_time.slice(0, 10);
@@ -117,7 +118,6 @@ const searchLimiter = rateLimit({
 
     const isToday = date === new Date().toISOString().slice(0, 10);
     if (!isToday) {
-      const r2 = require('../network/r2Writer');
       const cached = await r2.get(`kill-responses/${date}/${id}.json`).catch(() => null);
       if (cached) {
         res.set('Cache-Control', 'public, max-age=31536000, immutable');
@@ -154,7 +154,6 @@ const searchLimiter = rateLimit({
       res.json(payload);
 
       if (!isToday) {
-        const r2 = require('../network/r2Writer');
         r2.put(`kill-responses/${date}/${id}.json`, payload).catch(err =>
           console.warn(`[KILL API] R2 cache write failed for ${id}: ${err.message}`));
       }
@@ -181,8 +180,6 @@ const searchLimiter = rateLimit({
 
     const today = new Date().toISOString().slice(0, 10);
     const isToday = date === today;
-    const r2 = require('../network/r2Writer');
-
     console.log(`[LOG API] Request for ${date}${isToday ? ' (today)' : ''}`);
 
     try {
@@ -281,7 +278,6 @@ const searchLimiter = rateLimit({
     if (isToday) {
       ids = hashCache.getAllToday().map(([killID]) => killID);
     } else {
-      const r2 = require('../network/r2Writer');
       const shard = await r2.get(`hashes/${date}.json`);
       ids = shard ? Object.keys(shard) : [];
     }
