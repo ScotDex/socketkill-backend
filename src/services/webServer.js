@@ -16,6 +16,7 @@ const kvClient = require('../network/kvClient');
 const killmailResolver = require('../core/killmailResolver');
 const rateLimit = require('express-rate-limit');
 const { ipKeyGenerator } = require('express-rate-limit');
+const { clientIp, requestMeta } = require('../core/requestMeta')
 
 const resolveLimit = pLimit(4);  
 const BOT_UA = /bot|crawler|spider|claude|gptbot|ccbot|bytespider|petalbot|slurp|bingbot|googlebot|facebookexternalhit|meta-external/i;
@@ -41,10 +42,7 @@ const searchLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => {
-    const ip = req.get('CF-Connecting-IP')
-      || (req.headers['x-forwarded-for'] || '').split(',')[0].trim()
-      || req.ip;
-    return ipKeyGenerator(ip);  
+    const ip = clientIp(req); return ipKeyGenerator(ip);
   },
   message: { error: 'Too many searches — slow down.' },
 });
@@ -123,12 +121,7 @@ const searchLimiter = rateLimit({
       const cached = await r2.get(`kill-responses/${date}/${id}.json`).catch(() => null);
       if (cached) {
         res.set('Cache-Control', 'public, max-age=31536000, immutable');
-        const ua = (req.get('User-Agent') || '').slice(0, 80);
-        const ref = (req.get('Referer') || 'Direct').slice(0, 60);
-        const ip = req.get('CF-Connecting-IP')
-          || (req.headers['x-forwarded-for'] || '').split(',')[0].trim()
-          || req.socket.remoteAddress
-          || 'unknown';
+        const { ip, ua, ref } = requestMeta(req);
         console.log(`[KILL API] CACHE kill=${id} date=${date} ip=${ip} ua="${ua}" ref="${ref}"`);
         return res.json(cached);
       }
@@ -139,12 +132,7 @@ const searchLimiter = rateLimit({
       return res.status(503).json({ error: 'Killmail not yet cached. Retry shortly.' });
     }
 
-    const ua = (req.get('User-Agent') || '').slice(0, 80);
-    const ref = (req.get('Referer') || 'Direct').slice(0, 60);
-    const ip = req.get('CF-Connecting-IP')
-      || (req.headers['x-forwarded-for'] || '').split(',')[0].trim()
-      || req.socket.remoteAddress
-      || 'unknown';
+    const { ip, ua, ref } = requestMeta(req);
     console.log(`[KILL API] kill=${id} date=${date} ip=${ip} ua="${ua}" ref="${ref}"`);
 
     try {
@@ -332,7 +320,7 @@ app.get('/api/search', searchLimiter, (req, res) => {
     const start = (page - 1) * PAGE_SIZE;
     const slice = results.slice(start, start + PAGE_SIZE);
 
-    console.log(`[SEARCH] ip=${req.get('CF-Connecting-IP') || req.ip} matches=${results.length} page=${page}`);
+    console.log(`[SEARCH] ip=${clientIp(req)} matches=${results.length} page=${page}`);
 
     res.set('Cache-Control', 'public, max-age=30');
     res.json({
