@@ -16,7 +16,7 @@ const KILL_LINES = [
     "Potential shiny pokemen",
     "Fuck Freddo Prices",
     "Deception roll didnt work did it fucker!",
-    "Kiss, Kiss, Cuddle..."
+    "Kiss, Kiss, Cuddle...",
 ];
 
 const DEATH_LINES = [
@@ -31,7 +31,9 @@ const DEATH_LINES = [
     "Must be toxicity week in snuffed",
     "Typical washed up bald man",
     "Fuck CVA",
-    "Fuck Freddo Prices"
+    "Fuck Freddo Prices",
+    "Ginger Magician",
+    "Snuffed still haven't SRP'd me for this"
 ];
 
 class bombeldoFactory {
@@ -45,7 +47,7 @@ class bombeldoFactory {
             : { name: 'Victim', value: `${names.finalVictimName} (${names.corpName})` };
 
         return {
-            username: "Kill-Tracker Bot",
+            username: "Snuffed Killmails",
             embeds: [{
                 author: {
                     name: headline,
