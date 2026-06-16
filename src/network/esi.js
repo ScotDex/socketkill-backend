@@ -173,7 +173,7 @@ getShipGroupID(typeID) {
     async loadSystemCache() {
         try {
             const kv = require ('./kvClient');
-            this.staticSystemData = await kv.get('systems:all');
+            this.staticSystemData = await kv.get('systems:systems');
             if (!this.staticSystemData){
                 throw new Error ('systems:all missing from KV');
             }
@@ -207,11 +207,16 @@ getShipGroupID(typeID) {
     }
 
     getSystemDetails(id) {
-        const result = this.staticSystemData[id] || null;
-        if (!result) {
+        const raw = this.staticSystemData[id];
+        if (!raw) {
             console.warn(`[SYS MISS] Unknown system ID: ${id}`);
+            return null;
         }
-        return result;
+        return {
+            name: raw.name,
+            region_id: raw.regionID,
+            security_status: raw.security,
+        };
     }
 
     async getRegionName(id) {
