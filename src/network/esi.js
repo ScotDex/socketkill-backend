@@ -154,28 +154,12 @@ getShipGroupID(typeID) {
     }
 
 
-
-    // async loadSystemCache(filePath) {
-    //     try {
-    //         const data = await fs.readFile(filePath, 'utf8');
-    //         this.staticSystemData = JSON.parse(data);
-    //         this.systemNameMap = new Map();
-    //         for (const [id, sys] of Object.entries(this.staticSystemData)) {
-    //             this.systemNameMap.set(sys.name.toLowerCase(), sys);
-    //         }
-    //         return true;
-    //     } catch (err) {
-    //         console.error("Failed to load static system data:", err.message);
-    //         return false;
-    //     }
-    // }
-
     async loadSystemCache() {
         try {
             const kv = require ('./kvClient');
-            this.staticSystemData = await kv.get('systems:systems');
+            this.staticSystemData = await kv.get('sde:systems');
             if (!this.staticSystemData){
-                throw new Error ('systems:all missing from KV');
+                throw new Error ('sde:systems missing from KV');
             }
 
             this.systemNameMap = new Map();

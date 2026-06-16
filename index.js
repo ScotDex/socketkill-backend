@@ -9,13 +9,8 @@ const statsManager = require("./src/services/statsManager");
 const ProcessorFactory = require("./src/core/processor_v2");
 const r2 = require("./src/network/r2Writer");
 const hashCache = require("./src/state/hashCache")
-// const searchIndex = require("./src/state/searchIndex")
 const { syncMarketPrices, loadMarketPrices } = require("./src/services/priceService");
 const kv = require('./src/network/kvClient');
-//const systems = require ('./data/systems.json')
-// const todayStats = require("./src/state/todayStats");
-
-
 
 const R2_BASE_URL = process.env.R2_BASE_URL;
 const SEQUENCE_CACHE_URL = `${R2_BASE_URL}/sequence.json`;
