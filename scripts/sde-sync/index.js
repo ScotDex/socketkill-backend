@@ -1,19 +1,4 @@
-// scripts/sde-sync/index.js
-//
-// SDE sync pipeline. Run by .github/workflows/sde-sync.yml.
-//
-// Flow:
-//   1. Fetch sde:meta from KV (stored ETag + buildNumber from last sync).
-//   2. HEAD latest.jsonl with If-None-Match. If 304, exit.
-//   3. Parse latest.jsonl, get current build number.
-//   4. If build matches stored, update ETag-only in sde:meta and exit.
-//   5. Download SDE zip, extract relevant JSONL files.
-//   6. Transform each table to a compact lookup object.
-//   7. PUT each to KV under sde:* keys.
-//   8. Update sde:meta with new ETag + buildNumber.
-//
-// Requires Node 20+ (uses built-in fetch + Readable.fromWeb).
-// No npm dependencies. Uses system `unzip` (preinstalled on ubuntu-latest).
+
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -82,21 +67,11 @@ async function* readJsonl(filepath) {
   }
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────
-
-// SDE name fields are localised objects ({de, en, es, fr, ja, ko, ru, zh}).
-// Some files use a plain string. This helper handles both shapes.
 function getName(field) {
   if (typeof field === 'string') return field;
   if (field && typeof field === 'object') return field.en ?? null;
   return null;
 }
-
-// ─── Transforms ───────────────────────────────────────────────────────────
-//
-// SDE rows inline value fields directly alongside `_key`. There is no
-// `_value` wrapper for object-valued records. Each transform projects
-// the row to the minimal lookup shape we want in KV.
 
 async function buildSystems() {
   const out = {};
@@ -146,8 +121,6 @@ async function buildCategories() {
   return out;
 }
 
-// Builds sde:ships from types.jsonl, filtered to categoryID === 6 (Ship).
-// Requires the groups lookup so we can join groupID → categoryID at filter time.
 async function buildShips(groups) {
   const out = {};
   for await (const row of readJsonl(path.join(EXTRACT_DIR, 'types.jsonl'))) {
@@ -163,10 +136,6 @@ async function buildShips(groups) {
   return out;
 }
 
-// Builds sde:items — anything that can appear as weapon_type_id on a killmail.
-// That's categoryID 7 (Module: turrets, launchers, smartbombs, ECM, etc.) and
-// categoryID 18 (Drone). The corpus powers the frontend weapon keyword filter.
-// Same row-iteration pattern as buildShips; different category gate.
 async function buildItems(groups) {
   const out = {};
   for await (const row of readJsonl(path.join(EXTRACT_DIR, 'types.jsonl'))) {
