@@ -32,15 +32,6 @@ const MAX_KILL_AGE_MS = 24 * 60 * 60 * 1000;
 const STATE_PERSIST_INTERVAL = 50;
 
 
-let systems = null;
-
-async function loadSystems() {
-  systems = await kv.get('systems:all');
-  if (!systems) throw new Error('systems:all missing from KV');
-  console.log(`Loaded ${Object.keys(systems).length} systems from KV`);
-}
-
-
 const state = {
   sequence: 0,
   isThrottled: false,
