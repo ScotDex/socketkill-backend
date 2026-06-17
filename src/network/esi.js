@@ -12,11 +12,13 @@ class ESIClient {
         this.cache = {
             characters: new Map(),
             corporations: new Map(),
+            types: new Map(),
+            systems: new Map(),
+            regions: new Map(),
             alliances: new Map()
         };
         this.staticShipData = {};  
         this.staticSystemData = {};
-        this.staticItemData = {};
         this.isDirty = false;
 
         setInterval(() => {
@@ -51,12 +53,14 @@ class ESIClient {
             const persistData = {
                 characters: Object.fromEntries(this.cache.characters),
                 corporations: Object.fromEntries(this.cache.corporations),
+                types: Object.fromEntries(this.cache.types),
+                regions: Object.fromEntries(this.cache.regions),
                 alliances: Object.fromEntries(this.cache.alliances)
             };
             const json = JSON.stringify(persistData, null, 2);
             await fs.writeFile(filePath, json);
             this.isDirty = false; // Reset flag after successful save
-            console.log("Cache persisted to R2.");
+            console.log("Cache persisted to disk.");
             await this.syncToR2('esi_cache.json', json);
         } catch (err) {
             console.error("Save failed:", err.message);
@@ -90,12 +94,15 @@ class ESIClient {
                 return;
             }
             const json = JSON.parse(data);
-            this.cache.characters   = new Map(Object.entries(json.characters   || {}).map(([k, v]) => [Number(k), v]));
-            this.cache.corporations = new Map(Object.entries(json.corporations || {}).map(([k, v]) => [Number(k), v]));
-            this.cache.alliances    = new Map(Object.entries(json.alliances    || {}).map(([k, v]) => [Number(k), v]));
-            console.log(`Persistent cache loaded.`);
+            this.cache.characters = new Map(Object.entries(json.characters || {}));
+            this.cache.corporations = new Map(Object.entries(json.corporations || {}));
+            this.cache.types = new Map(Object.entries(json.types || {}));
+            this.cache.regions = new Map(Object.entries(json.regions || {}));
+            this.cache.alliances = new Map(Object.entries(json.alliances || {}));
+            console.log(`Persistent cache loaded. Regions cached: ${this.cache.regions.size}`);
             console.log(`Characters cached: ${this.cache.characters.size}`);
             console.log(`Corporations cached: ${this.cache.corporations.size}`);
+            console.log(`Types cached: ${this.cache.types.size}`);
             console.log(`Alliances cached: ${this.cache.alliances.size}`);
         } catch (err) {
             console.warn("No cache file found, starting fresh.");
@@ -126,19 +133,6 @@ class ESIClient {
   }
 }
 
-async loadItemCache() {
-        try {
-            this.staticItemData = await kvClient.get('sde:items');
-            if (!this.staticItemData) throw new Error('sde:items missing from KV');
-            console.log(`[ESI] Loaded ${Object.keys(this.staticItemData).length} item types from KV`);
-            return true;
-        } catch (err) {
-            console.error('Failed to load static item data:', err.message);
-            this.staticItemData = {};
-            return false;
-        }
-    }
-
 getShipGroupID(typeID) {
   return this.staticShipData[typeID]?.groupID ?? null;
 }
@@ -149,6 +143,10 @@ getShipGroupID(typeID) {
 
     async getCorporationName(id) {
         return this.fetchAndCache(id, 'corporations', '/corporations');
+    }
+
+    async getTypeName(id) {
+        return this.fetchAndCache(id, 'types', '/universe/types');
     }
 
     async getAllianceName(id) {
@@ -171,19 +169,6 @@ getShipGroupID(typeID) {
             return true;
         } catch (err) {
             console.error ("Failed to load static system data:", err.message);
-            return false;
-        }
-    }
-
-    async loadRegionCache() {
-        try {
-            this.staticRegionData = await kvClient.get('sde:regions');
-            if (!this.staticRegionData) throw new Error('sde:regions missing from KV');
-            console.log(`[ESI] Loaded ${Object.keys(this.staticRegionData).length} regions from KV`);
-            return true;
-        } catch (err) {
-            console.error('Failed to load static region data:', err.message);
-            this.staticRegionData = {};
             return false;
         }
     }
@@ -218,37 +203,33 @@ getShipGroupID(typeID) {
         };
     }
 
-    getTypeName(id) {
-        return this.staticShipData?.[id]?.name ?? "Unknown";
-    }
-
-    async getTypeName(id) {
-        return this.fetchAndCache(id, 'types', '/universe/types');
-    }
-
-    getTypeName(id) {
-        return this.staticItemData?.[id]?.name
-            ?? this.staticShipData?.[id]?.name
-            ?? "Unknown";
-    }
-
-
-async getRegionName(id) {
-        
-        const fromSde = this.staticRegionData?.[id]?.name;
-        if (fromSde) return fromSde;
-
-        console.warn(`[REGION] ${id} not in SDE — falling back to ESI`);
+    async loadRegionCache() {
         try {
-            const res = await this.api.get(`${this.baseURL}/universe/regions/${id}/`);
-            const name = res.data.name;
-            this.staticRegionData[id] = { name };   
-            return name;
+            this.staticRegionData = await kvClient.get('sde:regions');
+            if (!this.staticRegionData) throw new Error('sde:regions missing from KV');
+            console.log(`[ESI] Loaded ${Object.keys(this.staticRegionData).length} regions from KV`);
+            return true;
         } catch (err) {
-            console.error(`[REGION] ESI fallback failed for ${id}: ${err.message}`);
-            return "Unknown";
+            console.error('Failed to load static region data:', err.message);
+            this.staticRegionData = {};
+            return false;
         }
     }
 
+    getRegionName(id) {                                  // now synchronous
+        return this.staticRegionData?.[id]?.name ?? "Unknown";
+    }
+
+    getTypeName(id) {                                    // served from already-resident ship data
+        return this.staticShipData?.[id]?.name ?? "Unknown";
+    }
+
+    async getRegionName(id) {
+        return await this.fetchAndCache(id, 'regions', '/universe/regions');
+    }
+
+
+
 }
 module.exports = new ESIClient();
+
