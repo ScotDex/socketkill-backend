@@ -56,7 +56,7 @@ io.on("connection", async (socket) => {
     refreshNebulaBackground();
   }
 
-  socket.emit("region-list", Array.from(esi.cache.regions.values()).sort());
+  socket.emit("region-list", Object.values(esi.staticRegionData || {}).map(r => r.name).sort());
   socket.emit("gatekeeper-stats", {
     totalScanned: statsManager.getTotal(),
     totalIsk: statsManager.totalIsk,
