@@ -203,6 +203,27 @@ getShipGroupID(typeID) {
         };
     }
 
+    async loadRegionCache() {
+        try {
+            this.staticRegionData = await kvClient.get('sde:regions');
+            if (!this.staticRegionData) throw new Error('sde:regions missing from KV');
+            console.log(`[ESI] Loaded ${Object.keys(this.staticRegionData).length} regions from KV`);
+            return true;
+        } catch (err) {
+            console.error('Failed to load static region data:', err.message);
+            this.staticRegionData = {};
+            return false;
+        }
+    }
+
+    getRegionName(id) {                                  // now synchronous
+        return this.staticRegionData?.[id]?.name ?? "Unknown";
+    }
+
+    getTypeName(id) {                                    // served from already-resident ship data
+        return this.staticShipData?.[id]?.name ?? "Unknown";
+    }
+
     async getRegionName(id) {
         return await this.fetchAndCache(id, 'regions', '/universe/regions');
     }
