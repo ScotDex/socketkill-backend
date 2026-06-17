@@ -1,8 +1,6 @@
-
 const talker = require("./agent");
-const fs = require(`fs`).promises;
+const fs = require('fs').promises;
 const kvClient = require('../network/kvClient');
-
 
 class ESIClient {
     constructor() {
@@ -17,8 +15,12 @@ class ESIClient {
             regions: new Map(),
             alliances: new Map()
         };
+        
         this.staticShipData = {};  
         this.staticSystemData = {};
+        this.staticRegionData = {}; // Added to prevent undefined errors
+        this.systemNameMap = new Map();
+        
         this.isDirty = false;
 
         setInterval(() => {
@@ -27,19 +29,23 @@ class ESIClient {
             }
         }, 1 * 60 * 1000);
     }
+
     async fetchAndCache(id, cacheCategory, endpoint) {
         if (!id || id === 0) return "Unknown";
 
+        // Safely handle string vs int keys
+        const strId = id.toString();
         const internalCache = this.cache[cacheCategory];
-        if (internalCache && internalCache.has(id)) {
-            return internalCache.get(id);
+        
+        if (internalCache && internalCache.has(strId)) {
+            return internalCache.get(strId);
         }
 
         try {
             const response = await this.api.get(`${this.baseURL}${endpoint}/${id}/`);
             const name = response.data.name;
 
-            if (internalCache) internalCache.set(id, name);
+            if (internalCache) internalCache.set(strId, name);
             this.isDirty = true;
             return name;
         } catch (error) {
@@ -47,6 +53,8 @@ class ESIClient {
             return "Unknown";
         }
     }
+
+    // --- Persistence & Syncing ---
 
     async saveCache(filePath) {
         try {
@@ -59,11 +67,11 @@ class ESIClient {
             };
             const json = JSON.stringify(persistData, null, 2);
             await fs.writeFile(filePath, json);
-            this.isDirty = false; // Reset flag after successful save
-            console.log("Cache persisted to disk.");
+            this.isDirty = false;
+            console.log("[ESI] Cache persisted to disk.");
             await this.syncToR2('esi_cache.json', json);
         } catch (err) {
-            console.error("Save failed:", err.message);
+            console.error("[ESI] Save failed:", err.message);
         }
     }
 
@@ -79,7 +87,6 @@ class ESIClient {
                 body: typeof data === 'string' ? data : JSON.stringify(data)
             });
             console.log(`[R2] ${key} synced.`);
-
         } catch (err) {
             console.error(`[R2] Failed to sync ${key}:`, err.message);
         }
@@ -88,75 +95,93 @@ class ESIClient {
     async loadCache(filePath) {
         try {
             const data = await fs.readFile(filePath, 'utf8');
-            if (!data || data.trim() === "") {
-                console.warn("Cache file is empty. Initializing default structure...");
-                this.isDirty = true; // Force a save later
-                return;
-            }
+            if (!data || data.trim() === "") throw new Error("Empty cache file");
+            
             const json = JSON.parse(data);
             this.cache.characters = new Map(Object.entries(json.characters || {}));
             this.cache.corporations = new Map(Object.entries(json.corporations || {}));
             this.cache.types = new Map(Object.entries(json.types || {}));
             this.cache.regions = new Map(Object.entries(json.regions || {}));
             this.cache.alliances = new Map(Object.entries(json.alliances || {}));
-            console.log(`Persistent cache loaded. Regions cached: ${this.cache.regions.size}`);
-            console.log(`Characters cached: ${this.cache.characters.size}`);
-            console.log(`Corporations cached: ${this.cache.corporations.size}`);
-            console.log(`Types cached: ${this.cache.types.size}`);
-            console.log(`Alliances cached: ${this.cache.alliances.size}`);
+            
+            console.log(`[ESI] Persistent cache loaded. Types: ${this.cache.types.size}`);
         } catch (err) {
-            console.warn("No cache file found, starting fresh.");
+            console.warn("[ESI] No valid cache file found, starting fresh.");
+            this.isDirty = true;
         }
     }
 
-    async getCharacterID(name) {
-        try {
-            const { data } = await this.api.post(`${this.baseURL}/universe/ids/`, [name]);
-            return data.characters?.[0]?.id || null;
-        } catch (error) {
-            console.error(`Could not resolve ID for ${name}`);
-            return null;
-        }
-    }
+    // --- Static KV Loaders ---
 
     async loadShipCache() {
-  try {
-    const ships = await kvClient.get('sde:ships');
-    if (ships) {
-      this.staticShipData = ships;
-      console.log(`[ESI] Loaded ${Object.keys(ships).length} ship type → group mappings`);
-    } else {
-      console.warn('[ESI] sde:ships not in KV — shipGroupID will be null until SDE sync runs');
-    }
-  } catch (err) {
-    console.error(`[ESI] Ship cache load failed: ${err.message}`);
-  }
-}
-
-    async loadRegionCache() {
         try {
-            this.staticRegionData = await kvClient.get('sde:regions');
-            if (!this.staticRegionData) throw new Error('sde:regions missing from KV');
-            console.log(`[ESI] Loaded ${Object.keys(this.staticRegionData).length} regions from KV`);
+            const ships = await kvClient.get('sde:ships');
+            if (ships) {
+                this.staticShipData = ships;
+                console.log(`[ESI] Loaded ${Object.keys(ships).length} ship type mappings`);
+            }
+        } catch (err) {
+            console.error(`[ESI] Ship cache load failed: ${err.message}`);
+        }
+    }
+
+    async loadSystemCache() {
+        try {
+            this.staticSystemData = await kvClient.get('sde:systems');
+            if (!this.staticSystemData) throw new Error('sde:systems missing');
+
+            this.systemNameMap = new Map();
+            for (const [id, sys] of Object.entries(this.staticSystemData)) {
+                this.systemNameMap.set(sys.name.toLowerCase(), sys);
+            }
             return true;
         } catch (err) {
-            console.error('Failed to load static region data:', err.message);
-            this.staticRegionData = {};
+            console.error("[ESI] Failed to load systems:", err.message);
             return false;
         }
     }
 
-    getRegionName(id) {                                  // now synchronous
-        return this.staticRegionData?.[id]?.name ?? "Unknown";
+    async loadRegionCache() {
+        try {
+            this.staticRegionData = await kvClient.get('sde:regions');
+            if (!this.staticRegionData) throw new Error('sde:regions missing');
+            console.log(`[ESI] Loaded ${Object.keys(this.staticRegionData).length} regions`);
+            return true;
+        } catch (err) {
+            console.error('[ESI] Failed to load regions:', err.message);
+            return false;
+        }
     }
 
-    getTypeName(id) {                                    // served from already-resident ship data
-        return this.staticShipData?.[id]?.name ?? "Unknown";
+    // --- Core Entity Resolvers ---
+
+    async getTypeName(id) {
+        if (!id) return "Unknown";
+        
+        // 1. Try static KV data first (Handles Ships)
+        if (this.staticShipData && this.staticShipData[id]) {
+            return this.staticShipData[id].name;
+        }
+        
+        // 2. Fallback to Memory Cache & ESI (Handles Modules, Drones, Ammo)
+        return await this.fetchAndCache(id, 'types', '/universe/types');
     }
 
-getShipGroupID(typeID) {
-  return this.staticShipData[typeID]?.groupID ?? null;
-}
+    async getRegionName(id) {
+        if (!id) return "Unknown";
+        
+        // 1. Try static KV data first
+        if (this.staticRegionData && this.staticRegionData[id]) {
+            return this.staticRegionData[id].name;
+        }
+        
+        // 2. Fallback to Memory Cache & ESI
+        return await this.fetchAndCache(id, 'regions', '/universe/regions');
+    }
+
+    getShipGroupID(typeID) {
+        return this.staticShipData?.[typeID]?.groupID ?? null;
+    }
 
     async getCharacterName(id) {
         return this.fetchAndCache(id, 'characters', '/characters');
@@ -166,40 +191,34 @@ getShipGroupID(typeID) {
         return this.fetchAndCache(id, 'corporations', '/corporations');
     }
 
-    async getTypeName(id) {
-        return this.fetchAndCache(id, 'types', '/universe/types');
-    }
-
     async getAllianceName(id) {
         return this.fetchAndCache(id, 'alliances', '/alliances');
     }
 
+    // --- Utility & Search ---
 
-    async loadSystemCache() {
+    async getCharacterID(name) {
         try {
-            const kv = require ('./kvClient');
-            this.staticSystemData = await kv.get('sde:systems');
-            if (!this.staticSystemData){
-                throw new Error ('sde:systems missing from KV');
-            }
-
-            this.systemNameMap = new Map();
-            for (const [id, sys] of Object.entries(this.staticSystemData)) {
-                this.systemNameMap.set(sys.name.toLowerCase(), sys);
-            }
-            return true;
-        } catch (err) {
-            console.error ("Failed to load static system data:", err.message);
-            return false;
+            const { data } = await this.api.post(`${this.baseURL}/universe/ids/`, [name]);
+            return data.characters?.[0]?.id || null;
+        } catch (error) {
+            return null;
         }
     }
 
     findSystemByName(name) {
         if (!name) return null;
-        const query = name.toLowerCase();
-        return Object.values(this.staticSystemData).find(sys =>
-            sys.name.toLowerCase().startsWith(query)
-        ) || null;
+        return this.systemNameMap.get(name.toLowerCase()) || null;
+    }
+
+    getSystemDetails(id) {
+        const raw = this.staticSystemData?.[id];
+        if (!raw) return null;
+        return {
+            name: raw.name,
+            region_id: raw.regionID,
+            security_status: raw.security,
+        };
     }
 
     async getRoute(originId, destinationId) {
@@ -210,46 +229,6 @@ getShipGroupID(typeID) {
             return null;
         }
     }
-
-    getSystemDetails(id) {
-        const raw = this.staticSystemData[id];
-        if (!raw) {
-            console.warn(`[SYS MISS] Unknown system ID: ${id}`);
-            return null;
-        }
-        return {
-            name: raw.name,
-            region_id: raw.regionID,
-            security_status: raw.security,
-        };
-    }
-
-    async loadRegionCache() {
-        try {
-            this.staticRegionData = await kvClient.get('sde:regions');
-            if (!this.staticRegionData) throw new Error('sde:regions missing from KV');
-            console.log(`[ESI] Loaded ${Object.keys(this.staticRegionData).length} regions from KV`);
-            return true;
-        } catch (err) {
-            console.error('Failed to load static region data:', err.message);
-            this.staticRegionData = {};
-            return false;
-        }
-    }
-
-    getRegionName(id) {                                  // now synchronous
-        return this.staticRegionData?.[id]?.name ?? "Unknown";
-    }
-
-    getTypeName(id) {                                    // served from already-resident ship data
-        return this.staticShipData?.[id]?.name ?? "Unknown";
-    }
-
-    async getRegionName(id) {
-        return await this.fetchAndCache(id, 'regions', '/universe/regions');
-    }
-
-
-
 }
+
 module.exports = new ESIClient();
