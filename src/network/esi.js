@@ -208,6 +208,11 @@ getShipGroupID(typeID) {
         return this.staticShipData?.[id]?.name ?? "Unknown";
     }
 
+    async getTypeName(id) {
+        return this.fetchAndCache(id, 'types', '/universe/types');
+    }
+
+
 async getRegionName(id) {
         
         const fromSde = this.staticRegionData?.[id]?.name;
