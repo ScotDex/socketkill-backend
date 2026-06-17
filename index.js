@@ -266,7 +266,6 @@ process.on("SIGINT", () => shutdown("SIGINT"));
   await loadMarketPrices();
   await esi.loadSystemCache();
   await esi.loadRegionCache();
-  await esi.loadItemCache();
   setInterval(syncMarketPrices, 60_000);
   processor = ProcessorFactory(esi, io, statsManager);
   await hashCache.prime();
