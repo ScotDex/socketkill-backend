@@ -63,6 +63,19 @@ class ESIClient {
         return this.systemNameMap.get(name.toLowerCase()) || null;
     }
 
+    getSystemDetails(id) {
+        const raw = this.staticSystemData[id];
+        if (!raw) {
+            console.warn(`[SYS MISS] Unknown system ID: ${id}`);
+            return null;
+        }
+        return {
+            name: raw.name,
+            region_id: raw.regionID,
+            security_status: raw.security,
+        };
+    }
+
     // --- Dynamic Fetching ---
 
     async getCharacterName(id) { return this.fetchAndCache(id, 'characters', '/characters'); }
