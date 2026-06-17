@@ -89,9 +89,9 @@ class ESIClient {
                 return;
             }
             const json = JSON.parse(data);
-            this.cache.characters = new Map(Object.entries(json.characters || {}));
-            this.cache.corporations = new Map(Object.entries(json.corporations || {}));
-            this.cache.alliances = new Map(Object.entries(json.alliances || {}));
+            this.cache.characters   = new Map(Object.entries(json.characters   || {}).map(([k, v]) => [Number(k), v]));
+            this.cache.corporations = new Map(Object.entries(json.corporations || {}).map(([k, v]) => [Number(k), v]));
+            this.cache.alliances    = new Map(Object.entries(json.alliances    || {}).map(([k, v]) => [Number(k), v]));
             console.log(`Persistent cache loaded.`);
             console.log(`Characters cached: ${this.cache.characters.size}`);
             console.log(`Corporations cached: ${this.cache.corporations.size}`);
