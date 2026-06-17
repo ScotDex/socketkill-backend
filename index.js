@@ -260,27 +260,18 @@ process.on("SIGINT", () => shutdown("SIGINT"));
 
 (async () => {
   console.log("Initializing Socket.Kill...");
-
-  // 1. Await the new robust initialization
-  await esi.initialize(); 
-
-  // 2. Load other dependencies
+  await esi.loadCache(path.join(__dirname, "data", "esi_cache.json"));
   await statsManager.recoverFromR2();
-  await loadMarketPrices();
-  await hashCache.prime();
-
-  // 3. Setup Processors and Services
-  processor = ProcessorFactory(esi, io, statsManager);
-
-  // 4. Start background intervals
   setInterval(() => statsManager.save(), 60_000);
+  await loadMarketPrices();
+  await esi.loadSystemCache();
   setInterval(syncMarketPrices, 60_000);
+  processor = ProcessorFactory(esi, io, statsManager);
+  await hashCache.prime();
   setInterval(() => hashCache.rotateIfNeeded(), 60_000);
-  
-  // 5. Start Poller and auxiliary services
+  await esi.loadShipCache(); 
   refreshNebulaBackground();
   syncPlayerCount();
   setInterval(refreshNebulaBackground, NEBULA_ROTATION_MS);
-  
   startPoller();
 })();

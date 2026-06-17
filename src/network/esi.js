@@ -1,66 +1,193 @@
+
 const talker = require("./agent");
-const fs = require('fs').promises;
+const fs = require(`fs`).promises;
 const kvClient = require('../network/kvClient');
+
 
 class ESIClient {
     constructor() {
         this.api = talker;
         this.baseURL = "https://esi.evetech.net";
 
-        // Memory Cache
         this.cache = {
             characters: new Map(),
             corporations: new Map(),
+            types: new Map(),
+            systems: new Map(),
+            regions: new Map(),
             alliances: new Map()
         };
-
-        // Static SDE Data from KV
-        this.staticShipData = {};
+        this.staticShipData = {};  
         this.staticSystemData = {};
-        this.staticRegionData = {};
-        this.systemNameMap = new Map(); // O(1) lookups
-
         this.isDirty = false;
-        this.isSaving = false;
-        this.initialized = false;
-    }
 
-    /**
-     * Call this at application startup before handling requests.
-     */
-    async initialize() {
+        setInterval(() => {
+            if (this.isDirty) {
+                this.saveCache('./data/esi_cache.json');
+            }
+        }, 1 * 60 * 1000);
+    }
+    async fetchAndCache(id, cacheCategory, endpoint) {
+        if (!id || id === 0) return "Unknown";
+
+        const internalCache = this.cache[cacheCategory];
+        if (internalCache && internalCache.has(id)) {
+            return internalCache.get(id);
+        }
+
         try {
-            await Promise.all([
-                this.loadShipCache(),
-                this.loadSystemCache(),
-                this.loadRegionCache(),
-                this.loadPersistentCache('./data/esi_cache.json')
-            ]);
-            this.initialized = true;
-            console.log("[ESIClient] Ready for production.");
-        } catch (err) {
-            console.error("[ESIClient] Critical Init Failure:", err);
-            process.exit(1);
+            const response = await this.api.get(`${this.baseURL}${endpoint}/${id}/`);
+            const name = response.data.name;
+
+            if (internalCache) internalCache.set(id, name);
+            this.isDirty = true;
+            return name;
+        } catch (error) {
+            console.error(`[ESI Error] Category: ${cacheCategory}, ID: ${id} - ${error.message}`);
+            return "Unknown";
         }
     }
 
-    // --- Data Accessors (Synchronous where possible) ---
-
-    getTypeName(id) {
-        return this.staticShipData[id]?.name ?? "Unknown";
+    async saveCache(filePath) {
+        try {
+            const persistData = {
+                characters: Object.fromEntries(this.cache.characters),
+                corporations: Object.fromEntries(this.cache.corporations),
+                types: Object.fromEntries(this.cache.types),
+                regions: Object.fromEntries(this.cache.regions),
+                alliances: Object.fromEntries(this.cache.alliances)
+            };
+            const json = JSON.stringify(persistData, null, 2);
+            await fs.writeFile(filePath, json);
+            this.isDirty = false; // Reset flag after successful save
+            console.log("Cache persisted to disk.");
+            await this.syncToR2('esi_cache.json', json);
+        } catch (err) {
+            console.error("Save failed:", err.message);
+        }
     }
 
-    getRegionName(id) {
-        return this.staticRegionData[id]?.name ?? "Unknown";
+    async syncToR2(key, data) {
+        try {
+            const url = `https://api.cloudflare.com/client/v4/accounts/${process.env.CF_ACCOUNT_ID}/r2/buckets/${process.env.CF_CACHE_BUCKET}/objects/${key}`;
+            await fetch(url, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${process.env.CF_R2_TOKEN}`,
+                    'Content-Type': 'application/json'
+                },
+                body: typeof data === 'string' ? data : JSON.stringify(data)
+            });
+            console.log(`[R2] ${key} synced.`);
+
+        } catch (err) {
+            console.error(`[R2] Failed to sync ${key}:`, err.message);
+        }
     }
 
-    getShipGroupID(typeID) {
-        return this.staticShipData[typeID]?.groupID ?? null;
+    async loadCache(filePath) {
+        try {
+            const data = await fs.readFile(filePath, 'utf8');
+            if (!data || data.trim() === "") {
+                console.warn("Cache file is empty. Initializing default structure...");
+                this.isDirty = true; // Force a save later
+                return;
+            }
+            const json = JSON.parse(data);
+            this.cache.characters = new Map(Object.entries(json.characters || {}));
+            this.cache.corporations = new Map(Object.entries(json.corporations || {}));
+            this.cache.types = new Map(Object.entries(json.types || {}));
+            this.cache.regions = new Map(Object.entries(json.regions || {}));
+            this.cache.alliances = new Map(Object.entries(json.alliances || {}));
+            console.log(`Persistent cache loaded. Regions cached: ${this.cache.regions.size}`);
+            console.log(`Characters cached: ${this.cache.characters.size}`);
+            console.log(`Corporations cached: ${this.cache.corporations.size}`);
+            console.log(`Types cached: ${this.cache.types.size}`);
+            console.log(`Alliances cached: ${this.cache.alliances.size}`);
+        } catch (err) {
+            console.warn("No cache file found, starting fresh.");
+        }
+    }
+
+    async getCharacterID(name) {
+        try {
+            const { data } = await this.api.post(`${this.baseURL}/universe/ids/`, [name]);
+            return data.characters?.[0]?.id || null;
+        } catch (error) {
+            console.error(`Could not resolve ID for ${name}`);
+            return null;
+        }
+    }
+
+    async loadShipCache() {
+  try {
+    const ships = await kvClient.get('sde:ships');
+    if (ships) {
+      this.staticShipData = ships;
+      console.log(`[ESI] Loaded ${Object.keys(ships).length} ship type → group mappings`);
+    } else {
+      console.warn('[ESI] sde:ships not in KV — shipGroupID will be null until SDE sync runs');
+    }
+  } catch (err) {
+    console.error(`[ESI] Ship cache load failed: ${err.message}`);
+  }
+}
+
+getShipGroupID(typeID) {
+  return this.staticShipData[typeID]?.groupID ?? null;
+}
+
+    async getCharacterName(id) {
+        return this.fetchAndCache(id, 'characters', '/characters');
+    }
+
+    async getCorporationName(id) {
+        return this.fetchAndCache(id, 'corporations', '/corporations');
+    }
+
+    async getTypeName(id) {
+        return this.fetchAndCache(id, 'types', '/universe/types');
+    }
+
+    async getAllianceName(id) {
+        return this.fetchAndCache(id, 'alliances', '/alliances');
+    }
+
+
+    async loadSystemCache() {
+        try {
+            const kv = require ('./kvClient');
+            this.staticSystemData = await kv.get('sde:systems');
+            if (!this.staticSystemData){
+                throw new Error ('sde:systems missing from KV');
+            }
+
+            this.systemNameMap = new Map();
+            for (const [id, sys] of Object.entries(this.staticSystemData)) {
+                this.systemNameMap.set(sys.name.toLowerCase(), sys);
+            }
+            return true;
+        } catch (err) {
+            console.error ("Failed to load static system data:", err.message);
+            return false;
+        }
     }
 
     findSystemByName(name) {
         if (!name) return null;
-        return this.systemNameMap.get(name.toLowerCase()) || null;
+        const query = name.toLowerCase();
+        return Object.values(this.staticSystemData).find(sys =>
+            sys.name.toLowerCase().startsWith(query)
+        ) || null;
+    }
+
+    async getRoute(originId, destinationId) {
+        try {
+            const { data } = await this.api.get(`${this.baseURL}/route/${originId}/${destinationId}/`);
+            return data;
+        } catch (error) {
+            return null;
+        }
     }
 
     getSystemDetails(id) {
@@ -76,84 +203,32 @@ class ESIClient {
         };
     }
 
-    // --- Dynamic Fetching ---
-
-    async getCharacterName(id) { return this.fetchAndCache(id, 'characters', '/characters'); }
-    async getCorporationName(id) { return this.fetchAndCache(id, 'corporations', '/corporations'); }
-    async getAllianceName(id) { return this.fetchAndCache(id, 'alliances', '/alliances'); }
-
-    async fetchAndCache(id, category, endpoint) {
-        if (!id || id === 0) return "Unknown";
-        if (this.cache[category].has(id.toString())) return this.cache[category].get(id.toString());
-
-        try {
-            const { data } = await this.api.get(`${this.baseURL}${endpoint}/${id}/`);
-            this.cache[category].set(id.toString(), data.name);
-            this.isDirty = true;
-            return data.name;
-        } catch (err) {
-            return "Unknown";
-        }
-    }
-
-    // --- Persistence ---
-
-    async saveCache(filePath) {
-        if (this.isSaving) return;
-        this.isSaving = true;
-        try {
-            const persistData = {
-                characters: Object.fromEntries(this.cache.characters),
-                corporations: Object.fromEntries(this.cache.corporations),
-                alliances: Object.fromEntries(this.cache.alliances)
-            };
-            const json = JSON.stringify(persistData);
-            await fs.writeFile(filePath, json);
-            this.isDirty = false;
-            // Async sync to R2 without blocking
-            this.syncToR2('esi_cache.json', json).catch(console.error);
-        } finally {
-            this.isSaving = false;
-        }
-    }
-
-    async loadPersistentCache(filePath) {
-        try {
-            const data = await fs.readFile(filePath, 'utf8');
-            const json = JSON.parse(data);
-            this.cache.characters = new Map(Object.entries(json.characters || {}));
-            this.cache.corporations = new Map(Object.entries(json.corporations || {}));
-            this.cache.alliances = new Map(Object.entries(json.alliances || {}));
-        } catch (err) {
-            console.warn("[ESI] No disk cache found, starting cold.");
-        }
-    }
-
-    // --- KV Loaders ---
-
-    async loadShipCache() {
-        this.staticShipData = await kvClient.get('sde:ships') || {};
-    }
-
-    async loadSystemCache() {
-        this.staticSystemData = await kvClient.get('sde:systems') || {};
-        for (const [id, sys] of Object.entries(this.staticSystemData)) {
-            this.systemNameMap.set(sys.name.toLowerCase(), sys);
-        }
-    }
-
     async loadRegionCache() {
-        this.staticRegionData = await kvClient.get('sde:regions') || {};
+        try {
+            this.staticRegionData = await kvClient.get('sde:regions');
+            if (!this.staticRegionData) throw new Error('sde:regions missing from KV');
+            console.log(`[ESI] Loaded ${Object.keys(this.staticRegionData).length} regions from KV`);
+            return true;
+        } catch (err) {
+            console.error('Failed to load static region data:', err.message);
+            this.staticRegionData = {};
+            return false;
+        }
     }
 
-    async syncToR2(key, data) {
-        const url = `https://api.cloudflare.com/client/v4/accounts/${process.env.CF_ACCOUNT_ID}/r2/buckets/${process.env.CF_CACHE_BUCKET}/objects/${key}`;
-        await fetch(url, {
-            method: 'PUT',
-            headers: { 'Authorization': `Bearer ${process.env.CF_R2_TOKEN}`, 'Content-Type': 'application/json' },
-            body: data
-        });
+    getRegionName(id) {                                  // now synchronous
+        return this.staticRegionData?.[id]?.name ?? "Unknown";
     }
+
+    getTypeName(id) {                                    // served from already-resident ship data
+        return this.staticShipData?.[id]?.name ?? "Unknown";
+    }
+
+    async getRegionName(id) {
+        return await this.fetchAndCache(id, 'regions', '/universe/regions');
+    }
+
+
+
 }
-
 module.exports = new ESIClient();
