@@ -3,7 +3,6 @@ const handleWhale = require("../services/whaleModule");
 const { resolveKillmail, resolveFinalBlowCorp, resolveTriggerAttacker, resolveSpace, topByDamage } = require('./processorHelpers');
 const { TRIGLAVIAN_SYSTEMS } = require('../core/shipIDs');
 const hashCache = require('../state/hashCache')
-const publicStream = require('../services/publicStreamService');
 
 module.exports = (esi, io, statsManager) => {
     async function processPackage(packageData) {
