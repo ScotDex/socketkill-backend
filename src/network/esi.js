@@ -16,6 +16,7 @@ class ESIClient {
         };
         this.staticShipData = {};  
         this.staticSystemData = {};
+        this.staticItemData = {};
         this.isDirty = false;
 
         setInterval(() => {
@@ -125,6 +126,19 @@ class ESIClient {
   }
 }
 
+async loadItemCache() {
+        try {
+            this.staticItemData = await kvClient.get('sde:items');
+            if (!this.staticItemData) throw new Error('sde:items missing from KV');
+            console.log(`[ESI] Loaded ${Object.keys(this.staticItemData).length} item types from KV`);
+            return true;
+        } catch (err) {
+            console.error('Failed to load static item data:', err.message);
+            this.staticItemData = {};
+            return false;
+        }
+    }
+
 getShipGroupID(typeID) {
   return this.staticShipData[typeID]?.groupID ?? null;
 }
@@ -210,6 +224,12 @@ getShipGroupID(typeID) {
 
     async getTypeName(id) {
         return this.fetchAndCache(id, 'types', '/universe/types');
+    }
+
+    getTypeName(id) {
+        return this.staticItemData?.[id]?.name
+            ?? this.staticShipData?.[id]?.name
+            ?? "Unknown";
     }
 
 
