@@ -100,19 +100,6 @@ module.exports = (esi, io, statsManager) => {
             };
 
             io.emit("raw-kill", rawKillPayload);
-            publicStream.broadcast({
-                killmail,
-                zkb,
-                killID,
-                shipName,
-                systemName,
-                regionName,
-                corpName,
-                victimName: finalVictimName,
-                finalBlowCorp,
-                allianceName,
-                attackerCount,
-            });
 
             // Gated filter for web hooks
 
