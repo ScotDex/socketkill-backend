@@ -252,7 +252,7 @@ const searchLimiter = rateLimit({
   max: 60,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => ipKeyGenerator(clientIp(req)),   // matches your searchLimiter pattern
+  keyGenerator: (req) => ipKeyGenerator(clientIp(req)),  
   message: { error: 'Too many reactions — slow down.' },
 });
 
@@ -268,8 +268,8 @@ app.post('/api/reactions/:killId', reactLimiter, (req, res) => {
   res.set('Cache-Control', 'no-store');
   res.json({
     killmailId: String(id),
-    reactions: reactionsManager.get(id),   // full current set, so client re-renders the whole bar
-    accepted: result !== null,             // false = bad emote OR already reacted (this IP)
+    reactions: reactionsManager.get(id),   
+    accepted: result !== null,             
   });
 });
 
