@@ -18,6 +18,7 @@ const rateLimit = require('express-rate-limit');
 const { ipKeyGenerator } = require('express-rate-limit');
 const { clientIp, requestMeta, setCacheHeader, IMMUTABLE } = require('../core/requestMeta')
 const r2 = require('../network/r2Writer');
+const reactionsManager = require('../services/reactionsManager');   
 
 
 const resolveLimit = pLimit(4);  
@@ -450,6 +451,13 @@ app.get('/api/top10', async (req, res) => {
     }
   });
 
+  app.get('/api/reactions/:killId', (req, res) => {
+  const id = parseInt(req.params.killId);
+  if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: 'Invalid killId' });
+  res.set('Cache-Control', 'no-store');
+  res.json({ killmailId: String(id), reactions: reactionsManager.get(id) });
+});
+
   app.get('/api/refire/:killId', async (req, res) => {
     const processor = getProcessor();
     if (!processor) {
@@ -502,12 +510,33 @@ app.get('/api/top10', async (req, res) => {
     res.sendFile(path.join(publicPath, "index.html"));
   });
 
-  io.on("connection", (socket) => {
-    console.log(`Client connected to Web Socket Stream: ${socket.id}`);
-    socket.on("disconnect", (reason) => {
-      console.log(`[NETWORK] Client disconnected: ${socket.id} | Reason: ${reason} | Active: ${io.engine.clientsCount}`);
-    });
+io.on("connection", (socket) => {
+  console.log(`Client connected to Web Socket Stream: ${socket.id}`);
+
+  let lastReact = 0;                          // per-socket throttle (closure = auto-GC on disconnect)
+  const REACT_MIN_INTERVAL_MS = 500;
+
+  socket.on("react", (payload) => {
+    const now = Date.now();
+    if (now - lastReact < REACT_MIN_INTERVAL_MS) return;   // drop rapid spam
+    lastReact = now;
+
+    const killmailId = parseInt(payload?.killmailId);
+    const emoteKey = payload?.emoteKey;
+    if (!Number.isFinite(killmailId) || killmailId <= 0) return;   // never trust client
+    if (typeof emoteKey !== 'string') return;
+
+    const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0]?.trim()
+            || socket.handshake.address;
+
+    const result = reactionsManager.react({ killmailId, emoteKey, ip });
+    if (result) io.emit("reaction-update", result);        // broadcast only on accepted react
   });
+
+  socket.on("disconnect", (reason) => {
+    console.log(`[NETWORK] Client disconnected: ${socket.id} | Reason: ${reason} | Active: ${io.engine.clientsCount}`);
+  });
+});
 
   server
     .listen(PORT, () => {

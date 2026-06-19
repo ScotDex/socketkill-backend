@@ -11,6 +11,7 @@ const r2 = require("./src/network/r2Writer");
 const hashCache = require("./src/state/hashCache")
 const { syncMarketPrices, loadMarketPrices } = require("./src/services/priceService");
 const kv = require('./src/network/kvClient');
+const reactionsManager = require("./src/services/reactionsManager");
 
 const R2_BASE_URL = process.env.R2_BASE_URL;
 const SEQUENCE_CACHE_URL = `${R2_BASE_URL}/sequence.json`;
@@ -247,6 +248,7 @@ async function shutdown(signal) {
   try {
     await hashCache.flush();
     statsManager.save();
+    await reactionsManager.save(); 
     console.log("[SHUTDOWN] Flush complete. Exiting.");
   } catch (err) {
     console.error(`[SHUTDOWN] Flush error: ${err.message}`);
@@ -266,6 +268,8 @@ process.on("SIGINT", () => shutdown("SIGINT"));
   await loadMarketPrices();
   await esi.loadSystemCache();
   setInterval(syncMarketPrices, 60_000);
+  await reactionsManager.recoverFromR2();
+  setInterval(() => reactionsManager.save(), reactionsManager.SAVE_INTERVAL_MS);
   processor = ProcessorFactory(esi, io, statsManager);
   await hashCache.prime();
   setInterval(() => hashCache.rotateIfNeeded(), 60_000);
