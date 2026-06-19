@@ -247,6 +247,32 @@ const searchLimiter = rateLimit({
     }
   });
 
+  const reactLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => ipKeyGenerator(clientIp(req)),   // matches your searchLimiter pattern
+  message: { error: 'Too many reactions — slow down.' },
+});
+
+app.post('/api/reactions/:killId', reactLimiter, (req, res) => {
+  const id = parseInt(req.params.killId);
+  if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: 'Invalid killId' });
+
+  const emoteKey = req.body?.emoteKey;
+  if (typeof emoteKey !== 'string') return res.status(400).json({ error: 'Missing emoteKey' });
+
+  const result = reactionsManager.react({ killmailId: id, emoteKey, ip: clientIp(req) });
+
+  res.set('Cache-Control', 'no-store');
+  res.json({
+    killmailId: String(id),
+    reactions: reactionsManager.get(id),   // full current set, so client re-renders the whole bar
+    accepted: result !== null,             // false = bad emote OR already reacted (this IP)
+  });
+});
+
   const SITE = 'https://socketkill.com';
   const SITEMAP_EPOCH = '2026-05-24';// earliest date you have shards for — set this accurately
 
