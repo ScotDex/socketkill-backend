@@ -48,6 +48,7 @@ class bombeldoFactory {
 
         return {
             username: "Snuffed Killmails",
+            avatar_url: "https://edge.socketkill.com/weeb_snuff.webp",
             embeds: [{
                 author: {
                     name: headline,
