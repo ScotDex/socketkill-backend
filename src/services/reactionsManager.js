@@ -5,10 +5,7 @@ const R2_KEY = 'reactions.json';
 const DEDUP_MAX = 50000;          // mirrors index.js processedKills ceiling
 const SAVE_INTERVAL_MS = 60_000;  // mirrors statsManager flush cadence
 
-// YOU own this. Any key not listed is rejected on increment.
-const ALLOWED_EMOTES = new Set([
-  // 'plus1', 'plus2', ...
-]);
+const ALLOWED_EMOTES = new Set(['plus1', 'f']);
 
 const reactions = new Map();  // killmailId -> { emoteKey: count }
 const dedup = new Set();      // "ip:killmailId:emoteKey"
