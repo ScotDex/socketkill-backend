@@ -47,8 +47,7 @@ class bombeldoFactory {
             : { name: 'Victim', value: `${names.finalVictimName} (${names.corpName})` };
 
         return {
-            username: "Snuffed Killmails",
-            avatar_url: "https://edge.socketkill.com/weeb_snuff.webp",
+            username: "Kill-Tracker Bot",
             embeds: [{
                 author: {
                     name: headline,
