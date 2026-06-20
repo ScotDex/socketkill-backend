@@ -2,13 +2,13 @@
 const r2 = require('../network/r2Writer');
 
 const R2_KEY = 'reactions.json';
-const DEDUP_MAX = 50000;          
-const SAVE_INTERVAL_MS = 60_000;  
+const DEDUP_MAX = 50000;
+const SAVE_INTERVAL_MS = 60_000;
 
-const ALLOWED_EMOTES = new Set(['plus1', 'f']);
+const ALLOWED_EMOTES = new Set(['plus1', 'f', 'nice-feed', 'o7', 'gf', '67', 'lol', 'RMT', 'FFS', 'RIP']);
 
-const reactions = new Map(); 
-const dedup = new Set();      
+const reactions = new Map();
+const dedup = new Set();
 let dirty = false;
 
 async function recoverFromR2() {
@@ -23,11 +23,11 @@ async function recoverFromR2() {
 
 function react({ killmailId, emoteKey, ip }) {
   if (!killmailId || !emoteKey || !ip) return null;
-  if (!ALLOWED_EMOTES.has(emoteKey)) return null;          
+  if (!ALLOWED_EMOTES.has(emoteKey)) return null;
 
   const id = String(killmailId);
   const dedupKey = `${ip}:${id}:${emoteKey}`;
-  if (dedup.has(dedupKey)) return null;               
+  if (dedup.has(dedupKey)) return null;
 
   dedup.add(dedupKey);
   if (dedup.size > DEDUP_MAX) dedup.delete(dedup.values().next().value);

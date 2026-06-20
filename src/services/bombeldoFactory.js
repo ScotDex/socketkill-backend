@@ -48,6 +48,7 @@ class bombeldoFactory {
 
         return {
             username: "Kill-Tracker Bot",
+            avatar_url: "https://edge.socketkill.com/1.0.webp",
             embeds: [{
                 author: {
                     name: headline,

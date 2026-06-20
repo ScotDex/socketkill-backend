@@ -32,13 +32,9 @@ async function resolveItems(rawItems, esi) {
     if (!rawItems?.length) return { status: 'none', groups: {} };
 
     const flat = flatten(rawItems);
-
-    // Dedupe type IDs for efficient ESI resolution
     const uniqueIds = [...new Set(flat.map(i => i.item_type_id))];
     const names = await Promise.all(uniqueIds.map(id => esi.getTypeName(id)));
     const nameMap = new Map(uniqueIds.map((id, i) => [id, names[i]]));
-
-    // Merge by group + typeID
     const merged = new Map();
     for (const item of flat) {
         const group = groupForFlag(item.flag);
@@ -64,8 +60,6 @@ async function resolveItems(rawItems, esi) {
             });
         }
     }
-
-    // Group and sort
     const groups = {};
     for (const item of merged.values()) {
         const { _group, ...rest } = item;
