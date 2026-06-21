@@ -24,6 +24,34 @@ const reactionsManager = require('../services/reactionsManager');
 const resolveLimit = pLimit(4);
 const BOT_UA = /bot|crawler|spider|claude|gptbot|ccbot|bytespider|petalbot|slurp|bingbot|googlebot|facebookexternalhit|meta-external/i;
 
+const PLEX_REGION = 19000001;
+const PLEX_TYPE = 44992;
+
+// Set from the CCP store — one pack's £-per-PLEX. Document which pack. YOU set this.
+const GBP_PER_PLEX = 0.04;
+
+let plexRate = null; // { gbpPerIsk, iskPerPlex, updated } — only overwritten on success
+
+async function refreshPlexRate() {
+  const res = await axios.get(
+    `https://esi.evetech.net/latest/markets/${PLEX_REGION}/history/?type_id=${PLEX_TYPE}`,
+    { headers: { 'X-Compatibility-Date': '2025-12-16' } }
+  );
+  const history = res.data;
+  if (!Array.isArray(history) || history.length === 0) throw new Error('empty PLEX history');
+
+  const latest = history[history.length - 1]; // ESI history is date-ascending → last = newest
+  const iskPerPlex = latest.average;
+  if (!iskPerPlex || iskPerPlex <= 0) throw new Error(`bad PLEX average: ${iskPerPlex}`);
+
+  plexRate = {
+    gbpPerIsk: GBP_PER_PLEX / iskPerPlex,
+    iskPerPlex,
+    updated: new Date().toISOString(),
+  };
+  console.log(`[PLEX] rate updated: 1 PLEX = ${Math.round(iskPerPlex).toLocaleString()} ISK`);
+}
+
 function startWebServer(esi, statsManager, sharedState, getProcessor) {
   const app = express();
   app.set('trust proxy', 1);
@@ -71,12 +99,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
         "https://incursions.nesbit.solutions",
         "https://socketkill.com/map/",
         "https://socketkill.com/about/",
-        "https://test-enviroment-4b4.pages.dev",
-        "https://socket-kill-front-end.pages.dev",
-        "http://localhost:4321",
-        "http://localhost:5173",
         "https://socketkill-v2.themadlyscientific.workers.dev",
-        "https://beta.socketkill.com"
       ],
       methods: ["GET", "POST"],
     },
@@ -370,6 +393,12 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     });
   });
 
+  app.get('/api/plex-rate', (req, res) => {
+    if (!plexRate) return res.status(503).json({ error: 'PLEX rate unavailable' });
+    res.set('Cache-Control', 'public, max-age=3600');
+    res.json({ gbpPerIsk: plexRate.gbpPerIsk });
+  });
+
   app.get('/api/top10', async (req, res) => {
     try {
       const cutoff = Date.now() - 60 * 60 * 1000;
@@ -561,6 +590,12 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       console.log(`[NETWORK] Client disconnected: ${socket.id} | Reason: ${reason} | Active: ${io.engine.clientsCount}`);
     });
   });
+
+  refreshPlexRate().catch((e) => console.error('[PLEX] init failed:', e.message));
+  setInterval(
+    () => refreshPlexRate().catch((e) => console.error('[PLEX] refresh failed:', e.message)),
+    12 * 60 * 60 * 1000 // 12h — ESI history only updates daily
+  );
 
   server
     .listen(PORT, () => {
