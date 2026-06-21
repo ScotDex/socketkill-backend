@@ -153,16 +153,13 @@ async function buildItems(groups) {
   return out;
 }
 
-// ─── Main pipeline ────────────────────────────────────────────────────────
 
 async function main() {
-  // Step 1: Read previous sync state from KV.
   console.log('Fetching stored sde:meta…');
   const storedRaw = await kvGet('sde:meta');
   const stored = storedRaw ? JSON.parse(storedRaw) : { etag: null, buildNumber: null };
   console.log(`  stored: build=${stored.buildNumber}, etag=${stored.etag || '(none)'}`);
 
-  // Step 2: HEAD latest.jsonl with If-None-Match.
   console.log(`Checking ${LATEST_URL}…`);
   const headRes = await fetch(LATEST_URL, {
     method: 'HEAD',
@@ -180,7 +177,6 @@ async function main() {
   const newEtag = headRes.headers.get('etag');
   console.log(`  new etag: ${newEtag}`);
 
-  // Step 3: Fetch latest.jsonl, parse build number.
   const latestRes = await fetch(LATEST_URL);
   if (!latestRes.ok) throw new Error(`GET latest.jsonl failed: ${latestRes.status}`);
   const latestText = await latestRes.text();
@@ -197,7 +193,6 @@ async function main() {
   if (!newBuild) throw new Error('Could not parse build number from latest.jsonl');
   console.log(`  new build: ${newBuild}`);
 
-  // Step 4: If build unchanged, update ETag-only and exit.
   if (newBuild === stored.buildNumber) {
     console.log('Build unchanged. Updating ETag only.');
     await kvPut('sde:meta', {

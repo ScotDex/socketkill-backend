@@ -18,10 +18,10 @@ const rateLimit = require('express-rate-limit');
 const { ipKeyGenerator } = require('express-rate-limit');
 const { clientIp, requestMeta, setCacheHeader, IMMUTABLE } = require('../core/requestMeta')
 const r2 = require('../network/r2Writer');
-const reactionsManager = require('../services/reactionsManager');   
+const reactionsManager = require('../services/reactionsManager');
 
 
-const resolveLimit = pLimit(4);  
+const resolveLimit = pLimit(4);
 const BOT_UA = /bot|crawler|spider|claude|gptbot|ccbot|bytespider|petalbot|slurp|bingbot|googlebot|facebookexternalhit|meta-external/i;
 
 function startWebServer(esi, statsManager, sharedState, getProcessor) {
@@ -39,16 +39,16 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
 
   const server = https.createServer(options, app);
 
-const searchLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 30,
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: (req) => {
-    const ip = clientIp(req); return ipKeyGenerator(ip);
-  },
-  message: { error: 'Too many searches — slow down.' },
-});
+  const searchLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => {
+      const ip = clientIp(req); return ipKeyGenerator(ip);
+    },
+    message: { error: 'Too many searches — slow down.' },
+  });
 
   app.use(
     helmet({
@@ -104,7 +104,7 @@ const searchLimiter = rateLimit({
       }
       if (!date) {
         const km = await r2.get(`killmails/${id}.json`).catch(() => null);
-        if (km?.killmail_time){
+        if (km?.killmail_time) {
           date = km.killmail_time.slice(0, 10);
           console.log(`[KILL API] Date recovered from cached killmail for ${id}: ${date}`);
         } else {
@@ -128,7 +128,7 @@ const searchLimiter = rateLimit({
       }
     }
 
-     if (BOT_UA.test(req.get('User-Agent') || '')) {
+    if (BOT_UA.test(req.get('User-Agent') || '')) {
       res.set('Cache-Control', 'public, max-age=300');
       return res.status(503).json({ error: 'Killmail not yet cached. Retry shortly.' });
     }
@@ -248,33 +248,33 @@ const searchLimiter = rateLimit({
   });
 
   const reactLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 60,
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: (req) => ipKeyGenerator(clientIp(req)),  
-  message: { error: 'Too many reactions — slow down.' },
-});
-
-app.post('/api/reactions/:killId', reactLimiter, (req, res) => {
-  const id = parseInt(req.params.killId);
-  if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: 'Invalid killId' });
-
-  const emoteKey = req.body?.emoteKey;
-  if (typeof emoteKey !== 'string') return res.status(400).json({ error: 'Missing emoteKey' });
-
-  const result = reactionsManager.react({ killmailId: id, emoteKey, ip: clientIp(req) });
-
-  res.set('Cache-Control', 'no-store');
-  res.json({
-    killmailId: String(id),
-    reactions: reactionsManager.get(id),   
-    accepted: result !== null,             
+    windowMs: 60 * 1000,
+    max: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => ipKeyGenerator(clientIp(req)),
+    message: { error: 'Too many reactions — slow down.' },
   });
-});
+
+  app.post('/api/reactions/:killId', reactLimiter, (req, res) => {
+    const id = parseInt(req.params.killId);
+    if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: 'Invalid killId' });
+
+    const emoteKey = req.body?.emoteKey;
+    if (typeof emoteKey !== 'string') return res.status(400).json({ error: 'Missing emoteKey' });
+
+    const result = reactionsManager.react({ killmailId: id, emoteKey, ip: clientIp(req) });
+
+    res.set('Cache-Control', 'no-store');
+    res.json({
+      killmailId: String(id),
+      reactions: reactionsManager.get(id),
+      accepted: result !== null,
+    });
+  });
 
   const SITE = 'https://socketkill.com';
-  const SITEMAP_EPOCH = '2026-05-24';// earliest date you have shards for — set this accurately
+  const SITEMAP_EPOCH = '2026-05-24';
 
   app.get('/sitemaps/kills-index.xml', (req, res) => {
     const days = [];
@@ -282,9 +282,8 @@ app.post('/api/reactions/:killId', reactLimiter, (req, res) => {
     for (let d = new Date(); d >= start; d.setDate(d.getDate() - 1)) {
       days.push(d.toISOString().slice(0, 10));
     }
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${
-      days.map(d => `  <sitemap><loc>${SITE}/sitemaps/kills/${d}.xml</loc><lastmod>${d}</lastmod></sitemap>`).join('\n')
-    }\n</sitemapindex>`;
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${days.map(d => `  <sitemap><loc>${SITE}/sitemaps/kills/${d}.xml</loc><lastmod>${d}</lastmod></sitemap>`).join('\n')
+      }\n</sitemapindex>`;
     res.set('Content-Type', 'application/xml');
     res.set('Cache-Control', 'public, max-age=3600');
     res.send(xml);
@@ -304,15 +303,14 @@ app.post('/api/reactions/:killId', reactLimiter, (req, res) => {
       ids = shard ? Object.keys(shard) : [];
     }
 
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${
-      ids.map(id => `  <url><loc>${SITE}/kill/${id}</loc><lastmod>${date}</lastmod></url>`).join('\n')
-    }\n</urlset>`;
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${ids.map(id => `  <url><loc>${SITE}/kill/${id}</loc><lastmod>${date}</lastmod></url>`).join('\n')
+      }\n</urlset>`;
     res.set('Content-Type', 'application/xml');
     setCacheHeader(res, { isToday, todayMaxAge: 3600 });
     res.send(xml);
   });
 
-app.get('/api/search', searchLimiter, (req, res) => {
+  app.get('/api/search', searchLimiter, (req, res) => {
     const { parseIDList, parseSpaceList } = require('../core/apiHelpers');
     const WINDOWS = { '1h': 3.6e6, '6h': 2.16e7, '24h': 8.64e7 };
     const windowMs = WINDOWS[req.query.window] || null;
@@ -320,7 +318,7 @@ app.get('/api/search', searchLimiter, (req, res) => {
       shipGroups: parseIDList(req.query.shipGroup),
       systems: parseIDList(req.query.system),
       regions: parseIDList(req.query.region),
-      minTime: windowMs ? Date.now() - windowMs :0,
+      minTime: windowMs ? Date.now() - windowMs : 0,
       spaces: parseSpaceList(req.query.space),
       victimCorps: parseIDList(req.query.victimCorp),
       victimAlliances: parseIDList(req.query.victimAlliance),
@@ -331,7 +329,7 @@ app.get('/api/search', searchLimiter, (req, res) => {
       solo: req.query.solo === 'true',
     };
 
-    const results = hashCache.search(filters); 
+    const results = hashCache.search(filters);
 
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const PAGE_SIZE = 50;
@@ -372,64 +370,64 @@ app.get('/api/search', searchLimiter, (req, res) => {
     });
   });
 
-app.get('/api/top10', async (req, res) => {
-  try {
-    const cutoff = Date.now() - 60 * 60 * 1000;
-    const entries = hashCache.search({}).filter(e => {
-      const t = e.time ? new Date(e.time).getTime() : 0;
-      return t >= cutoff;
-    });
+  app.get('/api/top10', async (req, res) => {
+    try {
+      const cutoff = Date.now() - 60 * 60 * 1000;
+      const entries = hashCache.search({}).filter(e => {
+        const t = e.time ? new Date(e.time).getTime() : 0;
+        return t >= cutoff;
+      });
 
-    const tally = (list, keyFn) => {
-      const m = new Map();
-      for (const e of list) {
-        const k = keyFn(e);
-        if (k == null) continue;
-        m.set(k, (m.get(k) || 0) + 1);
-      }
-      return [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
-    };
-    const idCount = (pairs) => pairs.map(([id, count]) => ({ id: Number(id), count }));
-    const resolveNames = (pairs, fn) =>
-      Promise.all(pairs.map(([id]) => fn(Number(id)).catch(() => null)))
-        .then(names => pairs.map(([id, count], i) => ({ id: Number(id), name: names[i], count })));
+      const tally = (list, keyFn) => {
+        const m = new Map();
+        for (const e of list) {
+          const k = keyFn(e);
+          if (k == null) continue;
+          m.set(k, (m.get(k) || 0) + 1);
+        }
+        return [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
+      };
+      const idCount = (pairs) => pairs.map(([id, count]) => ({ id: Number(id), count }));
+      const resolveNames = (pairs, fn) =>
+        Promise.all(pairs.map(([id]) => fn(Number(id)).catch(() => null)))
+          .then(names => pairs.map(([id, count], i) => ({ id: Number(id), name: names[i], count })));
 
-    const corpNames = new Map();
-    for (const e of entries) if (e.victimCorpID && e.corpName) corpNames.set(e.victimCorpID, e.corpName);
-    const victimCorp = tally(entries, e => e.victimCorpID)
-      .map(([id, count]) => ({ id: Number(id), name: corpNames.get(Number(id)) ?? null, count }));
-    const victimAlliance = await resolveNames(tally(entries, e => e.victimAllianceID), id => esi.getAllianceName(id));
-    const killers = entries.filter(e => !e.finalBlowIsNpc);
-    const killerCorp     = await resolveNames(tally(killers, e => e.finalBlowCorpID),     id => esi.getCorporationName(id));
-    const killerAlliance = await resolveNames(tally(killers, e => e.finalBlowAllianceID), id => esi.getAllianceName(id));
+      const corpNames = new Map();
+      for (const e of entries) if (e.victimCorpID && e.corpName) corpNames.set(e.victimCorpID, e.corpName);
+      const victimCorp = tally(entries, e => e.victimCorpID)
+        .map(([id, count]) => ({ id: Number(id), name: corpNames.get(Number(id)) ?? null, count }));
+      const victimAlliance = await resolveNames(tally(entries, e => e.victimAllianceID), id => esi.getAllianceName(id));
+      const killers = entries.filter(e => !e.finalBlowIsNpc);
+      const killerCorp = await resolveNames(tally(killers, e => e.finalBlowCorpID), id => esi.getCorporationName(id));
+      const killerAlliance = await resolveNames(tally(killers, e => e.finalBlowAllianceID), id => esi.getAllianceName(id));
 
-    const topValue = [...entries]
-      .sort((a, b) => (b.totalValue || 0) - (a.totalValue || 0))
-      .slice(0, 10)
-      .map(e => ({ killID: e.killID, value: e.totalValue || 0, shipID: e.shipID ?? null, victimName: e.victimName ?? null, systemID: e.systemID ?? null }));
+      const topValue = [...entries]
+        .sort((a, b) => (b.totalValue || 0) - (a.totalValue || 0))
+        .slice(0, 10)
+        .map(e => ({ killID: e.killID, value: e.totalValue || 0, shipID: e.shipID ?? null, victimName: e.victimName ?? null, systemID: e.systemID ?? null }));
 
-    res.set('Cache-Control', 'public, max-age=60');
-    res.json({
-      window: '1h',
-      generatedAt: new Date().toISOString(),
-      sampleSize: entries.length,
-      ships:           idCount(tally(entries, e => e.shipID)),
-      shipGroups:      idCount(tally(entries, e => e.shipGroupID)),
-      systems:         idCount(tally(entries, e => e.systemID)),
-      regions:         idCount(tally(entries, e => e.regionID)),
-      victimCorp,
-      victimAlliance,
-      finalBlowWeapon: idCount(tally(killers, e => e.finalBlowWeaponID)),
-      killerShip:      idCount(tally(killers, e => e.finalBlowShipID)),
-      killerCorp,
-      killerAlliance,
-      topValue,
-    });
-  } catch (err) {
-    console.error('[TOP10] error:', err.message);
-    res.status(500).json({ error: 'Internal error' });
-  }
-});
+      res.set('Cache-Control', 'public, max-age=60');
+      res.json({
+        window: '1h',
+        generatedAt: new Date().toISOString(),
+        sampleSize: entries.length,
+        ships: idCount(tally(entries, e => e.shipID)),
+        shipGroups: idCount(tally(entries, e => e.shipGroupID)),
+        systems: idCount(tally(entries, e => e.systemID)),
+        regions: idCount(tally(entries, e => e.regionID)),
+        victimCorp,
+        victimAlliance,
+        finalBlowWeapon: idCount(tally(killers, e => e.finalBlowWeaponID)),
+        killerShip: idCount(tally(killers, e => e.finalBlowShipID)),
+        killerCorp,
+        killerAlliance,
+        topValue,
+      });
+    } catch (err) {
+      console.error('[TOP10] error:', err.message);
+      res.status(500).json({ error: 'Internal error' });
+    }
+  });
   app.get('/api/filter-source', async (req, res) => {
     try {
       const [systems, regions, groups, ships, items, meta] = await Promise.all([
@@ -478,11 +476,11 @@ app.get('/api/top10', async (req, res) => {
   });
 
   app.get('/api/reactions/:killId', (req, res) => {
-  const id = parseInt(req.params.killId);
-  if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: 'Invalid killId' });
-  res.set('Cache-Control', 'no-store');
-  res.json({ killmailId: String(id), reactions: reactionsManager.get(id) });
-});
+    const id = parseInt(req.params.killId);
+    if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: 'Invalid killId' });
+    res.set('Cache-Control', 'no-store');
+    res.json({ killmailId: String(id), reactions: reactionsManager.get(id) });
+  });
 
   app.get('/api/refire/:killId', async (req, res) => {
     const processor = getProcessor();
@@ -536,33 +534,33 @@ app.get('/api/top10', async (req, res) => {
     res.sendFile(path.join(publicPath, "index.html"));
   });
 
-io.on("connection", (socket) => {
-  console.log(`Client connected to Web Socket Stream: ${socket.id}`);
+  io.on("connection", (socket) => {
+    console.log(`Client connected to Web Socket Stream: ${socket.id}`);
 
-  let lastReact = 0;                          // per-socket throttle (closure = auto-GC on disconnect)
-  const REACT_MIN_INTERVAL_MS = 500;
+    let lastReact = 0;
+    const REACT_MIN_INTERVAL_MS = 500;
 
-  socket.on("react", (payload) => {
-    const now = Date.now();
-    if (now - lastReact < REACT_MIN_INTERVAL_MS) return;   // drop rapid spam
-    lastReact = now;
+    socket.on("react", (payload) => {
+      const now = Date.now();
+      if (now - lastReact < REACT_MIN_INTERVAL_MS) return;
+      lastReact = now;
 
-    const killmailId = parseInt(payload?.killmailId);
-    const emoteKey = payload?.emoteKey;
-    if (!Number.isFinite(killmailId) || killmailId <= 0) return;   // never trust client
-    if (typeof emoteKey !== 'string') return;
+      const killmailId = parseInt(payload?.killmailId);
+      const emoteKey = payload?.emoteKey;
+      if (!Number.isFinite(killmailId) || killmailId <= 0) return;
+      if (typeof emoteKey !== 'string') return;
 
-    const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0]?.trim()
-            || socket.handshake.address;
+      const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0]?.trim()
+        || socket.handshake.address;
 
-    const result = reactionsManager.react({ killmailId, emoteKey, ip });
-    if (result) io.emit("reaction-update", result);        // broadcast only on accepted react
+      const result = reactionsManager.react({ killmailId, emoteKey, ip });
+      if (result) io.emit("reaction-update", result);
+    });
+
+    socket.on("disconnect", (reason) => {
+      console.log(`[NETWORK] Client disconnected: ${socket.id} | Reason: ${reason} | Active: ${io.engine.clientsCount}`);
+    });
   });
-
-  socket.on("disconnect", (reason) => {
-    console.log(`[NETWORK] Client disconnected: ${socket.id} | Reason: ${reason} | Active: ${io.engine.clientsCount}`);
-  });
-});
 
   server
     .listen(PORT, () => {

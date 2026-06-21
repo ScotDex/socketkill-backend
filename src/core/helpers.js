@@ -152,7 +152,6 @@ class utils {
 
   static async savePersistentStats(count) {
     try {
-      // Force save as an object with totalKills key
       const payload = JSON.stringify({ totalKills: Math.floor(count) });
       await fs.promises.writeFile(DATA_PATH, payload);
     } catch (err) {
