@@ -17,6 +17,7 @@ const KILL_LINES = [
     "Fuck Freddo Prices",
     "Deception roll didnt work did it fucker!",
     "Kiss, Kiss, Cuddle...",
+    "uWu Daddy"
 ];
 
 const DEATH_LINES = [
@@ -64,6 +65,7 @@ class bombeldoFactory {
                     { name: 'System', value: `**${names.systemName}**` },
                     { name: 'Region', value: `**${names.regionName}**` },
                     { name: 'Value', value: `**${helpers.formatIsk(zkb.totalValue)} ISK**`, inline: false },
+                    { name: "Alliance", value: names.allianceName ? `**[${names.allianceName}](https://zkillboard.com/alliance/${kill.victim.alliance_id}/)**` : "No Alliance", inline: false },
                     { name: 'Links', value: `[zKillboard](${helpers.getZkillLink(kill.killmail_id)}) · [SocketKill](${helpers.getSocketKillLink(kill.killmail_id)})` }
                 ],
                 footer: {

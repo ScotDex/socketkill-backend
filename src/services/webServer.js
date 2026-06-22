@@ -27,10 +27,10 @@ const BOT_UA = /bot|crawler|spider|claude|gptbot|ccbot|bytespider|petalbot|slurp
 const PLEX_REGION = 19000001;
 const PLEX_TYPE = 44992;
 
-// Set from the CCP store — one pack's £-per-PLEX. Document which pack. YOU set this.
+
 const GBP_PER_PLEX = 0.04;
 
-let plexRate = null; // { gbpPerIsk, iskPerPlex, updated } — only overwritten on success
+let plexRate = null;
 
 async function refreshPlexRate() {
   const res = await axios.get(
@@ -40,7 +40,7 @@ async function refreshPlexRate() {
   const history = res.data;
   if (!Array.isArray(history) || history.length === 0) throw new Error('empty PLEX history');
 
-  const latest = history[history.length - 1]; // ESI history is date-ascending → last = newest
+  const latest = history[history.length - 1];
   const iskPerPlex = latest.average;
   if (!iskPerPlex || iskPerPlex <= 0) throw new Error(`bad PLEX average: ${iskPerPlex}`);
 
@@ -594,7 +594,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
   refreshPlexRate().catch((e) => console.error('[PLEX] init failed:', e.message));
   setInterval(
     () => refreshPlexRate().catch((e) => console.error('[PLEX] refresh failed:', e.message)),
-    12 * 60 * 60 * 1000 // 12h — ESI history only updates daily
+    12 * 60 * 60 * 1000
   );
 
   server
