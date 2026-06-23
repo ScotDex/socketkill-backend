@@ -2,6 +2,8 @@
 const helpers = require('../core/helpers')
 const pick = a => a[Math.floor(Math.random() * a.length)];
 const API_BASE = `https://api.socketkill.com/render/`;
+const plexRate = require('../services/plexRate');
+const FREDDO_PRICE_GBP = 0.39; 
 
 
 
@@ -47,6 +49,11 @@ class bombeldoFactory {
             ? { name: 'Killed by', value: `${names.finalBlowCorp} · ${names.attackerCount} ${names.attackerCount === 1 ? 'attacker' : 'attackers'}` }
             : { name: 'Victim', value: `${names.finalVictimName} (${names.corpName})` };
 
+        const rate = plexRate.get();
+        const freddoSuffix = rate
+            ? ` ·  ${Math.floor(zkb.totalValue * rate.gbpPerIsk / FREDDO_PRICE_GBP).toLocaleString()} freddos`
+            : '';
+
         return {
             username: "Harold's Mind",
             avatar_url: "https://edge.socketkill.com/1.0.webp",
@@ -64,7 +71,7 @@ class bombeldoFactory {
                     subject,
                     { name: 'System', value: `**${names.systemName}**` },
                     { name: 'Region', value: `**${names.regionName}**` },
-                    { name: 'Value', value: `**${helpers.formatIsk(zkb.totalValue)} ISK**`, inline: false },
+                    { name: 'Value', value: `**${helpers.formatIsk(zkb.totalValue)} ISK**${freddoSuffix}`, inline: false },
                     { name: "Alliance", value: names.allianceName ? `**[${names.allianceName}](https://zkillboard.com/alliance/${kill.victim.alliance_id}/)**` : "No Alliance", inline: false },
                     { name: 'Links', value: `[zKillboard](${helpers.getZkillLink(kill.killmail_id)}) · [SocketKill](${helpers.getSocketKillLink(kill.killmail_id)})` }
                 ],

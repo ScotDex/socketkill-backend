@@ -19,38 +19,11 @@ const { ipKeyGenerator } = require('express-rate-limit');
 const { clientIp, requestMeta, setCacheHeader, IMMUTABLE } = require('../core/requestMeta')
 const r2 = require('../network/r2Writer');
 const reactionsManager = require('../services/reactionsManager');
+const plexRate = require('../services/plexRate');
 
 
 const resolveLimit = pLimit(4);
 const BOT_UA = /bot|crawler|spider|claude|gptbot|ccbot|bytespider|petalbot|slurp|bingbot|googlebot|facebookexternalhit|meta-external/i;
-
-const PLEX_REGION = 19000001;
-const PLEX_TYPE = 44992;
-
-
-const GBP_PER_PLEX = 0.04;
-
-let plexRate = null;
-
-async function refreshPlexRate() {
-  const res = await axios.get(
-    `https://esi.evetech.net/latest/markets/${PLEX_REGION}/history/?type_id=${PLEX_TYPE}`,
-    { headers: { 'X-Compatibility-Date': '2025-12-16' } }
-  );
-  const history = res.data;
-  if (!Array.isArray(history) || history.length === 0) throw new Error('empty PLEX history');
-
-  const latest = history[history.length - 1];
-  const iskPerPlex = latest.average;
-  if (!iskPerPlex || iskPerPlex <= 0) throw new Error(`bad PLEX average: ${iskPerPlex}`);
-
-  plexRate = {
-    gbpPerIsk: GBP_PER_PLEX / iskPerPlex,
-    iskPerPlex,
-    updated: new Date().toISOString(),
-  };
-  console.log(`[PLEX] rate updated: 1 PLEX = ${Math.round(iskPerPlex).toLocaleString()} ISK`);
-}
 
 function startWebServer(esi, statsManager, sharedState, getProcessor) {
   const app = express();
@@ -591,12 +564,11 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     });
   });
 
-  refreshPlexRate().catch((e) => console.error('[PLEX] init failed:', e.message));
-  setInterval(
-    () => refreshPlexRate().catch((e) => console.error('[PLEX] refresh failed:', e.message)),
-    12 * 60 * 60 * 1000
-  );
-
+refreshPlexRate().catch((e) => console.error('[PLEX] init failed:', e.message));
+setInterval(
+  () => refreshPlexRate().catch((e) => console.error('[PLEX] refresh failed:', e.message)),
+  12 * 60 * 60 * 1000
+);
   server
     .listen(PORT, () => {
       console.log(`Web Module Loaded on ${PORT}`);
