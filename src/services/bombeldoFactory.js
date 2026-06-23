@@ -3,7 +3,7 @@ const helpers = require('../core/helpers')
 const pick = a => a[Math.floor(Math.random() * a.length)];
 const API_BASE = `https://api.socketkill.com/render/`;
 const plexRate = require('../services/plexRate');
-const FREDDO_PRICE_GBP = 0.39; 
+const FREDDO_PRICE_GBP = 0.35; 
 
 
 
@@ -19,7 +19,8 @@ const KILL_LINES = [
     "Fuck Freddo Prices",
     "Deception roll didnt work did it fucker!",
     "Kiss, Kiss, Cuddle...",
-    "uWu Daddy"
+    "uWu Daddy",
+    "The best eve guide..."
 ];
 
 const DEATH_LINES = [
@@ -69,10 +70,10 @@ class bombeldoFactory {
                 color: isDeath ? 0xff6b6b : 0x9b59b6,
                 fields: [
                     subject,
-                    { name: 'System', value: `**${names.systemName}**` },
-                    { name: 'Region', value: `**${names.regionName}**` },
+                    { name: 'System', value: `**${names.systemName}**`, inline: true },
+                    { name: 'Region', value: `**${names.regionName}**`, inline: true },
                     { name: 'Value', value: `**${helpers.formatIsk(zkb.totalValue)} ISK**${freddoSuffix}`, inline: false },
-                    { name: "Alliance", value: names.allianceName ? `**[${names.allianceName}](https://zkillboard.com/alliance/${kill.victim.alliance_id}/)**` : "No Alliance", inline: false },
+                    { name: "Alliance", value: names.allianceName ? `[${names.allianceName}](https://zkillboard.com/alliance/${kill.victim.alliance_id}/)` : "No Alliance", inline: false },
                     { name: 'Links', value: `[zKillboard](${helpers.getZkillLink(kill.killmail_id)}) · [SocketKill](${helpers.getSocketKillLink(kill.killmail_id)})` }
                 ],
                 footer: {
