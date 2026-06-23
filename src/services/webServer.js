@@ -366,11 +366,12 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     });
   });
 
-  app.get('/api/plex-rate', (req, res) => {
-    if (!plexRate) return res.status(503).json({ error: 'PLEX rate unavailable' });
-    res.set('Cache-Control', 'public, max-age=3600');
-    res.json({ gbpPerIsk: plexRate.gbpPerIsk });
-  });
+app.get('/api/plex-rate', (req, res) => {
+  const rate = plexRate.get();
+  if (!rate) return res.status(503).json({ error: 'PLEX rate unavailable' });
+  res.set('Cache-Control', 'public, max-age=3600');
+  res.json({ gbpPerIsk: rate.gbpPerIsk });
+});
 
   app.get('/api/top10', async (req, res) => {
     try {
@@ -564,9 +565,9 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     });
   });
 
-refreshPlexRate().catch((e) => console.error('[PLEX] init failed:', e.message));
+plexRate.refresh().catch((e) => console.error('[PLEX] init failed:', e.message));
 setInterval(
-  () => refreshPlexRate().catch((e) => console.error('[PLEX] refresh failed:', e.message)),
+  () => plexRate.refresh().catch((e) => console.error('[PLEX] refresh failed:', e.message)),
   12 * 60 * 60 * 1000
 );
   server
