@@ -4,6 +4,7 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
 const API_BASE = `https://api.socketkill.com/render/`;
 const plexRate = require('../services/plexRate');
 const FREDDO_PRICE_GBP = 0.35;
+const DOTLAN_BASE = 'https://evemaps.dotlan.net';
 
 
 
