@@ -51,7 +51,7 @@ class bombeldoFactory {
 
         const rate = plexRate.get();
         const freddoSuffix = rate
-            ? ` ·  ${Math.floor(zkb.totalValue * rate.gbpPerIsk / FREDDO_PRICE_GBP).toLocaleString()} freddos`
+            ? ` · Worth ${Math.floor(zkb.totalValue * rate.gbpPerIsk / FREDDO_PRICE_GBP).toLocaleString()} freddos`
             : '';
 
         return {
