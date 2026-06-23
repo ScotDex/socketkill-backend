@@ -75,7 +75,7 @@ class bombeldoFactory {
                     { name: 'Region', value: `**[${names.regionName}](${DOTLAN_BASE}/region/${names.regionName.replace(/ /g, '_')})** `, inline: false },
                     { name: 'Value', value: `**${helpers.formatIsk(zkb.totalValue)} ISK**${freddoSuffix}`, inline: false },
                     { name: "Alliance", value: names.allianceName ? `**[${names.allianceName}](https://zkillboard.com/alliance/${kill.victim.alliance_id}/)**` : "-", inline: false },
-                    { name: 'Killmail', value: `[zKillboard](${helpers.getZkillLink(kill.killmail_id)}) · [SocketKill](${helpers.getSocketKillLink(kill.killmail_id)})` }
+                    { name: 'Links', value: `**[zKillboard](${helpers.getZkillLink(kill.killmail_id)})** · **[SocketKill](${helpers.getSocketKillLink(kill.killmail_id)})**` }
                 ],
                 footer: {
                     text: `Powered by SocketKill.com`,
