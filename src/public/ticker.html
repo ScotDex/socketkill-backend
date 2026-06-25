@@ -24,6 +24,7 @@
   }
   .kill {
     display: flex;
+    width: 180px;
     align-items: center;
     gap: 10px;
     padding: 8px 12px;
@@ -60,12 +61,19 @@
       row.innerHTML = `
         <img src="${k.shipImageUrl}" alt="">
         <span class="ship">${k.ship}</span>
-        <span class="system">${k.system}</span>
-        <span class="val">${k.val.toLocaleString()} ISK</span>
+        <span class="val">${humanizeIsk(k.val)} ISK</span>
       `;
       feed.prepend(row);
       while (feed.children.length > MAX_ROWS) feed.lastChild.remove();
     });
+
+    function humanizeIsk(v) {
+  if (v >= 1e12) return (v / 1e12).toFixed(2) + 't';
+  if (v >= 1e9)  return (v / 1e9).toFixed(2) + 'b';
+  if (v >= 1e6)  return (v / 1e6).toFixed(2) + 'm';
+  if (v >= 1e3)  return (v / 1e3).toFixed(2) + 'k';
+  return String(v);
+}
   </script>
 </body>
 </html>
