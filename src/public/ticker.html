@@ -1,17 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <meta charset="utf-8">
 <style>
+  :root {
+    --font-mono: 'Share Tech Mono', monospace;
+    --font-body: 'Exo 2', sans-serif;
+  }
   body {
     margin: 0;
     background: transparent;
-    font-family: 'Courier New', monospace;
+    font-family: var(--font-body);  
     overflow: hidden;
   }
   #feed {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     gap: 6px;
     padding: 12px;
   }
@@ -24,14 +31,15 @@
     border-left: 3px solid #888;
     color: #e0e0e0;
     font-size: 15px;
-    /* fade-in */
     animation: slide 0.3s ease-out;
   }
   .kill.loss { border-left-color: #ff6b6b; }
   .kill.kill { border-left-color: #51cf66; }
   .kill img { width: 32px; height: 32px; }
   .kill .ship { font-weight: bold; }
-  .kill .val { margin-left: auto; color: #ffd43b; }
+  .kill .val { margin-left: auto;
+    font-family: var(--font-mono);  
+    color: #ffd43b; }
   @keyframes slide {
     from { opacity: 0; transform: translateX(-20px); }
     to   { opacity: 1; transform: translateX(0); }
