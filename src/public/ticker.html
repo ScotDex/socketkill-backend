@@ -17,11 +17,13 @@
     overflow: hidden;
   }
   #feed {
-    display: flex;
-    flex-direction: row;
-    gap: 6px;
-    padding: 12px;
-  }
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;        
+  gap: 6px;
+  padding: 12px;
+  overflow: hidden;        
+}
   .kill {
     display: flex;
     width: 180px;
@@ -55,17 +57,19 @@
     const feed = document.getElementById('feed');
     const socket = io('https://ws.socketkill.com', { transports: ['websocket'] });
 
-    socket.on('raw-kill', (k) => {
-      const row = document.createElement('div');
-      row.className = 'kill';
-      row.innerHTML = `
-        <img src="${k.shipImageUrl}" alt="">
-        <span class="ship">${k.ship}</span>
-        <span class="val">${humanizeIsk(k.val)} ISK</span>
-      `;
-      feed.prepend(row);
-      while (feed.children.length > MAX_ROWS) feed.lastChild.remove();
-    });
+   socket.on('raw-kill', (k) => {
+  const row = document.createElement('div');
+  row.className = 'kill';
+  row.innerHTML = `
+    <img src="${k.shipImageUrl}" alt="">
+    ${showShip ? `<span class="ship">${k.ship}</span>` : ''}
+    <span class="val">${humanizeIsk(k.val)} ISK</span>
+  `;
+  feed.prepend(row);
+  while (feed.children.length > MAX_ROWS) feed.lastChild.remove();
+});
+    const params = new URLSearchParams(location.search);
+const showShip = params.get('ship') !== 'false';   // default ON, ?ship=false hides it
 
     function humanizeIsk(v) {
   if (v >= 1e12) return (v / 1e12).toFixed(2) + 't';
