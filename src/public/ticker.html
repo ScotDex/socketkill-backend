@@ -1,85 +1,122 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-<meta charset="utf-8">
-<style>
-  :root {
-    --font-mono: 'Share Tech Mono', monospace;
-    --font-body: 'Exo 2', sans-serif;
-  }
-  body {
-    margin: 0;
-    background: transparent;
-    font-family: var(--font-body);  
-    overflow: hidden;
-  }
-  #feed {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;        
-  gap: 6px;
-  padding: 12px;
-  overflow: hidden;        
-}
-  .kill {
-    display: flex;
-    width: fit-content;
-    min-width: 120px;  
-    align-items: center;
-    gap: 10px;
-    padding: 8px 12px;
-    box-sizing: border-box;
-    background: rgba(0, 0, 0, 0.55);
-    border-left: 3px solid #888;
-    color: #e0e0e0;
-    font-size: 15px;
-    animation: slide 0.3s ease-out;
-  }
-  .kill.loss { border-left-color: #ff6b6b; }
-  .kill.kill { border-left-color: #51cf66; }
-  .kill img { width: 32px; height: 32px; }
-  .kill .ship { font-weight: bold; }
-  .kill .val { margin-left: auto;
-    font-family: var(--font-mono);  
-    color: #ffd43b; }
-  @keyframes slide {
-    from { opacity: 0; transform: translateX(-20px); }
-    to   { opacity: 1; transform: translateX(0); }
-  }
-</style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;700&family=Share+Tech+Mono&display=swap"
+    rel="stylesheet">
+  <meta charset="utf-8">
+  <style>
+    :root {
+      --font-mono: 'Share Tech Mono', monospace;
+      --font-body: 'Exo 2', sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: transparent;
+      font-family: var(--font-body);
+      overflow: hidden;
+    }
+
+    #feed {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      gap: 6px;
+      padding: 12px;
+      overflow: hidden;
+    }
+
+    .kill {
+      display: flex;
+      width: fit-content;
+      min-width: 120px;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      box-sizing: border-box;
+      background: rgba(0, 0, 0, 0.55);
+      border-left: 3px solid #888;
+      color: #e0e0e0;
+      font-size: 15px;
+      animation: slide 0.3s ease-out;
+    }
+
+    .kill.loss {
+      border-left-color: #ff6b6b;
+    }
+
+    .kill.kill {
+      border-left-color: #51cf66;
+    }
+
+    .kill img {
+      width: 32px;
+      height: 32px;
+    }
+
+    .kill .ship {
+      font-weight: bold;
+    }
+
+    .kill .val {
+      margin-left: auto;
+      font-family: var(--font-mono);
+      color: #ffd43b;
+    }
+
+    @keyframes slide {
+      from {
+        opacity: 0;
+        transform: translateX(-20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+  </style>
 </head>
+
 <body>
   <div id="feed"></div>
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <script>
+    const params = new URLSearchParams(location.search);
+    const showShip = params.get('ship') !== 'false';
+    const character = params.get('character');
     const MAX_ROWS = 12;
     const feed = document.getElementById('feed');
-    const socket = io('https://ws.socketkill.com', { transports: ['websocket'] });
+    const socket = io('https://ws.socketkill.com',
+    
+    
+    { query: {character},
+      transports: ['websocket'] });
 
-   socket.on('raw-kill', (k) => {
-  const row = document.createElement('div');
-  row.className = 'kill';
-  row.innerHTML = `
+    socket.on('char-kill', (k) => {
+      const row = document.createElement('div');
+      row.className = k.isLoss ? 'kill loss' : 'kill kill';
+      row.innerHTML = `
     <img src="${k.shipImageUrl}" alt="">
     ${showShip ? `<span class="ship">${k.ship}</span>` : ''}
     <span class="val">${humanizeIsk(k.val)} ISK</span>
   `;
-  feed.prepend(row);
-  while (feed.children.length > MAX_ROWS) feed.lastChild.remove();
-});
-    const params = new URLSearchParams(location.search);
-const showShip = params.get('ship') !== 'false';   // default ON, ?ship=false hides it
+      feed.prepend(row);
+      while (feed.children.length > MAX_ROWS) feed.lastChild.remove();
+    });
+    
 
     function humanizeIsk(v) {
-  if (v >= 1e12) return (v / 1e12).toFixed(2) + 't';
-  if (v >= 1e9)  return (v / 1e9).toFixed(2) + 'b';
-  if (v >= 1e6)  return (v / 1e6).toFixed(2) + 'm';
-  if (v >= 1e3)  return (v / 1e3).toFixed(2) + 'k';
-  return String(v);
-}
+      if (v >= 1e12) return (v / 1e12).toFixed(2) + 't';
+      if (v >= 1e9) return (v / 1e9).toFixed(2) + 'b';
+      if (v >= 1e6) return (v / 1e6).toFixed(2) + 'm';
+      if (v >= 1e3) return (v / 1e3).toFixed(2) + 'k';
+      return String(v);
+    }
   </script>
 </body>
+
 </html>

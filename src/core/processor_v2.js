@@ -101,6 +101,18 @@ module.exports = (esi, io, statsManager) => {
 
             io.emit("raw-kill", rawKillPayload);
 
+            const involvedCharIds = new Set();
+            if (killmail.victim?.character_id) involvedCharIds.add(killmail.victim.character_id);
+            for (const a of killmail.attackers || []) {
+                if (a.character_id) involvedCharIds.add(a.character_id);
+            }
+            for (const charId of involvedCharIds) {
+                io.to(`char:${charId}`).emit("char-kill", {
+                    ...rawKillPayload,
+                    isLoss: killmail.victim?.character_id === charId,
+                });
+            }
+
             // Gated filter for web hooks
 
             handleWhale(killmail, zkb, {

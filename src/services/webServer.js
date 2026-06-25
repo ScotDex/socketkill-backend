@@ -540,6 +540,14 @@ app.get('/api/plex-rate', (req, res) => {
   io.on("connection", (socket) => {
     console.log(`Client connected to Web Socket Stream: ${socket.id}`);
 
+    const charParam = socket.handshake.query.character;
+    if (charParam) {
+      const charId = parseInt(charParam);
+      if (Number.isFinite(charId) && charId > 0) {
+        socket.join(`char:${charId}`);
+        console.log(`[TICKER] ${socket.id} joined char:${charId}`);
+      }
+    }
     let lastReact = 0;
     const REACT_MIN_INTERVAL_MS = 500;
 
