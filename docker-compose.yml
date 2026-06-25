@@ -12,7 +12,7 @@ services:
     volumes:
       - "./data:/usr/src/app/data"
       #- "./ssl:/usr/src/app/ssl"
-      - "./public:/usr/src/app/public"
+      - "./src/public:/usr/src/app/src/public"
     deploy:
       resources:
         limits:
