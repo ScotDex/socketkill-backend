@@ -7,7 +7,7 @@ const FREDDO_PRICE_GBP = 0.35;
 const DOTLAN_BASE = 'https://evemaps.dotlan.net';
 
 
-
+// patch for removing static files
 const KILL_LINES = [
     "Bombeldo casts Fireball. Target deleted.",
     "I am a 20th level Wizard from the land of Faerûn",
