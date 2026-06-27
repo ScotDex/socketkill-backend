@@ -50,7 +50,7 @@ class StatsManager {
             this.totalScanned = stats.totalKills ?? this.totalScanned;
             console.log(`[STATS] Loaded ${this.totalScanned} kills from R2`);
         } else {
-            console.log(`[STATS] R2 unavailable, using disk: ${this.totalScanned} kills`);
+            console.log(`[STATS] No stats file found starting fresh`);
         }
 
         const financials = await r2.get('financials.json');
@@ -58,7 +58,7 @@ class StatsManager {
             this.totalIsk = financials.totalIsk ?? this.totalIsk;
             console.log(`[STATS] Loaded ISK from R2`);
         } else {
-            console.log(`[STATS] R2 unavailable, using disk ISK`);
+            console.log(`[STATS] No ISK file found, starting fresh`);
         }
     }
 }

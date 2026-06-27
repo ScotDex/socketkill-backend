@@ -15,12 +15,12 @@ class ESIClient {
             regions: new Map(),
             alliances: new Map()
         };
-        
-        this.staticShipData = {};  
+
+        this.staticShipData = {};
         this.staticSystemData = {};
-        this.staticRegionData = {}; // Added to prevent undefined errors
+        this.staticRegionData = {};
         this.systemNameMap = new Map();
-        
+
         this.isDirty = false;
 
         setInterval(() => {
@@ -36,7 +36,7 @@ class ESIClient {
         // Safely handle string vs int keys
         const strId = id.toString();
         const internalCache = this.cache[cacheCategory];
-        
+
         if (internalCache && internalCache.has(strId)) {
             return internalCache.get(strId);
         }
@@ -96,14 +96,14 @@ class ESIClient {
         try {
             const data = await fs.readFile(filePath, 'utf8');
             if (!data || data.trim() === "") throw new Error("Empty cache file");
-            
+
             const json = JSON.parse(data);
             this.cache.characters = new Map(Object.entries(json.characters || {}));
             this.cache.corporations = new Map(Object.entries(json.corporations || {}));
             this.cache.types = new Map(Object.entries(json.types || {}));
             this.cache.regions = new Map(Object.entries(json.regions || {}));
             this.cache.alliances = new Map(Object.entries(json.alliances || {}));
-            
+
             console.log(`[ESI] Persistent cache loaded. Types: ${this.cache.types.size}`);
         } catch (err) {
             console.warn("[ESI] No valid cache file found, starting fresh.");
@@ -157,24 +157,24 @@ class ESIClient {
 
     async getTypeName(id) {
         if (!id) return "Unknown";
-        
+
         // 1. Try static KV data first (Handles Ships)
         if (this.staticShipData && this.staticShipData[id]) {
             return this.staticShipData[id].name;
         }
-        
+
         // 2. Fallback to Memory Cache & ESI (Handles Modules, Drones, Ammo)
         return await this.fetchAndCache(id, 'types', '/universe/types');
     }
 
     async getRegionName(id) {
         if (!id) return "Unknown";
-        
+
         // 1. Try static KV data first
         if (this.staticRegionData && this.staticRegionData[id]) {
             return this.staticRegionData[id].name;
         }
-        
+
         // 2. Fallback to Memory Cache & ESI
         return await this.fetchAndCache(id, 'regions', '/universe/regions');
     }

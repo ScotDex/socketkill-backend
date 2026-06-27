@@ -1,10 +1,6 @@
 require("dotenv").config();
 const axios = require("../network/agent");
-const fs = require("fs");
-const { version } = require("os");
-const path = require("path");
-const DATA_PATH = path.join(process.cwd(), "data", "stats.json");
-const FIN_PATH = path.join(process.cwd(), "data", "financials.json");
+
 
 class utils {
   static getArticle(name) {
@@ -86,78 +82,6 @@ class utils {
     return parts.join(" ");
   }
 
-  // helpers.js
-
-  static loadPersistentStats() {
-    try {
-      const directory = path.dirname(DATA_PATH);
-
-      // Ensure directory exists
-      if (!fs.existsSync(directory)) {
-        console.log(`[STORAGE] Creating missing directory: ${directory}`);
-        fs.mkdirSync(directory, { recursive: true });
-      }
-
-      // Check if file exists
-      if (!fs.existsSync(DATA_PATH)) {
-        console.log("[STORAGE] No stats file found. Starting a new one.");
-        return 0;
-      }
-
-      // Read and parse
-      const rawData = fs.readFileSync(DATA_PATH, "utf8");
-
-      // Check if file is empty string
-      if (!rawData || rawData.trim() === "") {
-        console.log("[STORAGE] Stats file is empty. Initializing with 0.");
-        return 0;
-      }
-
-      const data = JSON.parse(rawData);
-      console.log(
-        `[STORAGE] Successfully loaded ${data.totalKills} kills from disk.`,
-      );
-      return Number(data.totalKills) || 0;
-    } catch (err) {
-      console.error("[STORAGE] Critical error loading stats:", err.message);
-      return 0;
-    }
-  }
-
-  static loadPersistentIsk() {
-    try {
-      if (!fs.existsSync(FIN_PATH)) return 0;
-      const rawData = fs.readFileSync(FIN_PATH, "utf8");
-      if (!rawData) return 0;
-
-      const data = JSON.parse(rawData);
-      return Number(data.totalIsk) || 0;
-    } catch (err) {
-      console.error("[STORAGE] Error loading ISK stats:", err.message);
-      return 0;
-    }
-  }
-
-  static async savePersistentIsk(total) {
-    try {
-      const payload = JSON.stringify({
-        totalIsk: total,
-        lastUpdate: new Date().toISOString(),
-      });
-      await fs.promises.writeFile(FIN_PATH, payload);
-    } catch (err) {
-      console.error("[STORAGE] Error saving ISK total:", err.message);
-    }
-  }
-
-  static async savePersistentStats(count) {
-    try {
-      const payload = JSON.stringify({ totalKills: Math.floor(count) });
-      await fs.promises.writeFile(DATA_PATH, payload);
-    } catch (err) {
-      console.error("[STORAGE] Error saving stats count:", err.message);
-    }
-  }
 }
 
 module.exports = utils;
