@@ -83,7 +83,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
   const publicPath = path.join(__dirname, "..", "..", "public");
 
   async function handleKillDetail(req, res) {
-    let date, id;
+    let date, id, recoveredHash = null;
 
     if (req.params.date) {
       date = req.params.date;
@@ -104,7 +104,28 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
           date = km.killmail_time.slice(0, 10);
           console.log(`[KILL API] Date recovered from cached killmail for ${id}: ${date}`);
         } else {
-          return res.status(404).json({ Error: 'Kill not found in last 30 days or cache. Check Zkill URL' });
+          try {
+            const zkillRes = await axios.get(
+              `https://zkillboard.com/api/killID/${id}/`,
+              { timeout: 3000, headers: { 'User-Agent': 'Socket.Kill / Dexomus Viliana' } }
+            );
+            const zkbHash = zkillRes.data?.[0]?.zkb?.hash;
+            if (!zkbHash) {
+              return res.status(404).json({ Error: 'Kill not found in last 30 days or cache. Check Zkill URL' });
+            }
+
+            const km2 = await killmailCache.get(id, zkbHash);
+            if (!km2?.killmail_time) {
+              return res.status(404).json({ Error: 'Kill hash sourced but killmail unavailable.' });
+            }
+
+            date = km2.killmail_time.slice(0, 10);
+            recoveredHash = zkbHash;
+            console.log(`[KILL API] Failover recovered ${id} via zkill, date=${date}`);
+          } catch (err) {
+            console.warn(`[KILL API] Failover failed for ${id}: ${err.message}`);
+            return res.status(404).json({ Error: 'Kill not found in last 30 days or cache. Check Zkill URL' });
+          }
         }
       }
     }
@@ -133,7 +154,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     console.log(`[KILL API] kill=${id} date=${date} ip=${ip} ua="${ua}" ref="${ref}"`);
 
     try {
-      const hash = await hashCache.getHashFromShard(date, id);
+      const hash = recoveredHash || await hashCache.getHashFromShard(date, id);
       if (!hash) {
         return res.status(404).json({ error: `Kill ${id} not found in archive - CTRL + F5 incase not cached yet - for ${date}.` });
       }
@@ -366,12 +387,12 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     });
   });
 
-app.get('/api/plex-rate', (req, res) => {
-  const rate = plexRate.get();
-  if (!rate) return res.status(503).json({ error: 'PLEX rate unavailable' });
-  res.set('Cache-Control', 'public, max-age=3600');
-  res.json({ gbpPerIsk: rate.gbpPerIsk });
-});
+  app.get('/api/plex-rate', (req, res) => {
+    const rate = plexRate.get();
+    if (!rate) return res.status(503).json({ error: 'PLEX rate unavailable' });
+    res.set('Cache-Control', 'public, max-age=3600');
+    res.json({ gbpPerIsk: rate.gbpPerIsk });
+  });
 
   app.get('/api/top10', async (req, res) => {
     try {
@@ -573,11 +594,11 @@ app.get('/api/plex-rate', (req, res) => {
     });
   });
 
-plexRate.refresh().catch((e) => console.error('[PLEX] init failed:', e.message));
-setInterval(
-  () => plexRate.refresh().catch((e) => console.error('[PLEX] refresh failed:', e.message)),
-  12 * 60 * 60 * 1000
-);
+  plexRate.refresh().catch((e) => console.error('[PLEX] init failed:', e.message));
+  setInterval(
+    () => plexRate.refresh().catch((e) => console.error('[PLEX] refresh failed:', e.message)),
+    12 * 60 * 60 * 1000
+  );
   server
     .listen(PORT, () => {
       console.log(`Web Module Loaded on ${PORT}`);
