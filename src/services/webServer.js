@@ -85,11 +85,18 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
   async function handleKillDetail(req, res) {
     let date, id, recoveredHash = null;
 
+    id = parseInt(req.params.killID);
+    if (!Number.isFinite(id) || id <= 0) {
+      return res.status(400).json({ error: 'Invalid killID.' });
+    }
+
+    const isBot = BOT_UA.test(req.get('User-Agent') || '');
+
     if (req.params.date) {
       date = req.params.date;
-      id = parseInt(req.params.killID);
+
     } else {
-      id = parseInt(req.params.killID);
+
       const now = new Date();
       for (let i = 0; i < 30; i++) {
         const d = new Date(now.getTime() - i * 86400000).toISOString().slice(0, 10);
@@ -104,6 +111,11 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
           date = km.killmail_time.slice(0, 10);
           console.log(`[KILL API] Date recovered from cached killmail for ${id}: ${date}`);
         } else {
+
+          if (isBot) {
+            res.set('Cache-Control', 'public, max-age=300');
+            return res.status(503).json({ error: 'Killmail not yet cached. Retry shortly.' });
+          }
           try {
             const zkillRes = await axios.get(
               `https://zkillboard.com/api/killID/${id}/`,
@@ -130,10 +142,6 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       }
     }
 
-    if (!Number.isFinite(id) || id <= 0) {
-      return res.status(400).json({ error: 'Invalid killID.' });
-    }
-
     const isToday = date === new Date().toISOString().slice(0, 10);
     if (!isToday) {
       const cached = await r2.get(`kill-responses/${date}/${id}.json`).catch(() => null);
@@ -145,10 +153,6 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       }
     }
 
-    if (BOT_UA.test(req.get('User-Agent') || '')) {
-      res.set('Cache-Control', 'public, max-age=300');
-      return res.status(503).json({ error: 'Killmail not yet cached. Retry shortly.' });
-    }
 
     const { ip, ua, ref } = requestMeta(req);
     console.log(`[KILL API] kill=${id} date=${date} ip=${ip} ua="${ua}" ref="${ref}"`);
