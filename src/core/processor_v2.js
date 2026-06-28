@@ -3,6 +3,7 @@ const handleWhale = require("../services/whaleModule");
 const { resolveKillmail, resolveFinalBlowCorp, resolveTriggerAttacker, resolveSpace, topByDamage } = require('./processorHelpers');
 const { TRIGLAVIAN_SYSTEMS } = require('../core/shipIDs');
 const hashCache = require('../state/hashCache')
+const { calculateKillValue } = require('../services/priceService');
 
 module.exports = (esi, io, statsManager) => {
     async function processPackage(packageData) {
@@ -11,7 +12,7 @@ module.exports = (esi, io, statsManager) => {
 
         try {
             const killmail = await resolveKillmail(isR2, esiData, zkb);
-            const rawValue = Number(zkb.totalValue) || 0
+            const rawValue = calculateKillValue(killmail);
 
 
 
@@ -29,25 +30,25 @@ module.exports = (esi, io, statsManager) => {
             ]);
             const finalVictimName = (charName == "Unknown" || !charName) ? corpName : charName;
             const finalBlow = killmail.attackers?.find(a => a.final_blow) || null;
-             hashCache.set(killID, {
+            hashCache.set(killID, {
                 hash,
                 shipID: killmail.victim.ship_type_id,
                 shipGroupID,
                 systemID: killmail.solar_system_id,
                 regionID: systemDetails?.region_id ?? null,
                 space: resolveSpace(killmail.solar_system_id, systemDetails?.security_status),
-                totalValue: Number(zkb?.totalValue) || 0,
+                totalValue: rawValue,
                 attackerCount: killmail.attackers?.length || 0,
                 victimCorpID: killmail.victim.corporation_id ?? null,
                 victimAllianceID: killmail.victim.alliance_id ?? null,
                 time: killmail.killmail_time,
                 victimName: finalVictimName,
                 corpName,
-                finalBlowWeaponID:   finalBlow?.weapon_type_id ?? null,
-                finalBlowShipID:     finalBlow?.ship_type_id    ?? null,
-                finalBlowCorpID:     finalBlow?.corporation_id  ?? null,
-                finalBlowAllianceID: finalBlow?.alliance_id     ?? null,
-                finalBlowIsNpc:      !finalBlow?.character_id,
+                finalBlowWeaponID: finalBlow?.weapon_type_id ?? null,
+                finalBlowShipID: finalBlow?.ship_type_id ?? null,
+                finalBlowCorpID: finalBlow?.corporation_id ?? null,
+                finalBlowAllianceID: finalBlow?.alliance_id ?? null,
+                finalBlowIsNpc: !finalBlow?.character_id,
             });
             const weaponTypeIDs = [... new Set(
                 (killmail.attackers || [])
@@ -55,7 +56,7 @@ module.exports = (esi, io, statsManager) => {
                     .map(a => a.weapon_type_id)
             )];
             const attackerCount = killmail.attackers?.length || 0;
-            
+
             statsManager.increment(rawValue);
 
             const systemName = systemDetails?.name || "Unknown System";
@@ -95,8 +96,8 @@ module.exports = (esi, io, statsManager) => {
                 space: resolveSpace(killmail.solar_system_id, systemDetails?.security_status),
                 weaponTypeIDs,
                 corporationId: killmail.victim.corporation_id ?? null,
-                allianceId:    killmail.victim.alliance_id ?? null,
-                characterId:   killmail.victim?.character_id ?? null,
+                allianceId: killmail.victim.alliance_id ?? null,
+                characterId: killmail.victim?.character_id ?? null,
             };
 
             io.emit("raw-kill", rawKillPayload);
