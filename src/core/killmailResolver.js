@@ -1,7 +1,7 @@
 const axios = require('../network/agent');
 const helpers = require('./helpers');
 const { resolveItems } = require('./itemResolver');
-const { calculateKillValue } = require('../services/priceService');
+const { calculateKillValue, calculateBreakdown } = require('../services/priceService');
 
 async function fetchZkbMeta(killID) {
   try {
@@ -66,16 +66,16 @@ async function resolveKillDetail(killmail, hash, id, esi) {
       : 0,
     finalBlow: !!a.final_blow
   }));
-  const totalIsk = zkb?.totalValue || calculateKillValue(killmail);
+  const value = calculateBreakdown(items, victim.ship_type_id);
   return {
     killID: id,
     killmailHash: hash,
     killmailTime: killmail.killmail_time,
-    rawValue: totalIsk,
-    totalValue: totalIsk ? helpers.formatIsk(totalIsk) : null,
-    droppedValue: zkb?.droppedValue ? helpers.formatIsk(zkb.droppedValue) : null,
-    destroyedValue: zkb?.destroyedValue ? helpers.formatIsk(zkb.destroyedValue) : null,
-    fittedValue: zkb?.fittedValue ? helpers.formatIsk(zkb.fittedValue) : null,
+    rawValue: value.totalValue,
+    totalValue: value.totalValue ? helpers.formatIsk(value.totalValue) : null,
+    droppedValue: value.droppedValue ? helpers.formatIsk(value.droppedValue) : null,
+    destroyedValue: value.destroyedValue ? helpers.formatIsk(value.destroyedValue) : null,
+    fittedValue: value.fittedValue ? helpers.formatIsk(value.fittedValue) : null,
     items,
     victim: {
       name: (victimName === "Unknown" || !victimName) ? victimCorp : victimName,

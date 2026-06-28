@@ -6,7 +6,7 @@ const ESI_BASE = 'https://esi.evetech.net/latest';
 let priceMap = new Map();
 
 function buildPriceMap(rawData) {
-    return new Map(rawData.map(item =>[item.type_id, {
+    return new Map(rawData.map(item => [item.type_id, {
         average_price: item.average_price,
         adjusted_price: item.adjusted_price,
     }]));
@@ -71,4 +71,34 @@ function calculateKillValue(esiData) {
     return shipValue + itemValue;
 }
 
-module.exports = { syncMarketPrices, loadMarketPrices, getPrice, calculateKillValue };
+const FITTED_GROUPS = ['high', 'mid', 'low', 'rig', 'subsystem'];
+
+function calculateBreakdown(resolvedItems, shipTypeId) {
+    const hull = getPrice(shipTypeId) || 0;
+
+    let dropped = 0;
+    let destroyed = 0;
+    let fitted = 0;
+
+    const groups = resolvedItems?.groups || {};
+    for (const [groupName, list] of Object.entries(groups)) {
+        const isFitted = FITTED_GROUPS.includes(groupName);
+        for (const it of list) {
+            const unit = it.value || 0;
+            dropped += unit * (it.dropped || 0);
+            destroyed += unit * (it.destroyed || 0);
+            if (isFitted) fitted += unit * (it.quantity || 0);
+        }
+    }
+
+    destroyed += hull;
+
+    return {
+        droppedValue: dropped,
+        destroyedValue: destroyed,
+        fittedValue: fitted,
+        totalValue: dropped + destroyed,            // self-verifying
+    };
+}
+
+module.exports = { syncMarketPrices, loadMarketPrices, getPrice, calculateKillValue, calculateBreakdown };
