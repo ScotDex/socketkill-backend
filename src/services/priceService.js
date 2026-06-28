@@ -1,7 +1,7 @@
 const axios = require('../network/agent');
 const r2 = require('../network/r2Writer');
 
-const ESI_BASE = 'https://esi.evetech.net/latest';
+const ESI_BASE = 'https://esi.evetech.net';
 
 let priceMap = new Map();
 
@@ -47,9 +47,9 @@ async function loadMarketPrices() {
 }
 
 function getPrice(typeId) {
-    return priceMap.get(typeId)?.adjusted_price
-        || priceMap.get(typeId)?.average_price
-        || 0;
+    const entry = priceMap.get(typeId);
+    if (!entry) return 0;
+    return entry.average_price ?? entry.adjusted_price ?? 0;
 }
 
 function calculateKillValue(esiData) {
