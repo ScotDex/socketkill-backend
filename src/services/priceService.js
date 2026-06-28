@@ -5,6 +5,11 @@ const ESI_BASE = 'https://esi.evetech.net';
 
 let priceMap = new Map();
 
+const MANUAL_PRICES = {
+    670: 10000,    // Capsule
+    33328: 10000,  // Capsule - Genolution 'Auroral' 197
+};
+
 function buildPriceMap(rawData) {
     return new Map(rawData.map(item => [item.type_id, {
         average_price: item.average_price,
@@ -47,6 +52,7 @@ async function loadMarketPrices() {
 }
 
 function getPrice(typeId) {
+    if (MANUAL_PRICES[typeId] != null) return MANUAL_PRICES[typeId];
     const entry = priceMap.get(typeId);
     if (!entry) return 0;
     return entry.average_price ?? entry.adjusted_price ?? 0;
