@@ -71,7 +71,7 @@ function calculateKillValue(esiData) {
     return shipValue + itemValue;
 }
 
-const FITTED_GROUPS = ['high', 'mid', 'low', 'rig', 'subsystem'];
+const FITTED_GROUPS = ['high', 'mid', 'low', 'rig', 'subsystem', 'drone', 'fighter'];
 
 function calculateBreakdown(resolvedItems, shipTypeId) {
     const hull = getPrice(shipTypeId) || 0;
@@ -97,7 +97,7 @@ function calculateBreakdown(resolvedItems, shipTypeId) {
         droppedValue: dropped,
         destroyedValue: destroyed,
         fittedValue: fitted,
-        totalValue: dropped + destroyed,            // self-verifying
+        totalValue: dropped + destroyed,
     };
 }
 
