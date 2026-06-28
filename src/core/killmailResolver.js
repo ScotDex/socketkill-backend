@@ -1,6 +1,7 @@
 const axios = require('../network/agent');
 const helpers = require('./helpers');
 const { resolveItems } = require('./itemResolver');
+const { calculateKillValue } = require('../services/priceService');
 
 async function fetchZkbMeta(killID) {
   try {
@@ -21,7 +22,7 @@ async function resolveKillDetail(killmail, hash, id, esi) {
   const finalBlow = killmail.attackers.find(a => a.final_blow) || killmail.attackers[0];
   const systemDetails = esi.getSystemDetails(killmail.solar_system_id);
 
-const [
+  const [
     victimName, victimCorp, victimAlliance, victimShip,
     finalBlowName, finalBlowCorp, finalBlowShip,
     regionName, zkb, items,
@@ -65,13 +66,13 @@ const [
       : 0,
     finalBlow: !!a.final_blow
   }));
-
+  const totalIsk = zkb?.totalValue || calculateKillValue(killmail);
   return {
     killID: id,
     killmailHash: hash,
     killmailTime: killmail.killmail_time,
-    rawValue: zkb?.totalValue || 0,
-    totalValue: zkb?.totalValue ? helpers.formatIsk(zkb.totalValue) : null,
+    rawValue: totalIsk,
+    totalValue: totalIsk ? helpers.formatIsk(totalIsk) : null,
     droppedValue: zkb?.droppedValue ? helpers.formatIsk(zkb.droppedValue) : null,
     destroyedValue: zkb?.destroyedValue ? helpers.formatIsk(zkb.destroyedValue) : null,
     fittedValue: zkb?.fittedValue ? helpers.formatIsk(zkb.fittedValue) : null,
