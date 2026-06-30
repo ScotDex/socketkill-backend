@@ -51,6 +51,7 @@ module.exports = (esi, io, statsManager) => {
                 finalBlowShipID: finalBlow?.ship_type_id ?? null,
                 finalBlowCorpID: finalBlow?.corporation_id ?? null,
                 finalBlowAllianceID: finalBlow?.alliance_id ?? null,
+                allianceTicker: allianceTicker,
                 finalBlowIsNpc: !finalBlow?.character_id,
             });
             const weaponTypeIDs = [... new Set(
