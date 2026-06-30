@@ -13,7 +13,8 @@ class ESIClient {
             types: new Map(),
             systems: new Map(),
             regions: new Map(),
-            alliances: new Map()
+            alliances: new Map(),
+            allianceInfo: new Map()
         };
 
         this.staticShipData = {};
@@ -63,7 +64,8 @@ class ESIClient {
                 corporations: Object.fromEntries(this.cache.corporations),
                 types: Object.fromEntries(this.cache.types),
                 regions: Object.fromEntries(this.cache.regions),
-                alliances: Object.fromEntries(this.cache.alliances)
+                alliances: Object.fromEntries(this.cache.alliances),
+                allianceInfo: Object.fromEntries(this.cache.allianceInfo),
             };
             const json = JSON.stringify(persistData, null, 2);
             await fs.writeFile(filePath, json);
@@ -103,6 +105,7 @@ class ESIClient {
             this.cache.types = new Map(Object.entries(json.types || {}));
             this.cache.regions = new Map(Object.entries(json.regions || {}));
             this.cache.alliances = new Map(Object.entries(json.alliances || {}));
+            this.cache.allianceInfo = new Map(Object.entries(json.allianceInfo || {}));
 
             console.log(`[ESI] Persistent cache loaded. Types: ${this.cache.types.size}`);
         } catch (err) {
@@ -194,6 +197,26 @@ class ESIClient {
     async getAllianceName(id) {
         return this.fetchAndCache(id, 'alliances', '/alliances');
     }
+
+    async getAllianceInfo(id) {
+    if (!id || id === 0) return null;
+    const strId = id.toString();
+
+    if (this.cache.allianceInfo.has(strId)) {
+        return this.cache.allianceInfo.get(strId);
+    }
+
+    try {
+        const response = await this.api.get(`${this.baseURL}/alliances/${id}/`);
+        const info = { name: response.data.name, ticker: response.data.ticker };
+        this.cache.allianceInfo.set(strId, info);
+        this.isDirty = true;
+        return info;
+    } catch (error) {
+        console.error(`[ESI Error] allianceInfo ID: ${id} - ${error.message}`);
+        return null;
+    }
+}
 
     // --- Utility & Search ---
 

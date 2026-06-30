@@ -23,13 +23,16 @@ module.exports = (esi, io, statsManager) => {
                 esi.getCorporationName(killmail.victim?.corporation_id),
                 resolveFinalBlowCorp(killmail, esi),
                 killmail.victim?.alliance_id
-                    ? esi.getAllianceName(killmail.victim.alliance_id)
+                    ? esi.getAllianceInfo(killmail.victim.alliance_id)
                     : Promise.resolve(null),
                 esi.getShipGroupID(killmail.victim.ship_type_id),
 
             ]);
             const finalVictimName = (charName == "Unknown" || !charName) ? corpName : charName;
             const finalBlow = killmail.attackers?.find(a => a.final_blow) || null;
+            const allianceName   = allianceInfo?.name   ?? null;
+            const allianceTicker = allianceInfo?.ticker ?? null;
+            
             hashCache.set(killID, {
                 hash,
                 shipID: killmail.victim.ship_type_id,
@@ -98,6 +101,7 @@ module.exports = (esi, io, statsManager) => {
                 corporationId: killmail.victim.corporation_id ?? null,
                 allianceId: killmail.victim.alliance_id ?? null,
                 characterId: killmail.victim?.character_id ?? null,
+                allianceTicker: allianceTicker,
             };
 
             io.emit("raw-kill", rawKillPayload);
