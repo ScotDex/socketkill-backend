@@ -16,7 +16,7 @@ module.exports = (esi, io, statsManager) => {
 
 
 
-            const [systemDetails, shipName, charName, corpName, finalBlowCorp, allianceName, shipGroupID] = await Promise.all([
+            const [systemDetails, shipName, charName, corpName, finalBlowCorp, allianceInfo, shipGroupID] = await Promise.all([
                 esi.getSystemDetails(killmail.solar_system_id),
                 esi.getTypeName(killmail.victim.ship_type_id),
                 esi.getCharacterName(killmail.victim?.character_id),
