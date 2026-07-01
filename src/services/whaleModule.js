@@ -130,7 +130,7 @@ async function postBombeldo(kill, zkb, names, isDeath) {
     await Promise.all(list.map(async (url) => {
         await webhookSpacer();
         const finalUrl = payload.flags === 32768 ? `${url}?with_components=true` : url;
-        return axios.post(url, payload).catch((err) =>
+        return axios.post(finalUrl, payload).catch((err) =>
             console.error(`[BOMBELDO] webhook failed: ${err.message}`));
             console.error(`[BOMBELDO] detail:`, JSON.stringify(err.response?.data));
     }));
