@@ -7,7 +7,8 @@ const { AT_SHIP_IDS, OFFICER_SHIP_IDS, RORQUAL_SHIP_IDS } = require('../core/shi
 const { TITAN_SHIP_IDS, SUPER_SHIP_IDS, TRIGLAVIAN_SYSTEMS } = require('../core/relayShipIDs');
 const r2 = require("../network/r2Writer");
 const NewsEmbedFactory = require("./genericFactory");
-const bombeldoFactory = require('./bombeldoFactory');
+// const bombeldoFactory = require('./bombeldoFactory');
+const bombeldoFactory = require('./bombeldoFactoryV2');
 
 let channels = {};
 
@@ -128,6 +129,7 @@ async function postBombeldo(kill, zkb, names, isDeath) {
     const payload = bombeldoFactory.createEmbed(kill, zkb, names, isDeath);
     await Promise.all(list.map(async (url) => {
         await webhookSpacer();
+        const finalUrl = payload.flags === 32768 ? `${url}?with_components=true` : url;
         return axios.post(url, payload).catch((err) =>
             console.error(`[BOMBELDO] webhook failed: ${err.message}`));
     }));
