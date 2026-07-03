@@ -7,7 +7,6 @@ const { AT_SHIP_IDS, OFFICER_SHIP_IDS, RORQUAL_SHIP_IDS } = require('../core/shi
 const { TITAN_SHIP_IDS, SUPER_SHIP_IDS, TRIGLAVIAN_SYSTEMS } = require('../core/relayShipIDs');
 const r2 = require("../network/r2Writer");
 const NewsEmbedFactory = require("./genericFactory");
-// const bombeldoFactory = require('./bombeldoFactory');
 const bombeldoFactory = require('./bombeldoFactoryV2');
 
 let channels = {};
