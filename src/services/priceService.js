@@ -68,7 +68,7 @@ function calculateKillValue(esiData) {
     const shipValue = getPrice(esiData.victim?.ship_type_id);
 
     const itemValue = (esiData.victim?.items || []).reduce((total, item) => {
-        const price = getPrice(item.item_type_id);
+        const price = item.singleton === 2 ? 0 : getPrice(item.item_type_id);
         const dropped = (item.quantity_dropped || 0) * price;
         const destroyed = (item.quantity_destroyed || 0) * price;
         return total + dropped + destroyed;

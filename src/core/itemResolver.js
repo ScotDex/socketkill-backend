@@ -38,7 +38,9 @@ async function resolveItems(rawItems, esi) {
     const merged = new Map();
     for (const item of flat) {
         const group = groupForFlag(item.flag);
-        const key = `${group}:${item.item_type_id}`;
+        const isCopy = item.singleton === 2;
+        const unitPrice = isCopy ? 0 : getPrice(item.item_type_id);
+        const key = `${group}:${item.item_type_id}:${isCopy ? 'c' : 'o'}`;
         const existing = merged.get(key);
         const dropped = item.quantity_dropped || 0;
         const destroyed = item.quantity_destroyed || 0;
@@ -47,6 +49,7 @@ async function resolveItems(rawItems, esi) {
             existing.dropped += dropped;
             existing.destroyed += destroyed;
             existing.quantity += dropped + destroyed;
+            existing.formattedValue = helpers.formatIsk(existing.value * existing.quantity);
         } else {
             merged.set(key, {
                 name: nameMap.get(item.item_type_id) || 'Unknown',
