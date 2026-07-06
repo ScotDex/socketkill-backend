@@ -153,6 +153,11 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       }
     }
 
+    if (isBot) {
+       res.set('Cache-Control', 'public, max-age=300');
+        return res.status(503).json({ error: 'Killmail not yet cached. Retry shortly.' });
+    }
+
 
     const { ip, ua, ref } = requestMeta(req);
     console.log(`[KILL API] kill=${id} date=${date} ip=${ip} ua="${ua}" ref="${ref}"`);
@@ -295,11 +300,10 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
   });
 
   const SITE = 'https://socketkill.com';
-  const SITEMAP_EPOCH = '2026-05-24';
 
   app.get('/sitemaps/kills-index.xml', (req, res) => {
     const days = [];
-    const start = new Date(SITEMAP_EPOCH);
+    const start = new Date(Date.now() - 7 * 86400000);
     for (let d = new Date(); d >= start; d.setDate(d.getDate() - 1)) {
       days.push(d.toISOString().slice(0, 10));
     }
