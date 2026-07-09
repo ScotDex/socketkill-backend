@@ -26,12 +26,6 @@ function react({ killmailId, emoteKey, ip }) {
   if (!ALLOWED_EMOTES.has(emoteKey)) return null;
 
   const id = String(killmailId);
-  const dedupKey = `${ip}:${id}:${emoteKey}`;
-  if (dedup.has(dedupKey)) return null;
-
-  dedup.add(dedupKey);
-  if (dedup.size > DEDUP_MAX) dedup.delete(dedup.values().next().value);
-
   let emotes = reactions.get(id);
   if (!emotes) { emotes = {}; reactions.set(id, emotes); }
   emotes[emoteKey] = (emotes[emoteKey] || 0) + 1;
