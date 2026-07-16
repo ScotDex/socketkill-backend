@@ -349,6 +349,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     const png = await renderOgCard(payload);
     res.set('Content-Type', 'image/png');
     res.set('Cache-Control', IMMUTABLE);
+    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
     res.send(png);
 
   } catch (err) {
