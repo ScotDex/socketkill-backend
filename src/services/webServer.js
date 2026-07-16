@@ -20,6 +20,7 @@ const { clientIp, requestMeta, setCacheHeader, IMMUTABLE } = require('../core/re
 const r2 = require('../network/r2Writer');
 const reactionsManager = require('../services/reactionsManager');
 const plexRate = require('../services/plexRate');
+const { renderOgCard } = require('../services/ogCard');
 
 
 const resolveLimit = pLimit(4);
@@ -50,6 +51,15 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     },
     message: { error: 'Too many searches — slow down.' },
   });
+
+  const ogLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => ipKeyGenerator(clientIp(req)),
+  message: { error: 'Too many card renders — slow down.' },
+});
 
   app.use(
     helmet({
@@ -282,22 +292,72 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     message: { error: 'Too many reactions — slow down.' },
   });
 
-  app.post('/api/reactions/:killId', reactLimiter, (req, res) => {
-    const id = parseInt(req.params.killId);
-    if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: 'Invalid killId' });
-
-    const emoteKey = req.body?.emoteKey;
-    if (typeof emoteKey !== 'string') return res.status(400).json({ error: 'Missing emoteKey' });
-
-    const result = reactionsManager.react({ killmailId: id, emoteKey, ip: clientIp(req) });
-
+  app.get('/og/:killID', ogLimiter, async (req, res) => {
+  // parseInt stops at the first non-digit, so "123456.png" → 123456
+  const id = parseInt(req.params.killID);
+  if (!Number.isFinite(id) || id <= 0) {
     res.set('Cache-Control', 'no-store');
-    res.json({
-      killmailId: String(id),
-      reactions: reactionsManager.get(id),
-      accepted: result !== null,
-    });
-  });
+    return res.status(400).json({ error: 'Invalid killID' });
+  }
+
+  try {
+    // 1. Date discovery — shard walk, then canonical killmail fallback. No zkill failover.
+    let date = null;
+    const now = new Date();
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(now.getTime() - i * 86400000).toISOString().slice(0, 10);
+      if (await hashCache.getHashFromShard(d, id)) { date = d; break; }
+    }
+    if (!date) {
+      const km = await r2.get(`killmails/${id}.json`).catch(() => null);
+      if (km?.killmail_time) date = km.killmail_time.slice(0, 10);
+    }
+    if (!date) {
+      res.set('Cache-Control', 'no-store');
+      return res.status(404).json({ error: 'Kill not found' });
+    }
+
+    const isToday = date === new Date().toISOString().slice(0, 10);
+
+    // 2. Payload — cached response first (non-today), else cheap summary resolution
+    let payload = null;
+    if (!isToday) {
+      payload = await r2.get(`kill-responses/${date}/${id}.json`).catch(() => null);
+    }
+    if (!payload) {
+      const hash = await hashCache.getHashFromShard(date, id);
+      if (!hash) {
+        res.set('Cache-Control', 'no-store');
+        return res.status(404).json({ error: 'Kill not found' });
+      }
+      const killmail = await killmailCache.get(id, hash);
+      const s = await killmailResolver.resolveKillSummary(killmail, id, esi);
+      payload = {
+        victim: s.victim,
+        totalValue: s.formattedValue,
+        rawValue: s.rawValue,
+        system: s.system,
+      };
+    }
+
+    // 3. Refuse to immortalize an incomplete card
+    if (!payload?.victim?.shipTypeID || !payload?.victim?.name) {
+      res.set('Cache-Control', 'public, max-age=300');
+      return res.status(503).json({ error: 'Kill still resolving. Retry shortly.' });
+    }
+
+    const png = await renderOgCard(payload);
+    res.set('Content-Type', 'image/png');
+    res.set('Cache-Control', IMMUTABLE);
+    res.send(png);
+
+  } catch (err) {
+    console.error(`[OG CARD] ${id} failed: ${err.message}`);
+    res.set('Cache-Control', 'no-store');
+    res.status(500).json({ error: 'Card render failed' });
+  }
+});
+
 
   const SITE = 'https://socketkill.com';
 
