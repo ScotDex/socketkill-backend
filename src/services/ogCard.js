@@ -2,21 +2,18 @@ const { Resvg } = require('@resvg/resvg-js');
 const fs = require('fs');
 const path = require('path');
 
-// satori ships ESM-only; Node 25's require(esm) exposes it under .default
 const satoriModule = require('satori');
 const satori = satoriModule.default || satoriModule;
-
-// Fonts: repo-root /fonts, resolved from this file's location — NOT cwd-relative
-const exo  = fs.readFileSync(path.join(__dirname, '..', '..', 'fonts', 'Exo2-SemiBold.ttf'));
+const exo = fs.readFileSync(path.join(__dirname, '..', '..', 'fonts', 'Exo2-SemiBold.ttf'));
 const mono = fs.readFileSync(path.join(__dirname, '..', '..', 'fonts', 'ShareTechMono-Regular.ttf'));
 
 const C = {
-  green:   '#3fb950',
+  green: '#3fb950',
   billion: '#ff7b72',
-  whale:   '#f2cc60',
-  blue:    '#58a6ff',
-  faint:   'rgba(255,255,255,0.55)',
-  bg:      '#0a0b0e',
+  whale: '#f2cc60',
+  blue: '#58a6ff',
+  faint: 'rgba(255,255,255,0.55)',
+  bg: '#0a0b0e',
 };
 
 function classifySecurity(system) {
@@ -26,7 +23,7 @@ function classifySecurity(system) {
   const s = system.security;
   const num = s.toFixed(1);
   if (s >= 0.5) return { word: 'HIGHSEC', num, color: C.green };
-  if (s > 0.0)  return { word: 'LOWSEC', num, color: C.whale };
+  if (s > 0.0) return { word: 'LOWSEC', num, color: C.whale };
   return { word: 'NULLSEC', num, color: C.billion };
 }
 
@@ -40,16 +37,12 @@ function parseIsk(v) {
   return n * mult;
 }
 
-/**
- * kill: { victim: {name, ship, shipTypeID}, totalValue, rawValue?, system: {id, name, region, regionID, security} }
- * Both the kill-responses payload and an adapted resolveKillSummary satisfy this.
- */
 async function renderOgCard(kill) {
   const totalIsk = kill.rawValue ?? parseIsk(kill.totalValue);
   const tierColor =
     totalIsk >= 10_000_000_000 ? C.whale
-    : totalIsk >= 1_000_000_000 ? C.billion
-    : C.green;
+      : totalIsk >= 1_000_000_000 ? C.billion
+        : C.green;
   const sec = classifySecurity(kill.system);
 
   const svg = await satori(
@@ -101,7 +94,7 @@ async function renderOgCard(kill) {
                       {
                         type: 'div',
                         props: {
-                          style: { display: 'flex', fontFamily: 'Mono', fontSize: 24 },
+                          style: { display: 'flex', fontFamily: 'Mono', fontSize: 28 },
                           children: [
                             { type: 'div', props: { style: { color: sec.num ? '#ffffff' : sec.color }, children: sec.word } },
                             ...(sec.num ? [{ type: 'div', props: { style: { color: sec.color, marginLeft: 12 }, children: sec.num } }] : []),
@@ -109,7 +102,7 @@ async function renderOgCard(kill) {
                           ],
                         },
                       },
-                      { type: 'div', props: { style: { fontFamily: 'Mono', fontSize: 24, letterSpacing: 3, color: C.green }, children: 'SOCKETKILL.COM' } },
+                      { type: 'div', props: { style: { fontFamily: 'Mono', fontSize: 28, letterSpacing: 4, color: C.green }, children: 'SOCKETKILL.COM' } },
                     ],
                   },
                 },
