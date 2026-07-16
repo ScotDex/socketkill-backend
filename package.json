@@ -2,6 +2,7 @@
   "dependencies": {
     "@atproto/api": "^0.20.25",
     "@axiomhq/js": "^1.8.0",
+    "@resvg/resvg-js": "^2.6.2",
     "axios": "^1.18.1",
     "cors": "^2.8.5",
     "dotenv": "^17.4.2",
@@ -10,6 +11,7 @@
     "helmet": "^8.2.0",
     "io": "^1.5.7",
     "p-limit": "^3.1.0",
+    "satori": "^0.28.0",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
     "twitter-api-v2": "^1.28.0"
