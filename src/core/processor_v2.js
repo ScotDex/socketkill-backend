@@ -90,7 +90,7 @@ module.exports = (esi, io, statsManager) => {
                 locationLabel: `System: ${systemName} | Region: ${regionName} | Final Blow: ${finalBlowCorp}`,
                 zkillUrl: helpers.getSocketKillLink(killID),
                 victimName: finalVictimName,
-                shipImageUrl: `https://api.socketkill.com/render/ship/${killmail.victim.ship_type_id}`,
+                shipImageUrl: `https://images.evetech.net/types/${killmail.victim.ship_type_id}/render`,
                 corpImageUrl: `https://api.socketkill.com/render/corp/${killmail.victim.corporation_id}`,
                 allianceImageUrl: `https://api.socketkill.com/render/alliance/${killmail.victim.alliance_id}`,
                 finalBlowCorp: finalBlowCorp,
