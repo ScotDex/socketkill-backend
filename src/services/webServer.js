@@ -75,11 +75,9 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       origin: [
         "https://socketkill.com",
         "https://pf.darkventure.space",
-        "https://eveapex.com",
         "https://ws.socketkill.com",
         "https://incursions-dev.nesbit.solutions",
         "https://incursions.nesbit.solutions",
-        "https://socketkill.com/map/",
         "https://socketkill.com/about/",
         "https://socketkill-v2.themadlyscientific.workers.dev",
       ],

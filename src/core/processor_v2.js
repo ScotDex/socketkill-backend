@@ -93,8 +93,8 @@ module.exports = (esi, io, statsManager) => {
                 shipImageUrl: `https://images.evetech.net/types/${killmail.victim.ship_type_id}/render`, // testing
                 corpImageUrl: `https://images.evetech.net/corporations/${killmail.victim.corporation_id}/logo`,
                 allianceImageUrl: killmail.victim.alliance_id
-                ? `https://images.evetech.net/alliances/${killmail.victim.alliance_id}/logo`
-                : null,
+    ? `https://images.evetech.net/alliances/${killmail.victim.alliance_id}/logo`
+    : `https://images.evetech.net/alliances/1/logo`,
                 finalBlowCorp: finalBlowCorp,
                 attackerCount: attackerCount,
                 isTriglavian: TRIGLAVIAN_SYSTEMS.has(killmail.solar_system_id),
