@@ -20,6 +20,7 @@ const { clientIp, requestMeta, setCacheHeader, IMMUTABLE } = require('../core/re
 const r2 = require('../network/r2Writer');
 const plexRate = require('../services/plexRate');
 const { renderOgCard } = require('../services/ogCard');
+const npcKills = require('./npcKills');
 
 
 const resolveLimit = pLimit(4);
