@@ -91,7 +91,7 @@ module.exports = (esi, io, statsManager) => {
                 zkillUrl: helpers.getSocketKillLink(killID),
                 victimName: finalVictimName,
                 shipImageUrl: `https://images.evetech.net/types/${killmail.victim.ship_type_id}/render`, // testing
-                corpImageUrl: `https://api.socketkill.com/render/corp/${killmail.victim.corporation_id}`,
+                corpImageUrl: `https://images.evetech.net/corporations/${killmail.victim.corporation_id}/logo`,
                 allianceImageUrl: `https://api.socketkill.com/render/alliance/${killmail.victim.alliance_id}`,
                 finalBlowCorp: finalBlowCorp,
                 attackerCount: attackerCount,
