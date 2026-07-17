@@ -572,6 +572,12 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     res.json({ killmailId: String(id), reactions: reactionsManager.get(id) });
   });
 
+  app.get('/stats/npc-kills', (req, res) => {
+    const data = npcKills.get();
+    if (!data) return res.status(503).json({ error: 'NPC data initializing...' });
+    res.json(data);
+});
+
   app.get('/api/refire/:killId', async (req, res) => {
     const processor = getProcessor();
     if (!processor) {
@@ -665,6 +671,12 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     () => plexRate.refresh().catch((e) => console.error('[PLEX] refresh failed:', e.message)),
     12 * 60 * 60 * 1000
   );
+
+  npcKills.refresh().catch((e) => console.error('[NPC] init failed:', e.message));
+setInterval(
+    () => npcKills.refresh().catch((e) => console.error('[NPC] refresh failed:', e.message)),
+    60 * 60 * 1000
+);
   server
     .listen(PORT, () => {
       console.log(`Web Module Loaded on ${PORT}`);

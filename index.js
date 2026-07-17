@@ -247,7 +247,6 @@ async function shutdown(signal) {
   try {
     await hashCache.flush();
     statsManager.save();
-    await reactionsManager.save(); 
     console.log("[SHUTDOWN] Flush complete. Exiting.");
   } catch (err) {
     console.error(`[SHUTDOWN] Flush error: ${err.message}`);
