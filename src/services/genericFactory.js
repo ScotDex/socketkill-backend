@@ -18,16 +18,15 @@ const CATEGORY_CONFIG = {
 const DOTLAN_BASE = 'https://evemaps.dotlan.net';
 const KILLMAIL_BASE = `https://zkillboard.com/`;
 const siteIcon = `https://edge.socketkill.com/favicon.png`;
-const API_BASE = `https://api.socketkill.com/render/`;
 
 class NewsEmbedFactory {
     static createEmbed(kill, zkb, names, category) {
         const config = CATEGORY_CONFIG[category] || { color: 0x3fb950 }
         const totalValue = helpers.formatIsk(zkb.totalValue);
         
-           const authorIcon = kill.victim.character_id
-            ? `https://images.evetech.net/characters/${kill.victim.character_id}/portrait?size=64`
-            : `${API_BASE}corp/${kill.victim.corporation_id}`;
+        const authorIcon = kill.victim.character_id
+    ? `https://images.evetech.net/characters/${kill.victim.character_id}/portrait?size=64`
+    : `https://images.evetech.net/corporations/${kill.victim.corporation_id}/logo?size=64`;
 
         return {
             username: "Socketkill.com",
@@ -40,7 +39,7 @@ class NewsEmbedFactory {
                 },
                 color: config.color,
                 thumbnail: {
-                    url: `${API_BASE}ship/${kill.victim.ship_type_id}?size=128`
+                    url: `https://images.evetech.net/types/${kill.victim.ship_type_id}/render?size=128`
                 },
                 fields: [
                     { name: "System", value: `**[${names.systemName}](${DOTLAN_BASE}/system/${names.systemName.replace(/ /g, '_')})** `, inline: false },
@@ -83,11 +82,11 @@ class NewsEmbedFactory {
             embeds: [{
                 author: {
                     name: `${names.triggerShipName || 'Unknown'} spotted in ${names.systemName}`,
-                    icon_url: `${API_BASE}corp/${triggerAttacker?.corporation_id}`,
+                    icon_url: `https://images.evetech.net/corporations/${triggerAttacker?.corporation_id}/logo?size=64`,
                     url: helpers.getSocketKillLink(kill.killmail_id)
                 },
 
-                thumbnail: { url: `${API_BASE}ship/${names.triggerShipId}?size=256` },
+                thumbnail: { url: `https://images.evetech.net/types/${names.triggerShipId}/render?size=256` },
                 color: 0xf39c12,
                 fields: [
                     { name: "System", value: `**[${names.systemName}](${DOTLAN_BASE}/system/${names.systemName.replace(/ /g, '_')})** `, inline: false },

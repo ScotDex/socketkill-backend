@@ -1,6 +1,5 @@
 const helpers = require('../core/helpers');
 const pick = a => a[Math.floor(Math.random() * a.length)];
-const API_BASE = `https://api.socketkill.com/render/`;
 const plexRate = require('../services/plexRate');
 const FREDDO_PRICE_GBP = 0.39;
 const DOTLAN_BASE = 'https://evemaps.dotlan.net';
@@ -79,7 +78,7 @@ class bombeldoFactoryV2 {
                 { type: 10, content: `[**${flavour}**](${killLink})` },
                 { type: 10, content: `Value - **${helpers.formatIsk(zkb.totalValue)} ISK**${freddoSuffix}` }
             ],
-            accessory: { type: 11, media: { url: `${API_BASE}ship/${kill.victim.ship_type_id}?size=256` } }
+            accessory: { type: 11, media: { url: `https://images.evetech.net/types/${kill.victim.ship_type_id}/render?size=256` } }
         });
 
         inner.push({ type: 14, spacing: 1, divider: true });

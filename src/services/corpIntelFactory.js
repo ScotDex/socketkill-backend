@@ -24,12 +24,9 @@ class corpIntelFactory {
         const totalValue = helpers.formatIsk(zkb.totalValue)
         const corpIcon = `https://edge.socketkill.com/taylr/logo.png`;
         const title = LOSS_COMMENTS[Math.floor(Math.random() * LOSS_COMMENTS.length)];
-        const API_BASE = `https://api.socketkill.com/render/`;
-
         const authorIcon = kill.victim.character_id
-            ? `https://images.evetech.net/characters/${kill.victim.character_id}/portrait?size=128`
-            : `${API_BASE}corp/${kill.victim.corporation_id}`;
-
+    ? `https://images.evetech.net/characters/${kill.victim.character_id}/portrait?size=128`
+    : `https://images.evetech.net/corporations/${kill.victim.corporation_id}/logo?size=128`;
 
         return {
             username: "The Shame Bell",
@@ -41,7 +38,7 @@ class corpIntelFactory {
                 },
                 title: title,
                 url: helpers.getSocketKillLink(kill.killmail_id),
-                thumbnail: { url: `${API_BASE}ship/${kill.victim.ship_type_id}?size=256` },
+                thumbnail: { url: `https://images.evetech.net/types/${kill.victim.ship_type_id}/render?size=256` },
                 color: 0xff6b6b,
                 fields: [
                     { name: "System", value: `**[${names.systemName}](${DOTLAN_BASE}/system/${names.systemName.replace(/ /g, '_')})** `, inline: false },
