@@ -18,7 +18,6 @@ const rateLimit = require('express-rate-limit');
 const { ipKeyGenerator } = require('express-rate-limit');
 const { clientIp, requestMeta, setCacheHeader, IMMUTABLE } = require('../core/requestMeta')
 const r2 = require('../network/r2Writer');
-const reactionsManager = require('../services/reactionsManager');
 const plexRate = require('../services/plexRate');
 const { renderOgCard } = require('../services/ogCard');
 
