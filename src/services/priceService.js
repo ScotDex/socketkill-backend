@@ -6,8 +6,8 @@ const ESI_BASE = 'https://esi.evetech.net';
 let priceMap = new Map();
 
 const MANUAL_PRICES = {
-    670: 10000,   
-    33328: 10000,  
+    670: 10000,
+    33328: 10000,
 };
 
 function buildPriceMap(rawData) {

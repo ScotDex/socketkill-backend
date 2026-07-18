@@ -53,13 +53,13 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
   });
 
   const ogLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 20,
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: (req) => ipKeyGenerator(clientIp(req)),
-  message: { error: 'Too many card renders — slow down.' },
-});
+    windowMs: 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => ipKeyGenerator(clientIp(req)),
+    message: { error: 'Too many card renders — slow down.' },
+  });
 
   app.use(
     helmet({
@@ -162,8 +162,8 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     }
 
     if (isBot) {
-       res.set('Cache-Control', 'public, max-age=300');
-        return res.status(503).json({ error: 'Killmail not yet cached. Retry shortly.' });
+      res.set('Cache-Control', 'public, max-age=300');
+      return res.status(503).json({ error: 'Killmail not yet cached. Retry shortly.' });
     }
 
 
@@ -281,81 +281,70 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     }
   });
 
-  const reactLimiter = rateLimit({
-    windowMs: 60 * 1000,
-    max: 60,
-    standardHeaders: true,
-    legacyHeaders: false,
-    keyGenerator: (req) => ipKeyGenerator(clientIp(req)),
-    message: { error: 'Too many reactions — slow down.' },
-  });
-
   app.get('/og/:killID', ogLimiter, async (req, res) => {
-  // parseInt stops at the first non-digit, so "123456.png" → 123456
-  const id = parseInt(req.params.killID);
-  if (!Number.isFinite(id) || id <= 0) {
-    res.set('Cache-Control', 'no-store');
-    return res.status(400).json({ error: 'Invalid killID' });
-  }
-
-  try {
-    // 1. Date discovery — shard walk, then canonical killmail fallback. No zkill failover.
-    let date = null;
-    const now = new Date();
-    for (let i = 0; i < 30; i++) {
-      const d = new Date(now.getTime() - i * 86400000).toISOString().slice(0, 10);
-      if (await hashCache.getHashFromShard(d, id)) { date = d; break; }
-    }
-    if (!date) {
-      const km = await r2.get(`killmails/${id}.json`).catch(() => null);
-      if (km?.killmail_time) date = km.killmail_time.slice(0, 10);
-    }
-    if (!date) {
+    const id = parseInt(req.params.killID);
+    if (!Number.isFinite(id) || id <= 0) {
       res.set('Cache-Control', 'no-store');
-      return res.status(404).json({ error: 'Kill not found' });
+      return res.status(400).json({ error: 'Invalid killID' });
     }
 
-    const isToday = date === new Date().toISOString().slice(0, 10);
-
-    // 2. Payload — cached response first (non-today), else cheap summary resolution
-    let payload = null;
-    if (!isToday) {
-      payload = await r2.get(`kill-responses/${date}/${id}.json`).catch(() => null);
-    }
-    if (!payload) {
-      const hash = await hashCache.getHashFromShard(date, id);
-      if (!hash) {
+    try {
+      let date = null;
+      const now = new Date();
+      for (let i = 0; i < 30; i++) {
+        const d = new Date(now.getTime() - i * 86400000).toISOString().slice(0, 10);
+        if (await hashCache.getHashFromShard(d, id)) { date = d; break; }
+      }
+      if (!date) {
+        const km = await r2.get(`killmails/${id}.json`).catch(() => null);
+        if (km?.killmail_time) date = km.killmail_time.slice(0, 10);
+      }
+      if (!date) {
         res.set('Cache-Control', 'no-store');
         return res.status(404).json({ error: 'Kill not found' });
       }
-      const killmail = await killmailCache.get(id, hash);
-      const s = await killmailResolver.resolveKillSummary(killmail, id, esi);
-      payload = {
-        victim: s.victim,
-        totalValue: s.formattedValue,
-        rawValue: s.rawValue,
-        system: s.system,
-      };
+
+      const isToday = date === new Date().toISOString().slice(0, 10);
+
+      // 2. Payload — cached response first (non-today), else cheap summary resolution
+      let payload = null;
+      if (!isToday) {
+        payload = await r2.get(`kill-responses/${date}/${id}.json`).catch(() => null);
+      }
+      if (!payload) {
+        const hash = await hashCache.getHashFromShard(date, id);
+        if (!hash) {
+          res.set('Cache-Control', 'no-store');
+          return res.status(404).json({ error: 'Kill not found' });
+        }
+        const killmail = await killmailCache.get(id, hash);
+        const s = await killmailResolver.resolveKillSummary(killmail, id, esi);
+        payload = {
+          victim: s.victim,
+          totalValue: s.formattedValue,
+          rawValue: s.rawValue,
+          system: s.system,
+        };
+      }
+
+      // 3. Refuse to immortalize an incomplete card
+      if (!payload?.victim?.shipTypeID || !payload?.victim?.name) {
+        res.set('Cache-Control', 'public, max-age=300');
+        return res.status(503).json({ error: 'Kill still resolving. Retry shortly.' });
+      }
+
+      const png = await renderOgCard(payload);
+      res.set('Content-Type', 'image/png');
+      res.set('Cache-Control', IMMUTABLE);
+      res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+      res.send(png);
+
+    } catch (err) {
+      console.error(`[OG CARD] ${id} failed: ${err.message}`);
+      res.set('Cache-Control', 'no-store');
+      res.status(500).json({ error: 'Card render failed' });
     }
-
-    // 3. Refuse to immortalize an incomplete card
-    if (!payload?.victim?.shipTypeID || !payload?.victim?.name) {
-      res.set('Cache-Control', 'public, max-age=300');
-      return res.status(503).json({ error: 'Kill still resolving. Retry shortly.' });
-    }
-
-    const png = await renderOgCard(payload);
-    res.set('Content-Type', 'image/png');
-    res.set('Cache-Control', IMMUTABLE);
-    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
-    res.send(png);
-
-  } catch (err) {
-    console.error(`[OG CARD] ${id} failed: ${err.message}`);
-    res.set('Cache-Control', 'no-store');
-    res.status(500).json({ error: 'Card render failed' });
-  }
-});
+  });
 
 
   const SITE = 'https://socketkill.com';
@@ -566,18 +555,11 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     }
   });
 
-  app.get('/api/reactions/:killId', (req, res) => {
-    const id = parseInt(req.params.killId);
-    if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: 'Invalid killId' });
-    res.set('Cache-Control', 'no-store');
-    res.json({ killmailId: String(id), reactions: reactionsManager.get(id) });
-  });
-
   app.get('/stats/npc-kills', (req, res) => {
     const data = npcKills.get();
     if (!data) return res.status(503).json({ error: 'NPC data initializing...' });
     res.json(data);
-});
+  });
 
   app.get('/api/refire/:killId', async (req, res) => {
     const processor = getProcessor();
@@ -674,10 +656,10 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
   );
 
   npcKills.refresh().catch((e) => console.error('[NPC] init failed:', e.message));
-setInterval(
+  setInterval(
     () => npcKills.refresh().catch((e) => console.error('[NPC] refresh failed:', e.message)),
     60 * 60 * 1000
-);
+  );
   server
     .listen(PORT, () => {
       console.log(`Web Module Loaded on ${PORT}`);

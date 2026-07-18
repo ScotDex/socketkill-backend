@@ -2,15 +2,39 @@ const { getPrice } = require('../services/priceService');
 const helpers = require('../core/helpers');
 
 const SLOT_GROUPS = {
+    // fitted
     high: [27, 28, 29, 30, 31, 32, 33, 34],
     mid: [19, 20, 21, 22, 23, 24, 25, 26],
     low: [11, 12, 13, 14, 15, 16, 17, 18],
-    rig: [92, 93, 94],
+    rig: [92, 93, 94, 95, 96, 97, 98, 99],           // 95-99: structure rigs
     subsystem: [125, 126, 127, 128, 129, 130, 131, 132],
+    service: [164, 165, 166, 167, 168, 169, 170, 171], // Upwell structure services
+    // bays
     drone: [87],
+    fighter: [158, 159, 160, 161, 162, 163],          // 161-163: FighterTube2-4
+    booster: [176],
+    frigateBay: [179],
+    corpseBay: [174],
+    implant: [89],
+    // holds
     cargo: [5],
-    fighter: [158, 159, 160],
-    implant: [89]
+    fuelBay: [133],
+    structureFuel: [172],
+    oreHold: [134],
+    gasHold: [135],
+    mineralHold: [136],
+    salvageHold: [137],
+    shipHold: [138, 139, 140, 141, 142],              // general + S/M/L/industrial ship holds
+    ammoHold: [143],
+    planetaryHold: [148, 149],                        // command center + PI commodities
+    materialBay: [151],
+    fleetHangar: [155],
+    shipHangar: [90],
+    mobileDepotHold: [183],
+    moonMaterialBay: [186],
+    iceHold: [181],
+    asteroidHold: [182],
+    expeditionHold: [188]
 };
 
 function groupForFlag(flag) {
@@ -58,8 +82,8 @@ async function resolveItems(rawItems, esi) {
                 dropped,
                 destroyed,
                 quantity: dropped + destroyed,
-                value: getPrice(item.item_type_id),
-                formattedValue: helpers.formatIsk(getPrice(item.item_type_id) * (dropped + destroyed)),
+                value: unitPrice,
+                formattedValue: helpers.formatIsk(unitPrice * (dropped + destroyed)),
             });
         }
     }
