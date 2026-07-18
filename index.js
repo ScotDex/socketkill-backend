@@ -50,11 +50,7 @@ io.on("connection", async (socket) => {
   const ref = socket.handshake.headers["referer"] || "Direct";
   console.log(`[NETWORK] New connection: ${socket.id} | IP: ${ip} | UA: ${ua} | Ref: ${ref} | Active: ${io.engine.clientsCount}`);
 
-  if (currentSpaceBg) {
-    socket.emit("nebula-update", currentSpaceBg);
-  } else {
-    refreshNebulaBackground();
-  }
+  socket.emit("nebula-update", utils.getBackPhoto());
 
   socket.emit("region-list", Object.values(esi.staticRegionData || {}).map(r => r.name).sort());
   socket.emit("gatekeeper-stats", {

@@ -62,8 +62,10 @@ class utils {
   }
 
   static getBackPhoto() {
+    const BG_COUNT = 238; 
+    const n = Math.floor(Math.random() * BG_COUNT) + 1;
     return {
-      url: process.env.BACKGROUND_API_URL,
+      url: `https://edge.socketkill.com/backgrounds/bg-${String(n).padStart(3, '0')}.webp`,
       name: "EVE Online Nebula",
       media_type: "image",
     };
