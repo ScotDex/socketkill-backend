@@ -94,7 +94,7 @@ async function renderOgCard(kill) {
                       {
                         type: 'div',
                         props: {
-                          style: { display: 'flex', fontFamily: 'Mono', fontSize: 28 },
+                          style: { display: 'flex', fontFamily: 'Mono', fontSize: 32 },
                           children: [
                             { type: 'div', props: { style: { color: sec.num ? '#ffffff' : sec.color }, children: sec.word } },
                             ...(sec.num ? [{ type: 'div', props: { style: { color: sec.color, marginLeft: 12 }, children: sec.num } }] : []),
@@ -102,7 +102,7 @@ async function renderOgCard(kill) {
                           ],
                         },
                       },
-                      { type: 'div', props: { style: { fontFamily: 'Mono', fontSize: 28, letterSpacing: 4, color: C.green }, children: 'SOCKETKILL.COM' } },
+                      { type: 'div', props: { style: { fontFamily: 'Mono', fontSize: 32, letterSpacing: 4, color: C.green }, children: 'SOCKETKILL.COM' } },
                     ],
                   },
                 },
