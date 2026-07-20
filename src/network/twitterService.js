@@ -24,7 +24,7 @@ class TwitterService {
     static async postWhale(names, formattedValue, killId, png = null) {
     try {
         const date = new Date().toISOString().slice(0, 10);
-        const status = `BOOM! ${names.shipName} destroyed! || ${formattedValue} ISK || ${helpers.getSocketKillLink(killId, date)} || #TweetFleet #EveOnline #SocketKill`;
+        const status = `BOOM! ${names.shipName} destroyed! || ${formattedValue} ISK || ${helpers.getSocketKillLink(killId, date)} || #TweetFleet #eveonline #SocketKill`;
 
         const tweetPayload = {};
         if (png) {
@@ -40,21 +40,21 @@ class TwitterService {
 }
 
 class BlueSkyService {
-    static async postWhale(names, formattedValue, killId, shipTypeId) {
+    static async postWhale(names, formattedValue, killId, png = null) {
         try {
             const date = new Date().toISOString().slice(0, 10);
-            const status = `BOOM! ${names.shipName} destroyed! || ${formattedValue} ISK || #TweetFleet #EveOnline #SocketKill`;
+            const status = `BOOM! ${names.shipName} destroyed! || ${formattedValue} ISK || #EveOnline #SocketKill`;
             const url = helpers.getSocketKillLink(killId, date);
+
             let thumb = null;
-            try {
-                const imageRes = await fetch(`https://images.evetech.net/types/${shipTypeId}/render?size=512`);
-                if (imageRes.ok) {
-                    const imageBuffer = await imageRes.arrayBuffer();
-                    const blob = await agent.uploadBlob(new Uint8Array(imageBuffer), { encoding: 'image/png' });
+            if (png) {
+                try {
+                    console.log(`[BLUESKY] Card size: ${png.length} bytes`);
+                    const blob = await agent.uploadBlob(png, { encoding: 'image/png' });
                     thumb = blob.data.blob;
+                } catch (imgErr) {
+                    console.error("Bluesky image upload failed, posting without:", imgErr.message);
                 }
-            } catch (imgErr) {
-                console.error("Bluesky image upload failed, posting without:", imgErr.message);
             }
 
             await agent.post({
@@ -76,4 +76,4 @@ class BlueSkyService {
     }
 }
 
-module.exports = { TwitterService, BlueSkyService };
+module.exports = { TwitterService, BlueSkyService }

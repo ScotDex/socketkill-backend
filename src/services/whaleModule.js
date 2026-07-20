@@ -184,5 +184,8 @@ async function postSocial(killmail, names, formattedValue, killmailId) {
     } catch (err) {
         console.error(`[SOCIAL] Card render failed, posting text-only: ${err.message}`);
     }
-    await TwitterService.postWhale(names, formattedValue, killmailId, png);
+    await Promise.all([
+        TwitterService.postWhale(names, formattedValue, killmailId, png),
+        BlueSkyService.postWhale(names, formattedValue, killmailId, png),
+    ]);
 }
