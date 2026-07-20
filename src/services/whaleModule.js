@@ -8,6 +8,7 @@ const { TITAN_SHIP_IDS, SUPER_SHIP_IDS, TRIGLAVIAN_SYSTEMS } = require('../core/
 const r2 = require("../network/r2Writer");
 const NewsEmbedFactory = require("./genericFactory");
 const bombeldoFactory = require('./bombeldoFactoryV2');
+const { renderOgCard } = require('../services/ogCard');
 
 let channels = {};
 
