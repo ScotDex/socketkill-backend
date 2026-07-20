@@ -17,22 +17,27 @@ agent.login({
 }).then(() => {
     console.log(`[BLUESKY] Logged in as ${process.env.BLUESKY_IDENTIFIER}`);
 }).catch((err) => {
-    console.error(`[BLUESKY] Login failed: ${err.message}`); z
+    console.error(`[BLUESKY] Login failed: ${err.message}`); 
 });
 
 class TwitterService {
-    static async postWhale(names, formattedValue, killId) {
-        try {
-            const date = new Date().toISOString().slice(0, 10);
-            const status = `BOOM! ${names.shipName} destroyed! || ${formattedValue} ISK || ${helpers.getSocketKillLink(killId, date)} || #TweetFleet #EveOnline #SocketKill`;
-            await twitterClient.v2.tweet(status);
-            console.log(`Tweet posted for Kill #${killId}`);
-        } catch (err) {
-            console.error("Twitter/X API Error:", err.message);
+    static async postWhale(names, formattedValue, killId, png = null) {
+    try {
+        const date = new Date().toISOString().slice(0, 10);
+        const status = `BOOM! ${names.shipName} destroyed! || ${formattedValue} ISK || ${helpers.getSocketKillLink(killId, date)} || #TweetFleet #EveOnline #SocketKill`;
+
+        const tweetPayload = {};
+        if (png) {
+            const mediaId = await twitterClient.v1.uploadMedia(png, { mimeType: 'image/png' });
+            tweetPayload.media = { media_ids: [mediaId] };
         }
+        await twitterClient.v2.tweet(status, tweetPayload);
+        console.log(`Tweet posted for Kill #${killId}${png ? ' with card' : ''}`);
+    } catch (err) {
+        console.error("Twitter/X API Error:", err.message);
     }
 }
-
+}
 
 class BlueSkyService {
     static async postWhale(names, formattedValue, killId, shipTypeId) {

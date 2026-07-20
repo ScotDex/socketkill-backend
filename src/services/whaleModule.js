@@ -113,7 +113,7 @@ module.exports = async (killmail, zkb, names) => {
     await Promise.all([
         postNewsChannel(killmail, zkb, names, 'value_20b'),
         postCorpIntel(killmail, zkb, names),
-        postSocial(names, helpers.formatIsk(names.rawValue), killmail.killmail_id)
+        postSocial(killmail, names, helpers.formatIsk(names.rawValue), killmail.killmail_id)
     ]);
 };
 
@@ -162,13 +162,26 @@ async function postOfficerIntel(kill, zkb, names) {
     }
 }
 
-async function postSocial(names, formattedValue, killmailId) {
+async function postSocial(killmail, names, formattedValue, killmailId) {
+    let png = null;
     try {
-        await Promise.all([
-            TwitterService.postWhale(names, formattedValue, killmailId),
-            BlueSkyService.postWhale(names, formattedValue, killmailId)
-        ]);
+        png = await renderOgCard({
+            victim: {
+                name: names.finalVictimName,
+                ship: names.shipName,
+                shipTypeID: killmail.victim.ship_type_id,
+            },
+            totalValue: formattedValue,
+            rawValue: names.rawValue,
+            system: {
+                name: names.systemName,
+                region: names.regionName,
+                security: names.securityStatus,
+                id: killmail.solar_system_id,
+            },
+        });
     } catch (err) {
-        console.error(`[SOCIAL MEDIA POST] Post failed: ${err.message}`);
+        console.error(`[SOCIAL] Card render failed, posting text-only: ${err.message}`);
     }
+    await TwitterService.postWhale(names, formattedValue, killmailId, png);
 }
