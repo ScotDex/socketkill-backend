@@ -68,7 +68,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
   );
   app.use(cors());
   app.use(express.json());
-
+// Removing fight mode
   const io = new Server(server, {
     pingTimeout: 2000,
     pingInterval: 5000,
