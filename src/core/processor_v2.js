@@ -30,9 +30,9 @@ module.exports = (esi, io, statsManager) => {
             ]);
             const finalVictimName = (charName == "Unknown" || !charName) ? corpName : charName;
             const finalBlow = killmail.attackers?.find(a => a.final_blow) || null;
-            const allianceName   = allianceInfo?.name   ?? null;
+            const allianceName = allianceInfo?.name ?? null;
             const allianceTicker = allianceInfo?.ticker ?? null;
-            
+
             hashCache.set(killID, {
                 hash,
                 shipID: killmail.victim.ship_type_id,
@@ -60,6 +60,23 @@ module.exports = (esi, io, statsManager) => {
                     .map(a => a.weapon_type_id)
             )];
             const attackerCount = killmail.attackers?.length || 0;
+
+            const killRow = {
+                killID,
+                hash,
+                time: killmail.killmail_time,
+                systemID: killmail.solar_system_id,
+                regionID: systemDetails?.region_id ?? null,
+                space: resolveSpace(killmail.solar_system_id, systemDetails?.security_status),
+                totalValue: rawValue,
+                victimCharacterID: killmail.victim?.character_id ?? null,
+                victimCorpID: killmail.victim?.corporation_id ?? null,
+                victimAllianceID: killmail.victim?.alliance_id ?? null,
+                shipID: killmail.victim.ship_type_id,
+                attackerCount: killmail.attackers?.length || 0,
+            };
+            d1.recordKill(killRow, (killmail.attackers || []).filter(a => a.character_id))
+                .catch(err => console.error(`[D1] Kill ${killID} persist failed: ${err.message}`));
 
             statsManager.increment(rawValue);
 
@@ -93,8 +110,8 @@ module.exports = (esi, io, statsManager) => {
                 shipImageUrl: `https://images.evetech.net/types/${killmail.victim.ship_type_id}/render`, // testing
                 corpImageUrl: `https://images.evetech.net/corporations/${killmail.victim.corporation_id}/logo`,
                 allianceImageUrl: killmail.victim.alliance_id
-    ? `https://images.evetech.net/alliances/${killmail.victim.alliance_id}/logo`
-    : `https://images.evetech.net/alliances/1/logo`,
+                    ? `https://images.evetech.net/alliances/${killmail.victim.alliance_id}/logo`
+                    : `https://images.evetech.net/alliances/1/logo`,
                 finalBlowCorp: finalBlowCorp,
                 attackerCount: attackerCount,
                 isTriglavian: TRIGLAVIAN_SYSTEMS.has(killmail.solar_system_id),
@@ -137,7 +154,7 @@ module.exports = (esi, io, statsManager) => {
                 triggerCharName,
                 triggerCorpName,
                 triggerShipId,
-                finalVictimName, 
+                finalVictimName,
                 allianceTicker,
                 securityStatus: systemDetails?.security_status ?? null,
             });
