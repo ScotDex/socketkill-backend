@@ -68,7 +68,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
   );
   app.use(cors());
   app.use(express.json());
-// Removing fight mode
+  // Removing fight mode
   const io = new Server(server, {
     pingTimeout: 2000,
     pingInterval: 5000,
@@ -624,26 +624,6 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
         console.log(`[TICKER] ${socket.id} joined char:${charId}`);
       }
     }
-    let lastReact = 0;
-    const REACT_MIN_INTERVAL_MS = 500;
-
-    socket.on("react", (payload) => {
-      const now = Date.now();
-      if (now - lastReact < REACT_MIN_INTERVAL_MS) return;
-      lastReact = now;
-
-      const killmailId = parseInt(payload?.killmailId);
-      const emoteKey = payload?.emoteKey;
-      if (!Number.isFinite(killmailId) || killmailId <= 0) return;
-      if (typeof emoteKey !== 'string') return;
-
-      const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0]?.trim()
-        || socket.handshake.address;
-
-      const result = reactionsManager.react({ killmailId, emoteKey, ip });
-      if (result) io.emit("reaction-update", result);
-    });
-
     socket.on("disconnect", (reason) => {
       console.log(`[NETWORK] Client disconnected: ${socket.id} | Reason: ${reason} | Active: ${io.engine.clientsCount}`);
     });
