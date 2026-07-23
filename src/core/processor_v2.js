@@ -4,6 +4,7 @@ const { resolveKillmail, resolveFinalBlowCorp, resolveTriggerAttacker, resolveSp
 const { TRIGLAVIAN_SYSTEMS } = require('../core/shipIDs');
 const hashCache = require('../state/hashCache')
 const { calculateKillValue } = require('../services/priceService');
+const d1 = require('../network/d1Client');
 
 module.exports = (esi, io, statsManager) => {
     async function processPackage(packageData) {
