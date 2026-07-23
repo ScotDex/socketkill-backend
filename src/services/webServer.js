@@ -21,6 +21,7 @@ const r2 = require('../network/r2Writer');
 const plexRate = require('../services/plexRate');
 const { renderOgCard } = require('../services/ogCard');
 const npcKills = require('./npcKills');
+const d1 = require('../network/d1Client');
 
 
 const resolveLimit = pLimit(4);
