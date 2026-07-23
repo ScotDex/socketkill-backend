@@ -422,6 +422,67 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     });
   });
 
+  const ENTITY_COLUMNS = {
+    pilot: { victim: 'victim_character_id', attacker: 'character_id' },
+    corp: { victim: 'victim_corp_id', attacker: 'corp_id' },
+    alliance: { victim: 'victim_alliance_id', attacker: 'alliance_id' },
+  };
+
+  app.get('/api/entity/:type/:id', async (req, res) => {
+    const cols = ENTITY_COLUMNS[req.params.type];
+    const id = parseInt(req.params.id);
+    if (!cols || !Number.isFinite(id) || id <= 0) {
+      return res.status(400).json({ error: 'Invalid entity type or id' });
+    }
+
+    try {
+      const FIELDS = 'kill_id, kill_time, system_id, region_id, space, total_value, ship_type_id, attacker_count';
+
+      const [lossRes, killRes] = await Promise.all([
+        d1.query(
+          `SELECT ${FIELDS} FROM kills WHERE ${cols.victim} = ? ORDER BY kill_time DESC LIMIT 100`,
+          [id]
+        ),
+        d1.query(
+          `SELECT DISTINCT k.kill_id, k.kill_time, k.system_id, k.region_id, k.space, k.total_value, k.ship_type_id, k.attacker_count
+           FROM kills k JOIN kill_attackers ka ON ka.kill_id = k.kill_id
+           WHERE ka.${cols.attacker} = ? ORDER BY k.kill_time DESC LIMIT 100`,
+          [id]
+        ),
+      ]);
+
+      const rows = new Map();
+      for (const r of killRes.result?.[0]?.results ?? []) rows.set(r.kill_id, { ...r, isLoss: false });
+      for (const r of lossRes.result?.[0]?.results ?? []) rows.set(r.kill_id, { ...r, isLoss: true }); // loss wins on awox overlap
+
+      const merged = [...rows.values()]
+        .sort((a, b) => b.kill_time.localeCompare(a.kill_time))
+        .slice(0, 100);
+
+      const events = await Promise.all(merged.map(async r => {
+        const sys = esi.getSystemDetails(r.system_id);
+        return {
+          killID: r.kill_id,
+          isLoss: r.isLoss,
+          shipTypeID: r.ship_type_id,
+          shipName: await esi.getTypeName(r.ship_type_id),
+          systemName: sys?.name ?? 'Unknown System',
+          regionName: r.region_id ? await esi.getRegionName(r.region_id) : 'K-Space',
+          space: r.space,
+          totalValue: r.total_value,
+          time: r.kill_time,
+          attackerCount: r.attacker_count,
+        };
+      }));
+
+      res.set('Cache-Control', 'public, max-age=60');
+      res.json({ windowDays: 30, events });
+    } catch (err) {
+      console.error(`[ENTITY API] ${req.params.type}/${id} failed: ${err.message}`);
+      res.status(500).json({ error: 'Internal error' });
+    }
+  });
+
   app.get('/api/stats', (req, res) => {
     const mem = process.memoryUsage();
     res.json({
