@@ -306,8 +306,6 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       }
 
       const isToday = date === new Date().toISOString().slice(0, 10);
-
-      // 2. Payload — cached response first (non-today), else cheap summary resolution
       let payload = null;
       if (!isToday) {
         payload = await r2.get(`kill-responses/${date}/${id}.json`).catch(() => null);
@@ -327,8 +325,6 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
           system: s.system,
         };
       }
-
-      // 3. Refuse to immortalize an incomplete card
       if (!payload?.victim?.shipTypeID || !payload?.victim?.name) {
         res.set('Cache-Control', 'public, max-age=300');
         return res.status(503).json({ error: 'Kill still resolving. Retry shortly.' });

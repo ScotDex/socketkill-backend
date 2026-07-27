@@ -52,7 +52,7 @@ class bombeldoFactoryV2 {
         const flavour = isDeath ? pick(DEATH_LINES) : pick(KILL_LINES);
         const rate = plexRate.get();
         const freddoSuffix = rate
-            ? ` · Worth ${Math.floor(zkb.totalValue * rate.gbpPerIsk / FREDDO_PRICE_GBP).toLocaleString()} freddos`
+            ? ` · Worth ${Math.floor(names.rawValue * rate.gbpPerIsk / FREDDO_PRICE_GBP).toLocaleString()} freddos`
             : '';
         const dotlanSystem = names.systemName.replace(/ /g, '_');
         const dotlanRegion = names.regionName.replace(/ /g, '_');
