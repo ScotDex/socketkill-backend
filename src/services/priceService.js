@@ -1,5 +1,6 @@
 const axios = require('../network/agent');
 const r2 = require('../network/r2Writer');
+const janiceOverlay = require('./janiceOverlay');
 
 const ESI_BASE = 'https://esi.evetech.net';
 
@@ -51,8 +52,19 @@ async function loadMarketPrices() {
     }
 }
 
+let syncTimer = null;
+
+function startMarketSync(intervalMs = 6 * 60 * 60 * 1000) {
+    if (syncTimer) return;
+    syncTimer = setInterval(syncMarketPrices, intervalMs);
+    if (syncTimer.unref) syncTimer.unref();
+    console.log(`[MARKET] Sync scheduled every ${intervalMs / 3_600_000}h`);
+}
+
 function getPrice(typeId) {
     if (MANUAL_PRICES[typeId] != null) return MANUAL_PRICES[typeId];
+    const janice = janiceOverlay.getJanicePrice(typeId);
+    if (janice != null) return janice;
     const entry = priceMap.get(typeId);
     if (!entry) return 0;
     return entry.average_price ?? entry.adjusted_price ?? 0;
@@ -107,4 +119,8 @@ function calculateBreakdown(resolvedItems, shipTypeId) {
     };
 }
 
-module.exports = { syncMarketPrices, loadMarketPrices, getPrice, calculateKillValue, calculateBreakdown };
+function getPricedTypeIDs() {
+    return Array.from(priceMap.keys());
+}
+
+module.exports = { syncMarketPrices, loadMarketPrices, getPrice, calculateKillValue, calculateBreakdown, startMarketSync };

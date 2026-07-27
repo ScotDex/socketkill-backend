@@ -16,7 +16,7 @@ const talker = axios.create({
     headers: {
         'Accept-Encoding': 'gzip, deflate, br',
         'Connection': 'keep-alive',
-        'User-Agent': 'Socket.Kill - (@ScottishDex/https://socketkill.com/)',
+        'User-Agent': 'Socket.Kill - (@Discord 267750073910165504 / https://socketkill.com/)',
     }
 });
 

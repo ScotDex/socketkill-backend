@@ -9,8 +9,9 @@ const statsManager = require("./src/services/statsManager");
 const ProcessorFactory = require("./src/core/processor_v2");
 const r2 = require("./src/network/r2Writer");
 const hashCache = require("./src/state/hashCache")
-const { syncMarketPrices, loadMarketPrices } = require("./src/services/priceService");
+const { syncMarketPrices, loadMarketPrices, startMarketSync } = require("./src/services/priceService");
 const kv = require('./src/network/kvClient');
+const { startJaniceOverlay, runOverlayPass } = require("./src/services/janiceOverlay");
 
 const R2_BASE_URL = process.env.R2_BASE_URL;
 const SEQUENCE_CACHE_URL = `${R2_BASE_URL}/sequence.json`;
@@ -260,8 +261,8 @@ process.on("SIGINT", () => shutdown("SIGINT"));
   await statsManager.recoverFromR2();
   setInterval(() => statsManager.save(), 60_000);
   await loadMarketPrices();
+  startMarketSync();          
   await esi.loadSystemCache();
-  setInterval(syncMarketPrices, 60_000);
   processor = ProcessorFactory(esi, io, statsManager);
   await hashCache.prime();
   setInterval(() => hashCache.rotateIfNeeded(), 60_000);
@@ -270,4 +271,6 @@ process.on("SIGINT", () => shutdown("SIGINT"));
   syncPlayerCount();
   setInterval(refreshNebulaBackground, NEBULA_ROTATION_MS);
   startPoller();
+  startJaniceOverlay(getPricedTypeIDs);
+  runOverlayPass(getPricedTypeIDs()).catch(() => {});   // non-blocking first fill
 })();
