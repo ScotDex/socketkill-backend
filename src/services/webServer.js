@@ -570,16 +570,24 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       res.status(500).json({ error: 'Internal error' });
     }
   });
+
+  let lastSdeStamp = null;
+
   app.get('/api/filter-source', async (req, res) => {
     try {
-      const [systems, regions, groups, ships, items, meta] = await Promise.all([
-        kvClient.get('sde:systems'),
-        kvClient.get('sde:regions'),
-        kvClient.get('sde:groups'),
-        kvClient.get('sde:ships'),
-        kvClient.get('sde:items'),
-        kvClient.get('sde:meta'),
-      ]);
+      const meta = await kvClient.get('sde:meta', { ttlMs: 60_000 });
+    const stamp = meta ? `${meta.buildNumber}-${meta.schemaVersion ?? 0}` : null;
+    const stale = Boolean(stamp && stamp !== lastSdeStamp);
+
+    const [systems, regions, groups, ships, items] = await Promise.all([
+      kvClient.get('sde:systems',    { bypassCache: stale }),
+      kvClient.get('sde:regions',    { bypassCache: stale }),
+      kvClient.get('sde:groups',     { bypassCache: stale }),
+      kvClient.get('sde:ships',      { bypassCache: stale }),
+      kvClient.get('sde:items',      { bypassCache: stale }),
+    ]);
+
+    if (stale) lastSdeStamp = stamp;
 
       const missing = {
         systems: !systems,
@@ -592,7 +600,9 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
         return res.status(503).json({ error: 'Filter source incomplete', missing });
       }
 
-      const etag = meta?.buildNumber ? `"sde-${meta.buildNumber}"` : null;
+      const etag = meta?.buildNumber
+        ? `"sde-${meta.buildNumber}-${meta.schemaVersion ?? 0}"`
+        : null;
 
       if (etag && req.headers['if-none-match'] === etag) {
         res.set('ETag', etag);
