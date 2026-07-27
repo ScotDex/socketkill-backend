@@ -26,10 +26,19 @@ const WORK_DIR = '/tmp/sde-sync';
 const ZIP_PATH = path.join(WORK_DIR, 'sde.zip');
 const EXTRACT_DIR = path.join(WORK_DIR, 'extracted');
 
-// Files we actually care about. Anything not listed here is ignored.
 const TABLES = ['mapSolarSystems', 'mapRegions', 'types', 'groups', 'categories'];
 
-// ─── Cloudflare KV API ────────────────────────────────────────────────────
+const VICTIM_CATEGORIES = new Set([
+  6,   // Ship
+  22,  // Deployable             
+  23,  // Starbase               
+  40,  // Sovereignty Structures 
+  46,  // Orbitals               
+  65,  // Structure            
+  87,  // Fighter
+  11, // Entity — NPC ships. 
+]);
+
 
 const KV_BASE = `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/storage/kv/namespaces/${CF_NAMESPACE}`;
 const authHeader = { Authorization: `Bearer ${CF_TOKEN}` };
@@ -123,16 +132,19 @@ async function buildCategories() {
 
 async function buildShips(groups) {
   const out = {};
+  const tally = {};      
   for await (const row of readJsonl(path.join(EXTRACT_DIR, 'types.jsonl'))) {
     if (row._key === '_meta') continue;
     const groupID = row.groupID;
     const group = groups[groupID];
-    if (!group || group.categoryID !== 6) continue;  // Ship category only
+    if (!group || !VICTIM_CATEGORIES.has(group.categoryID)) continue;
+    tally[group.categoryID] = (tally[group.categoryID] ?? 0) + 1;
     out[row._key] = {
       name: getName(row.name),
       groupID,
     };
   }
+  console.log('  victim types by category:', tally);
   return out;
 }
 
