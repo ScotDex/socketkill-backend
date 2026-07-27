@@ -123,4 +123,4 @@ function getPricedTypeIDs() {
     return Array.from(priceMap.keys());
 }
 
-module.exports = { syncMarketPrices, loadMarketPrices, getPrice, calculateKillValue, calculateBreakdown, startMarketSync };
+module.exports = { syncMarketPrices, loadMarketPrices, getPrice, calculateKillValue, calculateBreakdown, startMarketSync, getPricedTypeIDs };
