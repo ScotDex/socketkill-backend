@@ -52,13 +52,25 @@ function flatten(items, out = []) {
     return out;
 }
 
+function pickVariation(list, isCopy) {
+    if (!list?.length) return 'icon';
+    if (isCopy && list.includes('bpc')) return 'bpc';
+    if (list.includes('icon')) return 'icon';
+    if (list.includes('bp')) return 'bp';
+    return list[0];
+}
+
 async function resolveItems(rawItems, esi) {
     if (!rawItems?.length) return { status: 'none', groups: {} };
 
     const flat = flatten(rawItems);
     const uniqueIds = [...new Set(flat.map(i => i.item_type_id))];
-    const names = await Promise.all(uniqueIds.map(id => esi.getTypeName(id)));
+    const [names, variations] = await Promise.all([
+        Promise.all(uniqueIds.map(id => esi.getTypeName(id))),
+        Promise.all(uniqueIds.map(id => esi.getTypeVariations(id))),
+    ]);
     const nameMap = new Map(uniqueIds.map((id, i) => [id, names[i]]));
+    const variationMap = new Map(uniqueIds.map((id, i) => [id, variations[i]]));
     const merged = new Map();
     for (const item of flat) {
         const group = groupForFlag(item.flag);
@@ -83,6 +95,7 @@ async function resolveItems(rawItems, esi) {
                 destroyed,
                 quantity: dropped + destroyed,
                 value: unitPrice,
+                iconVariation: pickVariation(variationMap.get(item.item_type_id), isCopy),
                 formattedValue: helpers.formatIsk(unitPrice * (dropped + destroyed)),
             });
         }

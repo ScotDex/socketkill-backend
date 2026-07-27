@@ -14,7 +14,8 @@ class ESIClient {
             systems: new Map(),
             regions: new Map(),
             alliances: new Map(),
-            allianceInfo: new Map()
+            allianceInfo: new Map(),
+            variations: new Map()
         };
 
         this.staticShipData = {};
@@ -168,6 +169,24 @@ class ESIClient {
 
         // 2. Fallback to Memory Cache & ESI (Handles Modules, Drones, Ammo)
         return await this.fetchAndCache(id, 'types', '/universe/types');
+    }
+
+    async getTypeVariations(id) {
+        if (!id) return [];
+        const strId = id.toString();
+        if (this.cache.variations.has(strId)) {
+            return this.cache.variations.get(strId);
+        }
+        try {
+            const res = await this.api.get(`https://images.evetech.net/types/${id}/`);
+            const list = Array.isArray(res.data) ? res.data : [];
+            this.cache.variations.set(strId, list);
+            return list;
+        } catch (err) {
+            // Negative-cache the failure, or a broken type re-probes every render.
+            this.cache.variations.set(strId, []);
+            return [];
+        }
     }
 
     async getRegionName(id) {
