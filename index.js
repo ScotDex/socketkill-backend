@@ -9,7 +9,7 @@ const statsManager = require("./src/services/statsManager");
 const ProcessorFactory = require("./src/core/processor_v2");
 const r2 = require("./src/network/r2Writer");
 const hashCache = require("./src/state/hashCache")
-const { syncMarketPrices, loadMarketPrices, startMarketSync } = require("./src/services/priceService");
+const { syncMarketPrices, loadMarketPrices, startMarketSync, getPricedTypeIDs } = require("./src/services/priceService");
 const kv = require('./src/network/kvClient');
 const { startJaniceOverlay, runOverlayPass } = require("./src/services/janiceOverlay");
 
