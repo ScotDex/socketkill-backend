@@ -12,6 +12,7 @@ const hashCache = require("./src/state/hashCache")
 const { syncMarketPrices, loadMarketPrices, startMarketSync, getPricedTypeIDs } = require("./src/services/priceService");
 const kv = require('./src/network/kvClient');
 const { startJaniceOverlay, runOverlayPass } = require("./src/services/janiceOverlay");
+const { loadCustomPrices, startCustomPriceSync } = require("./src/services/customPrices");
 
 const R2_BASE_URL = process.env.R2_BASE_URL;
 const SEQUENCE_CACHE_URL = `${R2_BASE_URL}/sequence.json`;
@@ -271,6 +272,8 @@ process.on("SIGINT", () => shutdown("SIGINT"));
   syncPlayerCount();
   setInterval(refreshNebulaBackground, NEBULA_ROTATION_MS);
   startPoller();
+  await loadCustomPrices();
+  startCustomPriceSync();
   startJaniceOverlay(getPricedTypeIDs);
   runOverlayPass(getPricedTypeIDs()).catch(() => {});   // non-blocking first fill
 })();

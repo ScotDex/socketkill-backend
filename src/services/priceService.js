@@ -1,6 +1,7 @@
 const axios = require('../network/agent');
 const r2 = require('../network/r2Writer');
 const janiceOverlay = require('./janiceOverlay');
+const customPrices = require('./customPrices');
 
 const ESI_BASE = 'https://esi.evetech.net';
 
@@ -63,6 +64,8 @@ function startMarketSync(intervalMs = 6 * 60 * 60 * 1000) {
 
 function getPrice(typeId) {
     if (MANUAL_PRICES[typeId] != null) return MANUAL_PRICES[typeId];
+    const custom = customPrices.getCustomPrice(typeId);
+    if (custom != null) return custom;
     const janice = janiceOverlay.getJanicePrice(typeId);
     if (janice != null) return janice;
     const entry = priceMap.get(typeId);
