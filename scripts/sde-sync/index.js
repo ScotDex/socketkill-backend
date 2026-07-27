@@ -39,6 +39,7 @@ const VICTIM_CATEGORIES = new Set([
   11, // Entity — NPC ships. 
 ]);
 
+const SCHEMA_VERSION = 2;
 
 const KV_BASE = `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/storage/kv/namespaces/${CF_NAMESPACE}`;
 const authHeader = { Authorization: `Bearer ${CF_TOKEN}` };
@@ -170,12 +171,13 @@ async function main() {
   console.log('Fetching stored sde:meta…');
   const storedRaw = await kvGet('sde:meta');
   const stored = storedRaw ? JSON.parse(storedRaw) : { etag: null, buildNumber: null };
+  const schemaStale = stored.schemaVersion !== SCHEMA_VERSION;
   console.log(`  stored: build=${stored.buildNumber}, etag=${stored.etag || '(none)'}`);
 
   console.log(`Checking ${LATEST_URL}…`);
   const headRes = await fetch(LATEST_URL, {
     method: 'HEAD',
-    headers: stored.etag ? { 'If-None-Match': stored.etag } : {},
+    headers: (stored.etag && !schemaStale) ? { 'If-None-Match': stored.etag } : {},
   });
 
   if (headRes.status === 304) {
@@ -205,11 +207,12 @@ async function main() {
   if (!newBuild) throw new Error('Could not parse build number from latest.jsonl');
   console.log(`  new build: ${newBuild}`);
 
-  if (newBuild === stored.buildNumber) {
+  if (newBuild === stored.buildNumber && !schemaStale) {
     console.log('Build unchanged. Updating ETag only.');
     await kvPut('sde:meta', {
       etag: newEtag,
       buildNumber: newBuild,
+      schemaVersion: SCHEMA_VERSION,
       lastSyncedAt: new Date().toISOString(),
     });
     return;
@@ -269,6 +272,7 @@ async function main() {
   await kvPut('sde:meta', {
     etag: newEtag,
     buildNumber: newBuild,
+    schemaVersion: SCHEMA_VERSION,
     lastSyncedAt: new Date().toISOString(),
   });
 
