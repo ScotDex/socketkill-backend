@@ -76,7 +76,7 @@ class bombeldoFactoryV2 {
             components: [
                 { type: 10, content: `**${headline}**` },
                 { type: 10, content: `[**${flavour}**](${killLink})` },
-                { type: 10, content: `Value - **${helpers.formatIsk(zkb.totalValue)} ISK**${freddoSuffix}` }
+                { type: 10, content: `Value - **${helpers.formatIsk(names.rawValue)} ISK**${freddoSuffix}` }
             ],
             accessory: { type: 11, media: { url: `https://images.evetech.net/types/${kill.victim.ship_type_id}/render?size=256` } }
         });

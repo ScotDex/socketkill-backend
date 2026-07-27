@@ -21,7 +21,7 @@ const LOSS_COMMENTS = [
 class corpIntelFactory {
     static createKillEmbed(kill, zkb, names) {
         const DOTLAN_BASE = 'https://evemaps.dotlan.net'
-        const totalValue = helpers.formatIsk(zkb.totalValue)
+        const totalValue = helpers.formatIsk(names.rawValue)
         const corpIcon = `https://edge.socketkill.com/taylr/logo.png`;
         const title = LOSS_COMMENTS[Math.floor(Math.random() * LOSS_COMMENTS.length)];
         const authorIcon = kill.victim.character_id

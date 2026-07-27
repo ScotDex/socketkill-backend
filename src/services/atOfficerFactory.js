@@ -28,7 +28,7 @@ class atOfficerFactory {
                     { name: "Pilot", value: names.triggerCharName ? `**[${names.triggerCharName}](${ZKILL_BASE}/character/${triggerAttacker?.character_id}/)**` : 'Unknown', inline: false },
                     { name: "Corporation", value: names.triggerCorpName ? `**[${names.triggerCorpName}](${ZKILL_BASE}/corporation/${triggerAttacker?.corporation_id}/)**` : 'Unknown', inline: false },
                     { name: "Alliance", value: names.allianceName ? `**[${names.allianceName}](${ZKILL_BASE}/alliance/${triggerAttacker?.alliance_id}/)**` : "No Alliance", inline: false },
-                    { name: "Total Value", value: `**${helpers.formatIsk(zkb.totalValue)} ISK**`, inline: false },
+                    { name: "Total Value", value: `**${helpers.formatIsk(names.rawValue)} ISK**`, inline: false },
                 ],
                 footer: {
                     text: `Powered by socketkill.com`,

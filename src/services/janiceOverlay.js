@@ -1,23 +1,13 @@
-// src/services/janiceOverlay.js
-//
-// Janice price overlay. Sits ON TOP of the ESI priceMap — never replaces it.
-// Precedence in priceService.getPrice():  MANUAL_PRICES -> Janice -> ESI -> 0
-//
-// If Janice is down, the key is revoked, or a response is malformed, this
-// degrades to exactly the pre-existing ESI behaviour. It must never be able
-// to break pricing.
-
 const talker = require('../network/agent');
 
 const JANICE_BASE = 'https://janice.e-351.com/api/rest/v2';
 const API_KEY = process.env.JANICE_API_KEY;
 const MARKET_ID = 2;                 // Jita 4-4
 
-// Batch limit is UNDOCUMENTED. 200 is a conservative starting point —
-// test upward and raise this once the real ceiling is known.
+
 const CHUNK_SIZE = 200;
-const CHUNK_DELAY_MS = 1000;         // politeness gap between chunks
-const PASS_INTERVAL_MS = 12 * 60 * 60 * 1000;
+const CHUNK_DELAY_MS = 1000;         
+const PASS_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 let janiceMap = new Map();
 let overlayTimer = null;
@@ -47,13 +37,6 @@ async function fetchChunk(typeIDs) {
   return Array.isArray(res.data) ? res.data : [];
 }
 
-// THE GATE. Proven necessary by the capital-hull test: an Erebus with zero
-// sell orders returns splitPrice = buyPrice/2 = 220M against a real value
-// near 90B. Plausible-looking garbage is worse than no answer.
-//
-// Reject unless there is a real two-sided market AND a 30-day median.
-// Rejected entries fall through to ESI — we never substitute another
-// Janice field.
 function accept(entry) {
   const id = entry?.itemType?.eid;
   const sells = entry?.sellOrderCount;
@@ -67,11 +50,6 @@ function accept(entry) {
   return [id, price];
 }
 
-/**
- * Run one full overlay pass over the supplied typeIDs.
- * Builds into a staging map and swaps at the end — a mid-pass crash leaves
- * the previous overlay intact rather than half-destroyed.
- */
 async function runOverlayPass(typeIDs) {
   if (!API_KEY) {
     console.warn('[JANICE] JANICE_API_KEY not set — overlay disabled');
@@ -117,9 +95,6 @@ async function runOverlayPass(typeIDs) {
       }
       if (i < batches.length - 1) await sleep(CHUNK_DELAY_MS);
     }
-
-    // Only swap if we got something. An empty result means total failure,
-    // and keeping the previous overlay is strictly better than clearing it.
     if (staging.size > 0) {
       janiceMap = staging;
     } else {
@@ -136,10 +111,6 @@ async function runOverlayPass(typeIDs) {
   }
 }
 
-/**
- * Schedule recurring passes. getTypeIDs is a function so the working set is
- * resolved fresh at each pass rather than captured once at boot.
- */
 function startJaniceOverlay(getTypeIDs, intervalMs = PASS_INTERVAL_MS) {
   if (overlayTimer) return;
   if (!API_KEY) {
@@ -155,7 +126,6 @@ function startJaniceOverlay(getTypeIDs, intervalMs = PASS_INTERVAL_MS) {
   console.log(`[JANICE] Overlay scheduled every ${(intervalMs / 3_600_000).toFixed(1)}h`);
 }
 
-/** Returns a Janice price, or null to fall through to ESI. */
 function getJanicePrice(typeId) {
   const v = janiceMap.get(typeId);
   return v != null ? v : null;

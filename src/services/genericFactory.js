@@ -22,7 +22,7 @@ const siteIcon = `https://edge.socketkill.com/favicon.png`;
 class NewsEmbedFactory {
     static createEmbed(kill, zkb, names, category) {
         const config = CATEGORY_CONFIG[category] || { color: 0x3fb950 }
-        const totalValue = helpers.formatIsk(zkb.totalValue);
+        const totalValue = helpers.formatIsk(names.rawValue);
         
         const authorIcon = kill.victim.character_id
     ? `https://images.evetech.net/characters/${kill.victim.character_id}/portrait?size=64`
@@ -100,7 +100,7 @@ class NewsEmbedFactory {
                             : "—",
                         inline: false
                     },
-                    { name: "Value", value: `**${helpers.formatIsk(zkb.totalValue)} ISK**`, inline: false },
+                    { name: "Value", value: `**${helpers.formatIsk(names.rawValue)} ISK**`, inline: false },
                 ],
                 footer: {
                     text: `Powered by Socketkill.com`,
