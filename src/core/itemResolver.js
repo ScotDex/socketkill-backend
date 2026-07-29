@@ -37,6 +37,8 @@ const SLOT_GROUPS = {
     expeditionHold: [188]
 };
 
+const FITTED_GROUPS = new Set(['high', 'mid', 'low', 'rig', 'subsystem', 'service']);
+
 function groupForFlag(flag) {
     if (flag === 0) return 'cargo';
     for (const [group, flags] of Object.entries(SLOT_GROUPS)) {
@@ -60,8 +62,55 @@ function pickVariation(list, isCopy) {
     return list[0];
 }
 
+function buildSlots(flat, nameMap, variationMap) {
+    const byKey = new Map();
+
+    for (const item of flat) {
+        const group = groupForFlag(item.flag);
+        if (!FITTED_GROUPS.has(group)) continue;
+
+        const key = `${item.flag}:${item.item_type_id}`;
+        const dropped = item.quantity_dropped || 0;
+        const destroyed = item.quantity_destroyed || 0;
+        const existing = byKey.get(key);
+
+        if (existing) {
+            existing.dropped += dropped;
+            existing.destroyed += destroyed;
+            existing.quantity += dropped + destroyed;
+        } else {
+            byKey.set(key, {
+                _group: group,
+                _flag: item.flag,
+                name: nameMap.get(item.item_type_id) || 'Unknown',
+                typeID: item.item_type_id,
+                dropped,
+                destroyed,
+                quantity: dropped + destroyed,
+                iconVariation: pickVariation(variationMap.get(item.item_type_id), item.singleton === 2),
+            });
+        }
+    }
+
+    const grouped = {};
+    for (const entry of byKey.values()) {
+        const { _group, _flag, ...rest } = entry;
+        if (!grouped[_group]) grouped[_group] = new Map();
+        if (!grouped[_group].has(_flag)) grouped[_group].set(_flag, []);
+        grouped[_group].get(_flag).push(rest);
+    }
+
+    const out = {};
+    for (const [group, flagMap] of Object.entries(grouped)) {
+        out[group] = [...flagMap.entries()]
+            .sort((a, b) => a[0] - b[0])
+            .map(([flag, items]) => ({ flag, items }));
+    }
+    return out;
+}
+
 async function resolveItems(rawItems, esi) {
-    if (!rawItems?.length) return { status: 'none', groups: {} };
+    if (!rawItems?.length) return { status: 'none', groups: {}, slots: {} };
 
     const flat = flatten(rawItems);
     const uniqueIds = [...new Set(flat.map(i => i.item_type_id))];
@@ -71,6 +120,7 @@ async function resolveItems(rawItems, esi) {
     ]);
     const nameMap = new Map(uniqueIds.map((id, i) => [id, names[i]]));
     const variationMap = new Map(uniqueIds.map((id, i) => [id, variations[i]]));
+    const slots = buildSlots(flat, nameMap, variationMap);
     const merged = new Map();
     for (const item of flat) {
         const group = groupForFlag(item.flag);
@@ -108,7 +158,7 @@ async function resolveItems(rawItems, esi) {
     }
     for (const arr of Object.values(groups)) arr.sort((a, b) => a.name.localeCompare(b.name));
 
-    return { status: 'resolved', groups };
+    return { status: 'resolved', groups, slots };
 }
 
 module.exports = { resolveItems, SLOT_GROUPS, groupForFlag };
