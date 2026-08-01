@@ -100,6 +100,8 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     }
 
     const isBot = BOT_UA.test(req.get('User-Agent') || '');
+    const { ip, ua, ref } = requestMeta(req);
+    console.log(`[KILL API] ENTRY kill=${id} bot=${isBot} ip=${ip} ua="${ua}"`);
 
     if (req.params.date) {
       date = req.params.date;
@@ -122,6 +124,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
         } else {
 
           if (isBot) {
+            console.warn(`[KILL API] 503 GATE-A kill=${id} (no date resolved) ua="${ua}"`);
             res.set('Cache-Control', 'public, max-age=300');
             return res.status(503).json({ error: 'Killmail not yet cached. Retry shortly.' });
           }
@@ -168,7 +171,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     }
 
 
-    const { ip, ua, ref } = requestMeta(req);
+    
     console.log(`[KILL API] kill=${id} date=${date} ip=${ip} ua="${ua}" ref="${ref}"`);
 
     try {
