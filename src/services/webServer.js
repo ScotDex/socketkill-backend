@@ -108,20 +108,20 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
 
     } else {
 
-      const now = new Date();
-      for (let i = 0; i < 30; i++) {
-        const d = new Date(now.getTime() - i * 86400000).toISOString().slice(0, 10);
-        if (await hashCache.getHashFromShard(d, id)) {
-          date = d;
-          break;
-        }
+      const todayStr = new Date().toISOString().slice(0, 10);
+      if (hashCache.get(id)) {
+        date = todayStr;
       }
+
       if (!date) {
         const km = await r2.get(`killmails/${id}.json`).catch(() => null);
         if (km?.killmail_time) {
           date = km.killmail_time.slice(0, 10);
-          console.log(`[KILL API] Date recovered from cached killmail for ${id}: ${date}`);
-        } else {
+          console.log(`[KILL API] DIRECT date for ${id}: ${date}`);
+        }
+      }
+
+      if (!date) {
 
           if (isBot) {
             console.warn(`[KILL API] 503 GATE-A kill=${id} (no date resolved) ua="${ua}"`);
@@ -152,7 +152,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
           }
         }
       }
-    }
+    
 
     const isToday = date === new Date().toISOString().slice(0, 10);
     if (!isToday) {
