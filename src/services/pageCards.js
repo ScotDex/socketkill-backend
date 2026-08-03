@@ -101,3 +101,5 @@ async function renderPageCard(key) {
 }
 
 module.exports = { renderPageCard, PAGES };
+
+// forcing workers to do their jobs
