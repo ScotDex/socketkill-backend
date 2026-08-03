@@ -24,7 +24,7 @@ const C = {
 };
 
 const PAGES = {
-  home: { description: 'Live kill stream from EVE Online, see yourself die in an atmospheric and aesthetically pleasing way.' },
+  home: { description: 'See yourself die in an atmospheric and aesthetically pleasing way.' },
 };
 
 async function renderPageCard(key) {
