@@ -22,7 +22,7 @@ const C = {
   faint: 'rgba(255,255,255,0.65)',
   bg: '#0a0b0e',
 };
-
+// Force recheck
 const PAGES = {
   home: { description: 'See yourself die in an atmospheric and aesthetically pleasing way.' },
 };
