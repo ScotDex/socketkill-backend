@@ -22,6 +22,7 @@ const plexRate = require('../services/plexRate');
 const { renderOgCard } = require('../services/ogCard');
 const npcKills = require('./npcKills');
 const d1 = require('../network/d1Client');
+const { renderPageCard, PAGES } = require('../services/pageCards');
 
 
 const resolveLimit = pLimit(4);
@@ -345,6 +346,25 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       res.status(500).json({ error: 'Card render failed' });
     }
   });
+
+  app.get('/og/page/:key', ogLimiter, async (req, res) => {
+  const key = req.params.key;
+  if (!PAGES[key]) {
+    res.set('Cache-Control', 'no-store');
+    return res.status(404).json({ error: 'Unknown page' });
+  }
+  try {
+    const png = await renderPageCard(key);
+    res.set('Content-Type', 'image/png');
+    res.set('Cache-Control', 'public, max-age=86400');
+    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.send(png);
+  } catch (err) {
+    console.error(`[OG PAGE] ${key} failed: ${err.message}`);
+    res.set('Cache-Control', 'no-store');
+    res.status(500).json({ error: 'Card render failed' });
+  }
+});
 
 
   const SITE = 'https://socketkill.com';
