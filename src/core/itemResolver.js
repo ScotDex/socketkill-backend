@@ -6,12 +6,12 @@ const SLOT_GROUPS = {
     high: [27, 28, 29, 30, 31, 32, 33, 34],
     mid: [19, 20, 21, 22, 23, 24, 25, 26],
     low: [11, 12, 13, 14, 15, 16, 17, 18],
-    rig: [92, 93, 94, 95, 96, 97, 98, 99],           // 95-99: structure rigs
+    rig: [92, 93, 94, 95, 96, 97, 98, 99],           
     subsystem: [125, 126, 127, 128, 129, 130, 131, 132],
-    service: [164, 165, 166, 167, 168, 169, 170, 171], // Upwell structure services
+    service: [164, 165, 166, 167, 168, 169, 170, 171],
     // bays
     drone: [87],
-    fighter: [158, 159, 160, 161, 162, 163],          // 161-163: FighterTube2-4
+    fighter: [158, 159, 160, 161, 162, 163],        
     booster: [176],
     frigateBay: [179],
     corpseBay: [174],
@@ -24,9 +24,9 @@ const SLOT_GROUPS = {
     gasHold: [135],
     mineralHold: [136],
     salvageHold: [137],
-    shipHold: [138, 139, 140, 141, 142],              // general + S/M/L/industrial ship holds
+    shipHold: [138, 139, 140, 141, 142],              
     ammoHold: [143],
-    planetaryHold: [148, 149],                        // command center + PI commodities
+    planetaryHold: [148, 149],                        
     materialBay: [151],
     fleetHangar: [155],
     shipHangar: [90],
