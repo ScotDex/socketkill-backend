@@ -43,9 +43,8 @@ class utils {
 
   static async getPlayerCount() {
     try {
-      const url = "https://esi.evetech.net/latest/status/";
+      const url = "https://esi.evetech.net/status/";
       const response = await axios.get(url, {
-        headers: { 'User-Agent': 'Socket.Kill / Dexomus Viliana (https://socketkill.com)' },
         timeout: 5000,
       });
 

@@ -13,7 +13,7 @@ module.exports = {
             hash: hash,
             zkb: {
                 totalValue: totalValue,
-                href: hash ? `https://esi.evetech.net/latest/killmails/${killID}/${hash}/` : null,
+                href: hash ? `https://esi.evetech.net/killmails/${killID}/${hash}/` : null,
                 isNPC: data.zkb?.npc || false,
                 labels: data.zkb?.labels || []
             },
@@ -31,7 +31,7 @@ module.exports = {
             hash: killmailHash,
             zkb: {
                 totalValue: 0,
-                href: `https://esi.evetech.net/latest/killmails/${killmailId}/${killmailHash}/`,
+                href: `https://esi.evetech.net/killmails/${killmailId}/${killmailHash}/`,
                 isNPC: false,
                 labels: []
             },

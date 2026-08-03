@@ -4,7 +4,7 @@ let npcData = null;
 
 async function refresh() {
     const res = await axios.get(
-        'https://esi.evetech.net/latest/universe/system_kills/',
+        'https://esi.evetech.net/universe/system_kills/',
         { headers: { 'X-Compatibility-Date': '2025-12-16' } }
     );
     const rawData = res.data;

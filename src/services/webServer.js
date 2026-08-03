@@ -132,7 +132,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
           try {
             const zkillRes = await axios.get(
               `https://zkillboard.com/api/killID/${id}/`,
-              { timeout: 3000, headers: { 'User-Agent': 'Socket.Kill / Dexomus Viliana' } }
+              { timeout: 3000 }
             );
             const zkbHash = zkillRes.data?.[0]?.zkb?.hash;
             if (!zkbHash) {
@@ -356,7 +356,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
   try {
     const png = await renderPageCard(key);
     res.set('Content-Type', 'image/png');
-    res.set('Cache-Control', 'public, max-age=86400');
+    res.set('Cache-Control', 'public, max-age=3600');
     res.set('Cross-Origin-Resource-Policy', 'cross-origin');
     res.send(png);
   } catch (err) {
@@ -663,8 +663,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       console.log(`[REFIRE] Requested kill ${killId}`);
 
       const zkillRes = await axios.get(
-        `https://zkillboard.com/api/killID/${killId}/`,
-        { headers: { 'User-Agent': 'Socket.Kill / Dexomus Viliana' } }
+        `https://zkillboard.com/api/killID/${killId}/`
       );
       const zkillData = zkillRes.data[0];
       if (!zkillData) {
@@ -677,7 +676,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       console.log(`[REFIRE] Kill ${killId} | Hash: ${hash} | Value: ${totalValue}`);
 
       const esiRes = await axios.get(
-        `https://esi.evetech.net/latest/killmails/${killId}/${hash}/`,
+        `https://esi.evetech.net/killmails/${killId}/${hash}/`,
         { headers: { 'X-Compatibility-Date': '2025-12-16' } }
       );
       console.log(`[REFIRE] ESI data fetched for kill ${killId}`);
