@@ -460,13 +460,13 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
 
       const [lossRes, killRes] = await Promise.all([
         d1.query(
-          `SELECT ${FIELDS} FROM kills WHERE ${cols.victim} = ? ORDER BY kill_time DESC LIMIT 100`,
+          `SELECT ${FIELDS} FROM kills WHERE ${cols.victim} = ? ORDER BY kill_time DESC LIMIT 500`,
           [id]
         ),
         d1.query(
           `SELECT DISTINCT k.kill_id, k.kill_time, k.system_id, k.region_id, k.space, k.total_value, k.ship_type_id, k.attacker_count
            FROM kills k JOIN kill_attackers ka ON ka.kill_id = k.kill_id
-           WHERE ka.${cols.attacker} = ? ORDER BY k.kill_time DESC LIMIT 100`,
+           WHERE ka.${cols.attacker} = ? ORDER BY k.kill_time DESC LIMIT 500`,
           [id]
         ),
       ]);
@@ -477,7 +477,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
 
       const merged = [...rows.values()]
         .sort((a, b) => b.kill_time.localeCompare(a.kill_time))
-        .slice(0, 100);
+        .slice(0, 500);
 
       const events = await Promise.all(merged.map(async r => {
         const sys = esi.getSystemDetails(r.system_id);
