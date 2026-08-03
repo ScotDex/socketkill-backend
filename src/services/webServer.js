@@ -24,7 +24,7 @@ const npcKills = require('./npcKills');
 const d1 = require('../network/d1Client');
 const { renderPageCard, PAGES } = require('../services/pageCards');
 
-
+// Refactoring job required
 const resolveLimit = pLimit(4);
 const BOT_UA = /bot|crawler|spider|claude|gptbot|ccbot|bytespider|petalbot|slurp|bingbot|googlebot|facebookexternalhit|meta-external/i;
 
