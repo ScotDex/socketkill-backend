@@ -19,6 +19,16 @@ async function query(sql, params = []) {
     return json;
 }
 
+async function pruneOldKills(days = 30) {
+    const cutoff = `datetime('now', '-${days} days')`;
+    await query(
+        `DELETE FROM kill_attackers WHERE kill_id IN (SELECT kill_id FROM kills WHERE kill_time < ${cutoff})`
+    );
+    const res = await query(`DELETE FROM kills WHERE kill_time < ${cutoff}`);
+    console.log(`[D1] Pruned kills older than ${days}d`);
+    return res;
+}
+
 async function recordKill(kill, attackers) {
     await query(
         `INSERT OR IGNORE INTO kills
