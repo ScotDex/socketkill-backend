@@ -9,8 +9,6 @@ const fs = require("fs");
 const axios = require("../network/agent");
 const hashCache = require("../state/hashCache");
 const killmailCache = require("../state/killmailCache");
-const helpers = require("../core/helpers");
-const { resolveItems } = require('../core/itemResolver');
 const pLimit = require('p-limit');
 const kvClient = require('../network/kvClient');
 const killmailResolver = require('../core/killmailResolver');
@@ -25,7 +23,6 @@ const d1 = require('../network/d1Client');
 const { renderPageCard, PAGES } = require('../services/pageCards');
 
 // Refactoring job required
-const resolveLimit = pLimit(4);
 const BOT_UA = /bot|crawler|spider|claude|gptbot|ccbot|bytespider|petalbot|slurp|bingbot|googlebot|facebookexternalhit|meta-external/i;
 
 function startWebServer(esi, statsManager, sharedState, getProcessor) {
