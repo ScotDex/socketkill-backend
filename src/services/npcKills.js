@@ -23,3 +23,5 @@ function get() {
 }
 
 module.exports = { refresh, get };
+
+// Forcing build again to set fake simulation
