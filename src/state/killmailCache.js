@@ -2,7 +2,7 @@ const talker = require("../network/agent");
 const r2 = require("../network/r2Writer");
 
 const MAX_ENTRIES = 5000;
-const ESI_BASE = "https://esi.evetech.net/latest/killmails";
+const ESI_BASE = "https://esi.evetech.net/killmails";
 const ESI_HEADERS = { "X-Compatibility-Date": "2025-12-16" };
 
 const cache = new Map();

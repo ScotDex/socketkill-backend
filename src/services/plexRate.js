@@ -8,7 +8,7 @@ let plexRate = null;
 
 async function refresh() {
   const res = await axios.get(
-    `https://esi.evetech.net/latest/markets/${PLEX_REGION}/history/?type_id=${PLEX_TYPE}`,
+    `https://esi.evetech.net/markets/${PLEX_REGION}/history/?type_id=${PLEX_TYPE}`,
     { headers: { 'X-Compatibility-Date': '2025-12-16' } }
   );
   const history = res.data;

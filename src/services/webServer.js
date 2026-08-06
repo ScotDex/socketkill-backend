@@ -9,8 +9,6 @@ const fs = require("fs");
 const axios = require("../network/agent");
 const hashCache = require("../state/hashCache");
 const killmailCache = require("../state/killmailCache");
-const helpers = require("../core/helpers");
-const { resolveItems } = require('../core/itemResolver');
 const pLimit = require('p-limit');
 const kvClient = require('../network/kvClient');
 const killmailResolver = require('../core/killmailResolver');
@@ -22,9 +20,9 @@ const plexRate = require('../services/plexRate');
 const { renderOgCard } = require('../services/ogCard');
 const npcKills = require('./npcKills');
 const d1 = require('../network/d1Client');
+const { renderPageCard, PAGES } = require('../services/pageCards');
 
-
-const resolveLimit = pLimit(4);
+// Refactoring job required
 const BOT_UA = /bot|crawler|spider|claude|gptbot|ccbot|bytespider|petalbot|slurp|bingbot|googlebot|facebookexternalhit|meta-external/i;
 
 function startWebServer(esi, statsManager, sharedState, getProcessor) {
@@ -100,35 +98,38 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     }
 
     const isBot = BOT_UA.test(req.get('User-Agent') || '');
+    const { ip, ua, ref } = requestMeta(req);
+    console.log(`[KILL API] ENTRY kill=${id} bot=${isBot} ip=${ip} ua="${ua}"`);
 
     if (req.params.date) {
       date = req.params.date;
 
     } else {
 
-      const now = new Date();
-      for (let i = 0; i < 30; i++) {
-        const d = new Date(now.getTime() - i * 86400000).toISOString().slice(0, 10);
-        if (await hashCache.getHashFromShard(d, id)) {
-          date = d;
-          break;
-        }
+      const todayStr = new Date().toISOString().slice(0, 10);
+      if (hashCache.get(id)) {
+        date = todayStr;
       }
+
       if (!date) {
         const km = await r2.get(`killmails/${id}.json`).catch(() => null);
         if (km?.killmail_time) {
           date = km.killmail_time.slice(0, 10);
-          console.log(`[KILL API] Date recovered from cached killmail for ${id}: ${date}`);
-        } else {
+          console.log(`[KILL API] DIRECT date for ${id}: ${date}`);
+        }
+      }
+
+      if (!date) {
 
           if (isBot) {
+            console.warn(`[KILL API] 503 GATE-A kill=${id} (no date resolved) ua="${ua}"`);
             res.set('Cache-Control', 'public, max-age=300');
             return res.status(503).json({ error: 'Killmail not yet cached. Retry shortly.' });
           }
           try {
             const zkillRes = await axios.get(
               `https://zkillboard.com/api/killID/${id}/`,
-              { timeout: 3000, headers: { 'User-Agent': 'Socket.Kill / Dexomus Viliana' } }
+              { timeout: 3000 }
             );
             const zkbHash = zkillRes.data?.[0]?.zkb?.hash;
             if (!zkbHash) {
@@ -149,7 +150,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
           }
         }
       }
-    }
+    
 
     const isToday = date === new Date().toISOString().slice(0, 10);
     if (!isToday) {
@@ -168,7 +169,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     }
 
 
-    const { ip, ua, ref } = requestMeta(req);
+    
     console.log(`[KILL API] kill=${id} date=${date} ip=${ip} ua="${ua}" ref="${ref}"`);
 
     try {
@@ -343,6 +344,25 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     }
   });
 
+  app.get('/og/page/:key', ogLimiter, async (req, res) => {
+  const key = req.params.key;
+  if (!PAGES[key]) {
+    res.set('Cache-Control', 'no-store');
+    return res.status(404).json({ error: 'Unknown page' });
+  }
+  try {
+    const png = await renderPageCard(key);
+    res.set('Content-Type', 'image/png');
+    res.set('Cache-Control', 'public, max-age=3600');
+    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.send(png);
+  } catch (err) {
+    console.error(`[OG PAGE] ${key} failed: ${err.message}`);
+    res.set('Cache-Control', 'no-store');
+    res.status(500).json({ error: 'Card render failed' });
+  }
+});
+
 
   const SITE = 'https://socketkill.com';
 
@@ -437,13 +457,13 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
 
       const [lossRes, killRes] = await Promise.all([
         d1.query(
-          `SELECT ${FIELDS} FROM kills WHERE ${cols.victim} = ? ORDER BY kill_time DESC LIMIT 100`,
+          `SELECT ${FIELDS} FROM kills WHERE ${cols.victim} = ? ORDER BY kill_time DESC LIMIT 500`,
           [id]
         ),
         d1.query(
           `SELECT DISTINCT k.kill_id, k.kill_time, k.system_id, k.region_id, k.space, k.total_value, k.ship_type_id, k.attacker_count
            FROM kills k JOIN kill_attackers ka ON ka.kill_id = k.kill_id
-           WHERE ka.${cols.attacker} = ? ORDER BY k.kill_time DESC LIMIT 100`,
+           WHERE ka.${cols.attacker} = ? ORDER BY k.kill_time DESC LIMIT 500`,
           [id]
         ),
       ]);
@@ -454,7 +474,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
 
       const merged = [...rows.values()]
         .sort((a, b) => b.kill_time.localeCompare(a.kill_time))
-        .slice(0, 100);
+        .slice(0, 500);
 
       const events = await Promise.all(merged.map(async r => {
         const sys = esi.getSystemDetails(r.system_id);
@@ -640,8 +660,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       console.log(`[REFIRE] Requested kill ${killId}`);
 
       const zkillRes = await axios.get(
-        `https://zkillboard.com/api/killID/${killId}/`,
-        { headers: { 'User-Agent': 'Socket.Kill / Dexomus Viliana' } }
+        `https://zkillboard.com/api/killID/${killId}/`
       );
       const zkillData = zkillRes.data[0];
       if (!zkillData) {
@@ -654,7 +673,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       console.log(`[REFIRE] Kill ${killId} | Hash: ${hash} | Value: ${totalValue}`);
 
       const esiRes = await axios.get(
-        `https://esi.evetech.net/latest/killmails/${killId}/${hash}/`,
+        `https://esi.evetech.net/killmails/${killId}/${hash}/`,
         { headers: { 'X-Compatibility-Date': '2025-12-16' } }
       );
       console.log(`[REFIRE] ESI data fetched for kill ${killId}`);

@@ -7,7 +7,6 @@ async function fetchZkbMeta(killID) {
   try {
     const res = await axios.get(`https://zkillboard.com/api/killID/${killID}/`, {
       timeout: 3000,
-      headers: { 'User-Agent': 'Socket.Kill / Dexomus Viliana' }
     });
     return res.data?.[0]?.zkb || null;
   } catch (err) {
