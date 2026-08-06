@@ -48,7 +48,7 @@
       border-left-color: #ff6b6b;
     }
 
-    .kill.kill {
+    .kill.win {
       border-left-color: #51cf66;
     }
 
@@ -88,26 +88,21 @@
     const params = new URLSearchParams(location.search);
     const showShip = params.get('ship') !== 'false';
     const character = params.get('character');
+    const DEMO = params.get('demo') === '1';
     const MAX_ROWS = 12;
     const feed = document.getElementById('feed');
-    const socket = io('https://ws.socketkill.com',
-    
-    
-    { query: {character},
-      transports: ['websocket'] });
 
-    socket.on('char-kill', (k) => {
+    function renderKill(k) {
       const row = document.createElement('div');
-      row.className = k.isLoss ? 'kill loss' : 'kill kill';
+      row.className = k.isLoss ? 'kill loss' : 'kill win';
       row.innerHTML = `
-    <img src="${k.shipImageUrl}" alt="">
-    ${showShip ? `<span class="ship">${k.ship}</span>` : ''}
-    <span class="val">${humanizeIsk(k.val)} ISK</span>
-  `;
+        <img src="${k.shipImageUrl}" alt="">
+        ${showShip ? `<span class="ship">${k.ship}</span>` : ''}
+        <span class="val">${humanizeIsk(k.val)} ISK</span>
+      `;
       feed.prepend(row);
       while (feed.children.length > MAX_ROWS) feed.lastChild.remove();
-    });
-    
+    }
 
     function humanizeIsk(v) {
       if (v >= 1e12) return (v / 1e12).toFixed(2) + 't';
@@ -115,6 +110,51 @@
       if (v >= 1e6) return (v / 1e6).toFixed(2) + 'm';
       if (v >= 1e3) return (v / 1e3).toFixed(2) + 'k';
       return String(v);
+    }
+
+    // ---- demo mode ----------------------------------------------------
+
+    const DEMO_SHIPS = [
+      { ship: 'Rifter', shipId: 587, val: 12_400_000 },
+      { ship: 'Vexor Navy Issue', shipId: 17843, val: 340_000_000 },
+      { ship: 'Loki', shipId: 29990, val: 2_100_000_000 },
+      { ship: 'Venture', shipId: 32880, val: 900_000 },
+      { ship: 'Nyx', shipId: 23913, val: 24_000_000_000 },
+    ];
+
+    function randomKill() {
+      const s = DEMO_SHIPS[Math.floor(Math.random() * DEMO_SHIPS.length)];
+      return {
+        ...s,
+        shipImageUrl: `https://images.evetech.net/types/${s.shipId}/render?size=64`,
+        isLoss: Math.random() < 0.4,
+      };
+    }
+
+    function makeMockSocket() {
+      const handlers = {};
+      const api = {
+        on(evt, fn) { (handlers[evt] ||= []).push(fn); return api; },
+        push(evt, data) { (handlers[evt] || []).forEach(fn => fn(data)); },
+      };
+      return api;
+    }
+
+    // ---- wiring -------------------------------------------------------
+
+    const socket = DEMO
+      ? makeMockSocket()
+      : io('https://ws.socketkill.com', {
+          query: { character },
+          transports: ['websocket']
+        });
+
+    socket.on('char-kill', renderKill);
+
+    if (DEMO) {
+      const rate = Number(params.get('rate') || 1500);
+      socket.push('char-kill', randomKill());
+      setInterval(() => socket.push('char-kill', randomKill()), rate);
     }
   </script>
 </body>
