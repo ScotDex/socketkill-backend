@@ -363,6 +363,15 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
   }
 });
 
+app.use("/ticker.html", (req, res, next) => {
+  res.removeHeader("X-Frame-Options");
+  res.setHeader(
+    "Content-Security-Policy",
+    "frame-ancestors 'self' https://socketkill.com"
+  );
+  next();
+});
+
 
   const SITE = 'https://socketkill.com';
 
