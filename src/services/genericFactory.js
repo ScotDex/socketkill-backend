@@ -17,6 +17,7 @@ const CATEGORY_CONFIG = {
 
 const DOTLAN_BASE = 'https://evemaps.dotlan.net';
 const KILLMAIL_BASE = `https://zkillboard.com/`;
+const ENTITY_BASE = `https://socketkill.com`;
 const siteIcon = `https://edge.socketkill.com/favicon.png`;
 
 class NewsEmbedFactory {
@@ -47,14 +48,14 @@ class NewsEmbedFactory {
                     {
                         name: "Corporation",
                         value: kill.victim.corporation_id
-                            ? `**[${names.corpName}](${KILLMAIL_BASE}corporation/${kill.victim.corporation_id}/)**`
+                            ? `**[${names.corpName}](${ENTITY_BASE}/corp/${kill.victim.corporation_id})**`
                             : "—",
                         inline: false
                     },
                     {
                         name: "Alliance",
                         value: kill.victim.alliance_id
-                            ? `**[${names.allianceName}](${KILLMAIL_BASE}alliance/${kill.victim.alliance_id}/)**`
+                            ? `**[${names.allianceName}](${ENTITY_BASE}/alliance/${kill.victim.alliance_id})**`
                             : "—",
                         inline: false
                     },
@@ -91,12 +92,12 @@ class NewsEmbedFactory {
                 fields: [
                     { name: "System", value: `**[${names.systemName}](${DOTLAN_BASE}/system/${names.systemName.replace(/ /g, '_')})** `, inline: false },
                     { name: "Region", value: `**[${names.regionName}](${DOTLAN_BASE}/region/${names.regionName.replace(/ /g, '_')})** `, inline: false },
-                    { name: "Pilot", value: names.triggerCharName ? `**[${names.triggerCharName}](https://zkillboard.com/character/${triggerAttacker?.character_id}/)**` : 'Unknown', inline: false },
-                    { name: "Corporation", value: names.triggerCorpName ? `**[${names.triggerCorpName}](https://zkillboard.com/corporation/${triggerAttacker?.corporation_id}/)**` : 'Unknown', inline: false },
+                    { name: "Pilot", value: names.triggerCharName ? `**[${names.triggerCharName}](${ENTITY_BASE}/pilot/${triggerAttacker?.character_id})**` : 'Unknown', inline: false },
+                    { name: "Corporation", value: names.triggerCorpName ? `**[${names.triggerCorpName}](${ENTITY_BASE}/corp/${triggerAttacker?.corporation_id})**` : 'Unknown', inline: false },
                     {
                         name: "Alliance",
                         value: names.allianceName
-                            ? `**[${names.allianceName}](${KILLMAIL_BASE}alliance/${triggerAttacker?.alliance_id}/)**`
+                            ? `**[${names.allianceName}](${ENTITY_BASE}/alliance/${triggerAttacker?.alliance_id})**`
                             : "—",
                         inline: false
                     },
