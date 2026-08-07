@@ -56,8 +56,6 @@ class ESIClient {
         }
     }
 
-    // --- Persistence & Syncing ---
-
     async saveCache(filePath) {
         try {
             const persistData = {
@@ -115,7 +113,6 @@ class ESIClient {
         }
     }
 
-    // --- Static KV Loaders ---
 
     async loadShipCache() {
         try {
@@ -157,17 +154,15 @@ class ESIClient {
         }
     }
 
-    // --- Core Entity Resolvers ---
+
 
     async getTypeName(id) {
         if (!id) return "Unknown";
 
-        // 1. Try static KV data first (Handles Ships)
         if (this.staticShipData && this.staticShipData[id]) {
             return this.staticShipData[id].name;
         }
 
-        // 2. Fallback to Memory Cache & ESI (Handles Modules, Drones, Ammo)
         return await this.fetchAndCache(id, 'types', '/universe/types');
     }
 
@@ -183,7 +178,7 @@ class ESIClient {
             this.cache.variations.set(strId, list);
             return list;
         } catch (err) {
-            // Negative-cache the failure, or a broken type re-probes every render.
+           
             this.cache.variations.set(strId, []);
             return [];
         }
@@ -192,12 +187,11 @@ class ESIClient {
     async getRegionName(id) {
         if (!id) return "Unknown";
 
-        // 1. Try static KV data first
+     
         if (this.staticRegionData && this.staticRegionData[id]) {
             return this.staticRegionData[id].name;
         }
 
-        // 2. Fallback to Memory Cache & ESI
         return await this.fetchAndCache(id, 'regions', '/universe/regions');
     }
 
@@ -237,8 +231,7 @@ class ESIClient {
     }
 }
 
-    // --- Utility & Search ---
-
+    
     async getCharacterID(name) {
         try {
             const { data } = await this.api.post(`${this.baseURL}/universe/ids/`, [name]);
