@@ -26,7 +26,7 @@ const ERROR_DELAY_MS = 5000;      // generic error backoff
 const THROTTLE_DELAY_MS = 120000; // 2m on 429
 const GHOST_SKIP_AFTER = 5;       // skip a sequence after N normalizer failures
 const DEDUP_MAX = 5000;           // dedup set ceiling before pruning
-const MAX_KILL_AGE_MS = 24 * 60 * 60 * 1000;
+const MAX_KILL_AGE_MS = 60 * 60 * 1000;
 const STATE_PERSIST_INTERVAL = 50;
 
 
