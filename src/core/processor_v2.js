@@ -5,6 +5,7 @@ const { TRIGLAVIAN_SYSTEMS } = require('../core/shipIDs');
 const hashCache = require('../state/hashCache')
 const { calculateKillValue } = require('../services/priceService');
 const d1 = require('../network/d1Client');
+const hashIndex = require('../state/hashIndex');
 
 module.exports = (esi, io, statsManager) => {
     async function processPackage(packageData) {
@@ -55,6 +56,7 @@ module.exports = (esi, io, statsManager) => {
                 allianceTicker: allianceTicker,
                 finalBlowIsNpc: !finalBlow?.character_id,
             });
+            hashIndex.record(killID, hash);
             const weaponTypeIDs = [... new Set(
                 (killmail.attackers || [])
                     .filter(a => a.character_id != null && a.weapon_type_id != null)

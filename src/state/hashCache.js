@@ -1,4 +1,5 @@
 const r2 = require("../network/r2Writer");
+const hashIndex = require("./hashIndex");
 
 const FLUSH_INTERVAL = 50;
 const shardCache = new Map();
@@ -65,6 +66,7 @@ async function flush() {
   if (ok) {
     console.log(`[HASH] Flushed ${cache.size} hashes to ${shardKey(currentDate)}`);
   }
+  await hashIndex.flushDirty();
 }
 
 async function rotateIfNeeded() {
