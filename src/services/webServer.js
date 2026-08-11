@@ -121,11 +121,27 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       }
 
       if (!date) {
+        const idxHash = await hashIndex.getHashById(id);
+        if (idxHash) {
+          try {
+            const kmIdx = await killmailCache.get(id, idxHash);
+            if (kmIdx?.killmail_time) {
+              date = kmIdx.killmail_time.slice(0, 10);
+              recoveredHash = idxHash;
+              console.log(`[KILL API] INDEX date for ${id}: ${date}`);
+            }
+          } catch (err) {
+            console.warn(`[KILL API] Index hash unresolvable for ${id}: ${err.message}`);
+          }
+        }
+      }
+
+      if (!date) {
 
           if (isBot) {
-            console.warn(`[KILL API] 503 GATE-A kill=${id} (no date resolved) ua="${ua}"`);
-            res.set('Cache-Control', 'public, max-age=300');
-            return res.status(503).json({ error: 'Killmail not yet cached. Retry shortly.' });
+            console.warn(`[KILL API] 410 PRIMARY GATE kill=${id} (no date resolved) ua="${ua}"`);
+            res.set('Cache-Control', 'public, max-age=86400');
+            return res.status(503).json({ error: 'Killmail not available' });
           }
           try {
             const zkillRes = await axios.get(
