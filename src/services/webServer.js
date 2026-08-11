@@ -21,6 +21,7 @@ const { renderOgCard } = require('../services/ogCard');
 const npcKills = require('./npcKills');
 const d1 = require('../network/d1Client');
 const { renderPageCard, PAGES } = require('../services/pageCards');
+const hashIndex = require("../state/hashIndex");
 
 // Refactoring job required
 const BOT_UA = /bot|crawler|spider|claude|gptbot|ccbot|bytespider|petalbot|slurp|bingbot|googlebot|facebookexternalhit|meta-external/i;
@@ -173,7 +174,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     console.log(`[KILL API] kill=${id} date=${date} ip=${ip} ua="${ua}" ref="${ref}"`);
 
     try {
-      const hash = recoveredHash || await hashCache.getHashFromShard(date, id);
+      const hash = recoveredHash || await hashIndex.getHashById(id) || await hashCache.getHashFromShard(date, id);
       if (!hash) {
         return res.status(404).json({ error: `Kill ${id} not found in archive - CTRL + F5 incase not cached yet - for ${date}.` });
       }
