@@ -1,0 +1,351 @@
+# GitHub notes — 12 Aug 2026
+
+Paste-ready. Repo: `ScotDex/socketkill-v2`
+
+---
+
+## Commit (shipped)
+
+```
+feat(kill): granular security colour ramp
+
+Replace three-band HS/LS/NULL classifier with the eleven-step EVE map
+palette, one colour per 0.1 tier.
+
+Classification now derives from the rounded value rather than the raw
+float. Previously `s >= 0.5` on the raw float labelled a 0.4501 system
+as "LS 0.5" — lowsec colour against a highsec number, with the game
+agreeing with neither.
+
+classifySecurity now returns `display`; label and colour both derive
+from `tier`, so they cannot disagree. secShort reads sec.display
+instead of computing toFixed(1) independently.
+
+Wormhole, Pochven and unknown return before the ramp and are unchanged.
+```
+
+---
+
+# Issues
+
+---
+
+### 🐛 `quantity_dropped` / `quantity_destroyed` may be read unguarded
+
+**Labels:** `bug` `backend` `priority:high`
+
+ESI omits these keys entirely rather than sending `0`. In a sampled killmail
+(`75074344`), **all 44 items** were missing one of the two.
+
+`undefined + n` → `NaN`, and a single `NaN` silently poisons a group subtotal.
+
+**Possibly related:** `FITTING —` observed on a 145.50B Ragnarok where a fitted
+value should exist.
+
+- [ ] grep `normalizer.js` for unguarded `quantity_*` reads
+- [ ] grep `priceService.js` likewise
+- [ ] add `?? 0` where missing
+- [ ] re-check the Ragnarok kill
+
+---
+
+### ✨ Capture `flag` at ingest
+
+**Labels:** `enhancement` `backend` `capture-policy`
+
+`flag` is present on every victim item in the ESI payload and is discarded
+during normalisation.
+
+Unlocks:
+- exact physical slot position (`flag − base`)
+- **exact charge pairing** — a module and its charge share a flag (confirmed on
+  flags 27/28/29/33/34 of the sample). Removes the need for any value-ranking
+  heuristic.
+- empty-slot detection without the SDE (see next issue)
+- higher-fidelity EFT export
+
+- [ ] retain `flag` through `normalizer.js`
+- [ ] bump `SCHEMA_VERSION`
+
+---
+
+### ✨ Derive rack capacity lower bound from flag range
+
+**Labels:** `enhancement` `backend`
+
+`max(flag) − base + 1` is a hard lower bound on rack capacity. Interior gaps in
+an occupied range are **provably** empty slots — no dogma lookup required.
+
+Sample (`75074344`, Rorqual) yielded 8 high / 7 mid / 3 rig / **1 low**. A
+Rorqual has more than one low slot, so that pilot flew with lows empty. That is
+statable today.
+
+Depends on `flag` capture.
+
+Ranges: low 11–18, mid 19–26, high 27–34, rig 92–98.
+
+---
+
+### ✨ Emit `victim.slots` from SDE dogma at ingest
+
+**Labels:** `enhancement` `backend` `sde`
+
+The flag range gives a lower bound; dogma gives the ceiling (trailing empties).
+
+**Why it matters:** the Marshal was assumed to be 7 high across a full session
+of prototyping, inferred from occupied flags. A real kill showed **8** — six
+launchers, a Covert Jump Portal Generator, a Syndicate Cloaking Device. The
+guess was wrong on the one hull used for hours of testing.
+
+- [ ] read `hiSlots` / `medSlots` / `lowSlots` / `rigSlots` from SDE in KV
+- [ ] emit `victim.slots` at normalisation (~40 bytes/killmail, no per-request
+      lookup)
+- [ ] bump `SCHEMA_VERSION`
+
+**Caveat:** T3 cruiser capacity depends on fitted subsystems, so this is not a
+flat hull lookup for exactly the ships that raise the question. Degrade
+honestly — no capacity means no empty sockets claimed.
+
+**Shares a call with the hull description issue.** If slot counts come from
+ESI `/universe/types/{id}` rather than the SDE in KV, `description` arrives in
+the same response. Decide the source first — SDE-in-KV avoids a per-ingest ESI
+call, but then the description needs its own fetch.
+
+---
+
+### 🐛 Aggregation traps in item grouping
+
+**Labels:** `bug` `backend` `needs-investigation`
+
+Two structural properties of the ESI payload that break naive aggregation.
+Current grouping may already be correct — needs confirming, not assuming.
+
+1. **Same typeID under multiple flags.** In the sample, `16272` appears under
+   flags 5, 133 and 155; `42829` under flag 5 and high slot 27. Keying on
+   typeID alone merges a fitted charge with 19,622 units of the same item in
+   the hold.
+2. **Same flag+typeID emitted as multiple entries.** Sample had `(87, 2193)`
+   twice and `(90, 17478)` **six times**, each quantity 1. Sum, never
+   overwrite — deduping collapses six implants into one.
+
+---
+
+### ✨ Use `singleton` for BPC detection
+
+**Labels:** `enhancement` `good-first-issue`
+
+`singleton` is on every item; `2` means blueprint copy.
+
+Currently the `bp` icon variation is guessed via an `onerror` handler after a
+failed image request. `singleton` is the correct source.
+
+---
+
+### ✨ Slot counts in manifest group headers
+
+**Labels:** `enhancement` `frontend`
+
+`HIGH SLOTS 8/8`, `LOW SLOTS 1/3`. Colour the count gold when a rack is short.
+
+Delivers the fit critique in one number, in a component that already ships.
+Partially buildable off the flag lower bound; complete once `victim.slots`
+lands.
+
+Prototyped alternatives (radial wheel, per-group socket rails, single band) all
+rejected — they duplicate icons that appear directly below, are silent on the
+majority of kills that are fully fitted, and imply completeness they can't
+verify when capacity is unknown.
+
+---
+
+### ✨ Hull description on kill pages
+
+**Labels:** `enhancement` `frontend` `voice`
+
+Surface CCP's own ship description (ESI `/universe/types/{id}` → `description`)
+on the kill page. Full coverage — every published hull has one, so the slot
+always fills.
+
+**Why it works.** CCP wrote these as marketing copy. On a wreck report the
+brochure voice reads as an epitaph: a Widow "designed for infiltration and
+espionage behind enemy lines" against a highsec loss to an NPC. The
+contradiction does all the work.
+
+**Placement.** Not inside `.dossier-rows` — that block is a single-line
+label/value readout, prose breaks the pattern, and it pushes SYSTEM/REGION/TIME
+below the fold on mobile. Goes after `.dossier-rows`, before
+`.dossier-actions`. Reuse the entity page's `.assess` treatment (faint,
+monospace, `>` prefix) — same problem already solved there.
+
+**Gating.** Not every hull. A Venture description is wallpaper. Gate by hull
+class or value tier — capitals, black ops, T3s, faction hulls. Flavour appears
+when the kill is already notable.
+
+**Core discipline — the thing that would erode first.** CCP's text, our data,
+no connective tissue. The page states intent and states outcome; the reader
+assembles the story. Never write the joining clause ("…and X lost it to an
+NPC"):
+
+- Flat presentation makes no claim and therefore can't be wrong. An
+  editorialising clause has to be right about circumstances, and a bad
+  inference means publishing a snide line about a real player.
+- The joke lands once. On every kill forever it's a site that mocks the dead.
+- It's our voice pretending to be the system's. *Alien*'s corporate
+  documentation never comments on what happened to the crew.
+
+If it reads as inert after real kills, fix it with **adjacency** — put the
+description nearer the detail that contradicts it — not with prose.
+
+**Open:**
+- [ ] Does the ESI layer fetch type details, or only `getTypeName`? If names
+      only, this is a new call per kill. Check before assuming it's cheap.
+
+**Shares a call with `victim.slots`.** Both want `/universe/types/{id}`:
+description from the top-level field, slot counts from `dogma_attributes`. If
+either lands, the other is close to free from the same response — worth
+sequencing them together rather than paying for the fetch twice.
+
+**Trap, flagged deliberately:** `dogma_attributes` is ~120 raw numeric
+attributes and is tempting as institutional over-precision. As *displayed*
+content it's noise needing SDE resolution. As *derived* slot counts it's the
+feature. Don't confuse the two.
+
+**Might become:** contradiction detection — hull class vs security band vs
+attacker count (stealth hull in highsec; black ops killed by 79 attackers).
+Genuinely clever, but it's a labelling system in disguise and carries the
+accuracy problem labels carry. Ship flat first; let real kills show whether the
+near-misses justify building it.
+
+---
+
+### ✨ Corp tenure on pilot pages
+
+**Labels:** `enhancement` `frontend` `entity-pages`
+
+Full EveWho-equivalent history **is** buildable:
+- `/characters/{id}/corporationhistory/` → tenure windows
+- `/v2/corporations/{id}/alliancehistory/` → alliance label per window
+- interval intersection, no scraping
+
+**Recommended shape** — the table is EveWho's, the derived number is ours:
+- `CORP TENURE 4 DAYS` in the key/value block, gold under ~14 days
+- or `12 CORPS · 5 YEARS` as one line
+- full history folded below `MOST ACTIVE AREAS`, closed by default
+
+**Placement constraint:** must not sit above `REPORT SUMMARY`. The card badge
+reads `30-DAY WINDOW`; a 2014 employment record beneath it contradicts the
+page's declared scope and pushes the differentiator below the fold.
+
+**Cost:** naive render is ~25 ESI round trips. `POST /universe/names/` resolves
+up to 1000 IDs in one call; alliance history is per-corp and reuses heavily
+across pilots.
+
+**Risk:** CCP has previously disabled the corp history endpoint under load,
+returning empty lists. Don't hard-depend on it.
+
+Blocked on `ENTITY_PAGES_ENABLED`.
+
+---
+
+### ✨ OG cards for corp / alliance / pilot
+
+**Labels:** `enhancement` `backend` `og`
+
+Same Satori + resvg renderer, different template.
+
+**Core problem:** kill cards are immutable and cache forever. Entity cards are
+snapshots of a rolling window, and Discord holds unfurls ~24h. `LAST SEEN 48M
+AGO` that is actually 26 hours old is worse than no card.
+
+- [ ] stamp the window on the card: `LAST 30 DAYS · AS OF 12 AUG 22:04`
+- [ ] choose content that ages well — distributions and tenure survive a day,
+      recency figures don't. Cut `LAST SEEN`.
+- [ ] short TTL or generate-on-demand, **not** permanent R2 objects
+- [ ] bot gate must precede generation — entity URL namespace is effectively
+      unbounded (every character is a valid path), so crawlers would exhaust
+      the Class A write budget
+
+**Best candidate content:** the timezone histogram. Distinctive at thumbnail
+size, survives caching, and nothing else in EVE tooling shows when someone
+plays.
+
+---
+
+### 💡 Grid clustering from `victim.position`
+
+**Labels:** `idea` `backend`
+
+`victim.position` is metres from the system barycentre — precision far exceeds
+grid-scale needs.
+
+EVE grids are ~250km. Two kills within that distance and a few minutes apart
+are almost certainly one fight. Would let `SYSTEM ACTIVITY 28 KILLS/HR`
+distinguish one large brawl from eight independent gate camps — currently
+indistinguishable, and it's what a reader most wants from that number.
+
+Cheap: Euclidean distance on three floats, in memory against `hashCache`. No
+new storage.
+
+**Scope warning:** the output wants to become a battle report, which is where
+killboard scope creep starts and is ledger territory once it persists. In-scope
+version is one derived field — *part of a 14-kill engagement* — with no route
+behind it.
+
+**Unverified:** whether `normalizer.js` retains `position`, and whether it's
+always present (optional in the ESI schema; pod and structure kills may omit).
+
+---
+
+### 🎨 `DAMAGE TAKEN` shares the destroyed red
+
+**Labels:** `polish` `frontend`
+
+`DAMAGE TAKEN` uses `--color-isk-billion`, the same token as `DESTROYED`. One
+is HP, one is ISK, and they sit adjacent. Damage taken is a magnitude, not an
+outcome — neutral (`--color-text-body`) would free red to mean one thing in
+that block.
+
+---
+
+### 🎨 OG card footer still uses three-band security
+
+**Labels:** `polish` `og`
+
+Page now reads security through the eleven-step ramp; the card footer still
+bands it (`NULLSEC -0.5`). At 1200×630 a flat band colour may genuinely be
+correct — worth a look rather than a reflex sync.
+
+---
+
+### 🎨 `DROPPED 0.0%` alongside a non-zero figure
+
+**Labels:** `polish` `frontend`
+
+Observed `DROPPED 0.0%` next to `3.24M` dropped. Rounding artefact, arguably
+correct, reads as broken.
+
+---
+
+### ❌ Fitting wheel — closed, won't build
+
+**Labels:** `wontfix` `design`
+
+Explored across five iterations: inline card overlay, enlarged variant,
+wheel-first page rework, socket rails per group, single band.
+
+Geometry was solved — chord clearance verified to 8 sockets, rack collisions
+audited, `.ident` overlap and cover mask accounted for. The visual was not the
+problem.
+
+**Closed because** spatial arrangement is information a killboard reader
+doesn't need. In-game the wheel exists because you interact with slots; nobody
+clicks a socket on a kill page. The reference is a control surface, a kill page
+is a record.
+
+Also investigated and rejected: per-hull overlay maps stamped on the render
+(hardpoint *positions* live only in the client's graphics resource files — not
+in the SDE or ESI, no published dataset, ~500 hulls to hand-author);
+class-level SVG schematics (discards the ship render); shape-morphing
+silhouette (makes a false claim about the hull on every kill).
+
+**Survives:** dropped/destroyed split rendered as an arc rather than a bar.
