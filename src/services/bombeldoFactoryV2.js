@@ -3,6 +3,7 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
 const plexRate = require('../services/plexRate');
 const FREDDO_PRICE_GBP = 0.39;
 const DOTLAN_BASE = 'https://evemaps.dotlan.net';
+const ENTITY_BASE = 'https://socketkill.com';
 
 
 // VARIABLES TO ROTATE GIFS
@@ -59,14 +60,16 @@ class bombeldoFactoryV2 {
         const charId = kill.victim?.character_id;
         const victimLines = [
             { type: 10, content: charId
-                ? `Victim · [**${names.finalVictimName}**](https://zkillboard.com/character/${charId}/)`
+                ? `Victim · [**${names.finalVictimName}**](${ENTITY_BASE}/pilot/${charId})`
                 : `Victim · **${names.finalVictimName}**` },
-            { type: 10, content: `Corp · **${names.corpName}**` }
+            { type: 10, content: kill.victim?.corporation_id
+                ? `Corp · [**${names.corpName}**](${ENTITY_BASE}/corp/${kill.victim.corporation_id})`
+                : `Corp · **${names.corpName}**` }
         ];
         if (names.allianceName) {
             const ticker = names.allianceTicker ? ` **[${names.allianceTicker}]**` : '';
             victimLines.push({ type: 10,
-                content: `Alliance · [**${names.allianceName}**](https://zkillboard.com/alliance/${kill.victim.alliance_id}/)${ticker}` });
+                content: `Alliance · [**${names.allianceName}**](${ENTITY_BASE}/alliance/${kill.victim.alliance_id})${ticker}` });
         }
         const gifUrl = `${GIF_BASE}/id-${Math.floor(Math.random() * GIF_COUNT) + 1}.gif`;
         const ts = Math.floor(Date.now() / 1000);

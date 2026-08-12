@@ -21,12 +21,13 @@ const LOSS_COMMENTS = [
 class corpIntelFactory {
     static createKillEmbed(kill, zkb, names) {
         const DOTLAN_BASE = 'https://evemaps.dotlan.net'
+        const ENTITY_BASE = 'https://socketkill.com';
         const totalValue = helpers.formatIsk(names.rawValue)
         const corpIcon = `https://edge.socketkill.com/taylr/logo.png`;
         const title = LOSS_COMMENTS[Math.floor(Math.random() * LOSS_COMMENTS.length)];
         const authorIcon = kill.victim.character_id
-    ? `https://images.evetech.net/characters/${kill.victim.character_id}/portrait?size=128`
-    : `https://images.evetech.net/corporations/${kill.victim.corporation_id}/logo?size=128`;
+            ? `https://images.evetech.net/characters/${kill.victim.character_id}/portrait?size=128`
+            : `https://images.evetech.net/corporations/${kill.victim.corporation_id}/logo?size=128`;
 
         return {
             username: "The Shame Bell",
@@ -43,8 +44,20 @@ class corpIntelFactory {
                 fields: [
                     { name: "System", value: `**[${names.systemName}](${DOTLAN_BASE}/system/${names.systemName.replace(/ /g, '_')})** `, inline: false },
                     { name: "Region", value: `**[${names.regionName}](${DOTLAN_BASE}/region/${names.regionName.replace(/ /g, '_')})** `, inline: false },
-                    { name: "Corporation", value: `**[${names.corpName}](https://zkillboard.com/corporation/${kill.victim.corporation_id}/)**`, inline: false },
-                    { name: "Alliance", value: names.allianceName ? `**[${names.allianceName}](https://zkillboard.com/alliance/${kill.victim.alliance_id}/)**` : "No Alliance", inline: false },
+                    {
+                        name: "Corporation",
+                        value: kill.victim.corporation_id
+                            ? `**[${names.corpName}](${ENTITY_BASE}/corp/${kill.victim.corporation_id})**`
+                            : "—",
+                        inline: false
+                    },
+                    {
+                        name: "Alliance",
+                        value: kill.victim.alliance_id
+                            ? `**[${names.allianceName}](${ENTITY_BASE}/alliance/${kill.victim.alliance_id})**`
+                            : "No Alliance",
+                        inline: false
+                    },
                     { name: "Final Blow", value: `${names.finalBlowCorp} · ${names.attackerCount} ${names.attackerCount === 1 ? 'attacker' : 'attackers'}`, inline: false },
                     { name: "Total Value", value: `**${totalValue} ISK**`, inline: false },
                 ],
