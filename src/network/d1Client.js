@@ -52,4 +52,4 @@ async function recordKill(kill, attackers) {
     }
 }
 
-module.exports = { recordKill, query };
+module.exports = { recordKill, query, pruneOldKills };

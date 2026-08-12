@@ -277,5 +277,7 @@ process.on("SIGINT", () => shutdown("SIGINT"));
   await loadCustomPrices();
   startCustomPriceSync();
   startJaniceOverlay(getPricedTypeIDs);
-  runOverlayPass(getPricedTypeIDs()).catch(() => {});   // non-blocking first fill
+  runOverlayPass(getPricedTypeIDs()).catch(() => {});
+  d1.pruneOldKills(30).catch(e => console.error('[D1] prune failed:', e.message));
+  setInterval(() => d1.pruneOldKills(30).catch(e => console.error('[D1] prune failed:', e.message)), 24 * 60 * 60 * 1000);   // non-blocking first fill
 })();
