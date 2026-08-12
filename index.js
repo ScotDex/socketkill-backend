@@ -13,6 +13,7 @@ const { syncMarketPrices, loadMarketPrices, startMarketSync, getPricedTypeIDs } 
 const kv = require('./src/network/kvClient');
 const { startJaniceOverlay, runOverlayPass } = require("./src/services/janiceOverlay");
 const { loadCustomPrices, startCustomPriceSync } = require("./src/services/customPrices");
+const d1 = require("./src/network/d1Client");
 
 
 const R2_BASE_URL = process.env.R2_BASE_URL;
