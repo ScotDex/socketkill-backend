@@ -22,6 +22,7 @@ const npcKills = require('./npcKills');
 const d1 = require('../network/d1Client');
 const { renderPageCard, PAGES } = require('../services/pageCards');
 const hashIndex = require("../state/hashIndex");
+const { renderPageCard, renderEntityCard, PAGES } = require('../services/pageCards');
 
 // Refactoring job required
 const BOT_UA = /bot|crawler|spider|claude|gptbot|ccbot|bytespider|petalbot|slurp|bingbot|googlebot|facebookexternalhit|meta-external/i;
@@ -215,6 +216,39 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       res.status(500).json({ error: 'Internal error resolving killmail.' });
     }
   }
+
+  app.get('/og/entity/:type/:id', ogLimiter, async (req, res) => {
+  const { type } = req.params;
+  const id = parseInt(req.params.id);
+
+  if (!ENTITY_COLUMNS[type] || !Number.isFinite(id) || id <= 0) {
+    res.set('Cache-Control', 'no-store');
+    return res.status(400).json({ error: 'Invalid entity type or id' });
+  }
+
+  try {
+    const name = await resolveEntityName(type, id);
+    if (!name) {
+      res.set('Cache-Control', 'public, max-age=300');
+      return res.status(404).json({ error: 'Entity not found' });
+    }
+
+    const png = await renderEntityCard({
+      type, id, name,
+      description: PAGES.home.description,
+    });
+
+    res.set('Content-Type', 'image/png');
+    res.set('Cache-Control', 'public, max-age=3600');
+    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.send(png);
+
+  } catch (err) {
+    console.error(`[OG ENTITY] ${type}/${id} failed: ${err.message}`);
+    res.set('Cache-Control', 'no-store');
+    res.status(500).json({ error: 'Card render failed' });
+  }
+});
 
   app.get('/api/kill/:killID', handleKillDetail);
   app.get('/api/kill/:date/:killID', handleKillDetail);
