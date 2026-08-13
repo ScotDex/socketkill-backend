@@ -14,6 +14,6 @@
     "satori": "^0.29.0",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
-    "twitter-api-v2": "^1.28.0"
+    "twitter-api-v2": "^1.29.1"
   }
 }
