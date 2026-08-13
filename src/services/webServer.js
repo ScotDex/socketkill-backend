@@ -20,7 +20,6 @@ const plexRate = require('../services/plexRate');
 const { renderOgCard } = require('../services/ogCard');
 const npcKills = require('./npcKills');
 const d1 = require('../network/d1Client');
-const { renderPageCard, PAGES } = require('../services/pageCards');
 const hashIndex = require("../state/hashIndex");
 const { renderPageCard, renderEntityCard, PAGES } = require('../services/pageCards');
 
