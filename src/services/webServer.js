@@ -216,6 +216,23 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     }
   }
 
+  const ENTITY_NAME = {
+    pilot:    id => esi.getCharacterName(id),
+    corp:     id => esi.getCorporationName(id),
+    alliance: id => esi.getAllianceName(id),
+  };
+
+  async function resolveEntityName(type, id) {
+    const fn = ENTITY_NAME[type];
+    if (!fn) return null;
+    try {
+      const name = await fn(id);
+      return typeof name === 'string' && name.trim() ? name : null;
+    } catch {
+      return null;
+    }
+  }
+
   app.get('/og/entity/:type/:id', ogLimiter, async (req, res) => {
   const { type } = req.params;
   const id = parseInt(req.params.id);
