@@ -27,16 +27,33 @@ const PAGES = {
   home: { description: 'See yourself die in an atmospheric and aesthetically pleasing way.' },
 };
 
-const ENTITY = {
-  pilot:    { image: id => `https://images.evetech.net/characters/${id}/portrait?size=512` },
-  corp:     { image: id => `https://images.evetech.net/corporations/${id}/logo?size=256` },
-  alliance: { image: id => `https://images.evetech.net/alliances/${id}/logo?size=128` },
-};
-
 const STAMP = {
   SIZE: 320, COL: 440, BOTTOM: 48, RIGHT: 48, RADIUS: 8,
   BORDER: 'rgba(255,255,255,0.15)',
   NAME_SIZE: 30, NAME_GAP: 10, NAME_SLOT: 84,
+  FADE: 0.72,       // depth of the right-edge darkening behind logos
+  FADE_START: 45,   // % across the card where the darkening begins
+};
+
+const ENTITY = {
+  pilot: {
+    image: id => `https://images.evetech.net/characters/${id}/portrait?size=512`,
+    stampStyle: {
+      borderRadius: STAMP.RADIUS,
+      border: `1px solid ${STAMP.BORDER}`,
+    },
+    fade: false,
+  },
+  corp: {
+    image: id => `https://images.evetech.net/corporations/${id}/logo?size=256`,
+    stampStyle: {},
+    fade: true,
+  },
+  alliance: {
+    image: id => `https://images.evetech.net/alliances/${id}/logo?size=128`,
+    stampStyle: {},
+    fade: true,
+  },
 };
 
 async function renderPageCard(key) {
@@ -145,6 +162,16 @@ async function renderEntityCard({ type, id, name, description, shipTypeID }) {
               },
             },
           },
+          ...(conf.fade ? [{
+            type: 'div',
+            props: {
+              style: {
+                position: 'absolute', top: 0, left: 0, width: 1200, height: 630,
+                backgroundImage:
+                  `linear-gradient(90deg, rgba(10,12,16,0) ${STAMP.FADE_START}%, rgba(10,12,16,${STAMP.FADE}) 100%)`,
+              },
+            },
+          }] : []),
           {
             type: 'div',
             props: {
@@ -159,13 +186,12 @@ async function renderEntityCard({ type, id, name, description, shipTypeID }) {
                   props: {
                     src: conf.image(id),
                     width: STAMP.SIZE, height: STAMP.SIZE,
-                    style: {
-                      borderRadius: STAMP.RADIUS,
-                      border: `1px solid ${STAMP.BORDER}`,
-                    },
+                    style: conf.stampStyle,
                   },
                 },
                 {
+                  /* textAlign is ignored by Satori unless flexWrap is
+                     also set — both are required to centre each line. */
                   type: 'div',
                   props: {
                     style: {
