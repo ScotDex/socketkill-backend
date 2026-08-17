@@ -2,7 +2,7 @@ const { AT_SHIP_IDS, OFFICER_SHIP_IDS, RORQUAL_SHIP_IDS } = require('../core/shi
 const helpers = require('../core/helpers');
 
 class atOfficerFactory {
-    static createKillEmbed(kill, zkb, names) {
+    static createKillEmbed(kill, names) {
         const DOTLAN_BASE = 'https://evemaps.dotlan.net'
         const ENTITY_BASE = 'https://socketkill.com'
         const corpIcon = `https://edge.socketkill.com/taylr/logo.png`;

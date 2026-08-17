@@ -19,7 +19,7 @@ const LOSS_COMMENTS = [
 ]
 
 class corpIntelFactory {
-    static createKillEmbed(kill, zkb, names) {
+    static createKillEmbed(kill, names) {
         const DOTLAN_BASE = 'https://evemaps.dotlan.net'
         const ENTITY_BASE = 'https://socketkill.com';
         const totalValue = helpers.formatIsk(names.rawValue)

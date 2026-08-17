@@ -141,7 +141,7 @@ module.exports = (esi, io, statsManager) => {
 
             // Gated filter for web hooks action posts.
 
-            handleWhale(killmail, zkb, {
+            handleWhale(killmail,  {
                 shipName,
                 systemName,
                 charName,

@@ -48,14 +48,14 @@ function webhookSpacer() {
 
 const TRACKER_CATEGORIES = new Set(['officer', 'at_ships', 'rorqual_activity']);
 
-async function postNewsChannel(kill, zkb, names, category) {
+async function postNewsChannel(kill, names, category) {
     const urls = channels[category];
     if (!urls || urls.length === 0) return;
     const urlList = Array.isArray(urls) ? urls : [urls];
 
     const payload = TRACKER_CATEGORIES.has(category)
-        ? NewsEmbedFactory.createActivityEmbed(kill, zkb, names, category)
-        : NewsEmbedFactory.createEmbed(kill, zkb, names, category);
+        ? NewsEmbedFactory.createActivityEmbed(kill, names, category)
+        : NewsEmbedFactory.createEmbed(kill, names, category);
 
 
         const results = await Promise.all(
@@ -74,29 +74,29 @@ async function postNewsChannel(kill, zkb, names, category) {
     console.log(`[RELAY FIRING] Kill ${kill.killmail_id} posted to ${category} (${ok}/${urlList.length} webhooks)`);
 }
 
-module.exports = async (killmail, zkb, names) => {
+module.exports = async (killmail, names) => {
     const isOfficerKill = killmail.attackers?.some(a => OFFICER_SHIP_IDS.has(a.ship_type_id));
     const isATKill = killmail.attackers?.some(a => AT_SHIP_IDS.has(a.ship_type_id))
     const isRorqual = killmail.attackers?.some(a => RORQUAL_SHIP_IDS.has(a.ship_type_id))
 
     if (isOfficerKill || isATKill || isRorqual) {
-        await postOfficerIntel(killmail, zkb, names);
+        await postOfficerIntel(killmail, names);
         await new Promise(resolve => setTimeout(resolve, 2000));
     }
 
 
     // Centralized Dispatcher
     const categoryPosts = [];
-    if (isOfficerKill) categoryPosts.push(postNewsChannel(killmail, zkb, names, 'officer'));
-    if (isATKill) categoryPosts.push(postNewsChannel(killmail, zkb, names, 'at_ships'));
-    if (isRorqual) categoryPosts.push(postNewsChannel(killmail, zkb, names, 'rorqual_activity'));
-    if (names.rawValue >= VALUE_1B) categoryPosts.push(postNewsChannel(killmail, zkb, names, 'value_1b'));
-    if (names.rawValue >= VALUE_10B) categoryPosts.push(postNewsChannel(killmail, zkb, names, 'value_10b'));
-    if (names.rawValue >= VALUE_100M) categoryPosts.push(postNewsChannel(killmail, zkb, names, 'all_kills'));
-    if (TITAN_SHIP_IDS.has(killmail.victim?.ship_type_id)) categoryPosts.push(postNewsChannel(killmail, zkb, names, 'titan_loss'));
-    if (SUPER_SHIP_IDS.has(killmail.victim?.ship_type_id)) categoryPosts.push(postNewsChannel(killmail, zkb, names, 'super_loss'));
-    if (TRIGLAVIAN_SYSTEMS.has(killmail.solar_system_id)) categoryPosts.push(postNewsChannel(killmail, zkb, names, 'pochven'));
-    if (names.space === 'high') categoryPosts.push(postNewsChannel(killmail, zkb, names, 'ganks'));
+    if (isOfficerKill) categoryPosts.push(postNewsChannel(killmail, names, 'officer'));
+    if (isATKill) categoryPosts.push(postNewsChannel(killmail,  names, 'at_ships'));
+    if (isRorqual) categoryPosts.push(postNewsChannel(killmail,  names, 'rorqual_activity'));
+    if (names.rawValue >= VALUE_1B) categoryPosts.push(postNewsChannel(killmail,  names, 'value_1b'));
+    if (names.rawValue >= VALUE_10B) categoryPosts.push(postNewsChannel(killmail,  names, 'value_10b'));
+    if (names.rawValue >= VALUE_100M) categoryPosts.push(postNewsChannel(killmail,  names, 'all_kills'));
+    if (TITAN_SHIP_IDS.has(killmail.victim?.ship_type_id)) categoryPosts.push(postNewsChannel(killmail,  names, 'titan_loss'));
+    if (SUPER_SHIP_IDS.has(killmail.victim?.ship_type_id)) categoryPosts.push(postNewsChannel(killmail,  names, 'super_loss'));
+    if (TRIGLAVIAN_SYSTEMS.has(killmail.solar_system_id)) categoryPosts.push(postNewsChannel(killmail, names, 'pochven'));
+    if (names.space === 'high') categoryPosts.push(postNewsChannel(killmail,  names, 'ganks'));
 
     // Bombeldo Block of Code
 
@@ -105,7 +105,7 @@ module.exports = async (killmail, zkb, names) => {
     const isBombeldoKill = !isBombeldoDeath && killmail.attackers?.some(a => BOMBELDO_TRACKED_CHARACTERS.includes(a.character_id));
 
     if (isBombeldoDeath || isBombeldoKill) {
-        categoryPosts.push(postBombeldo(killmail, zkb, names, isBombeldoDeath));
+        categoryPosts.push(postBombeldo(killmail,  names, isBombeldoDeath));
     }
 
     // End Bombeldo Block of Code
@@ -115,8 +115,8 @@ module.exports = async (killmail, zkb, names) => {
 
     if (names.rawValue < WHALE_THRESHOLD) return;
     await Promise.all([
-        postNewsChannel(killmail, zkb, names, 'value_20b'),
-        postCorpIntel(killmail, zkb, names),
+        postNewsChannel(killmail, names, 'value_20b'),
+        postCorpIntel(killmail,  names),
         postSocial(killmail, names, helpers.formatIsk(names.rawValue), killmail.killmail_id)
     ]);
 };
@@ -125,11 +125,11 @@ module.exports = async (killmail, zkb, names) => {
 // Bombeldo Posts Function
 // This function will post the killmail to the Bombeldo Discord channel
 
-async function postBombeldo(kill, zkb, names, isDeath) {
+async function postBombeldo(kill,  names, isDeath) {
     const urls = channels['bombeldo'];
     if (!urls?.length) return;
     const list = Array.isArray(urls) ? urls : [urls];
-    const payload = bombeldoFactory.createEmbed(kill, zkb, names, isDeath);
+    const payload = bombeldoFactory.createEmbed(kill,  names, isDeath);
     await Promise.all(list.map(async (url) => {
         await webhookSpacer();
         const finalUrl = payload.flags === 32768 ? `${url}?with_components=true` : url;
@@ -142,9 +142,9 @@ async function postBombeldo(kill, zkb, names, isDeath) {
 // End Bombeldo Posts Function
 
 
-async function postCorpIntel(kill, zkb, names) {
+async function postCorpIntel(kill,  names) {
     console.log(`[CORP INTEL] Firing for kill ${kill.killmail_id} | rawValue: ${names.rawValue}`);
-    const payload = CorpIntelFactory.createKillEmbed(kill, zkb, names);
+    const payload = CorpIntelFactory.createKillEmbed(kill, names);
     try {
         await axios.post(process.env.BLANKSPACE_HOOK, payload);
         console.log(`[BLANKSPACE PAYLOAD FIRING] Kill ${kill.killmail_id} posted`);
@@ -153,8 +153,8 @@ async function postCorpIntel(kill, zkb, names) {
     }
 }
 
-async function postOfficerIntel(kill, zkb, names) {
-    const payload = atOfficerFactory.createKillEmbed(kill, zkb, names);
+async function postOfficerIntel(kill,  names) {
+    const payload = atOfficerFactory.createKillEmbed(kill, names);
     try {
         await Promise.all([
             axios.post(process.env.INTEL_WEBHOOK_URL, payload),

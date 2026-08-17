@@ -21,7 +21,7 @@ const ENTITY_BASE = `https://socketkill.com`;
 const siteIcon = `https://edge.socketkill.com/favicon.png`;
 
 class NewsEmbedFactory {
-    static createEmbed(kill, zkb, names, category) {
+    static createEmbed(kill, names, category) {
         const config = CATEGORY_CONFIG[category] || { color: 0x3fb950 }
         const totalValue = helpers.formatIsk(names.rawValue);
         
@@ -72,7 +72,7 @@ class NewsEmbedFactory {
     }
 
 
-    static createActivityEmbed(kill, zkb, names, category) {
+    static createActivityEmbed(kill, names, category) {
         const config = CATEGORY_CONFIG[category] || { color: 0x3fb950 };
         const triggerAttacker = kill.attackers?.find(a =>
             AT_SHIP_IDS.has(a.ship_type_id) || OFFICER_SHIP_IDS.has(a.ship_type_id) || RORQUAL_SHIP_IDS.has(a.ship_type_id)
