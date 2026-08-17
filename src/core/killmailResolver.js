@@ -107,8 +107,6 @@ async function resolveKillDetail(killmail, hash, id, esi) {
   };
 }
 
-// ─── Lightweight summary (used by /api/kills/:date list view) ────────────
-
 async function resolveKillSummary(killmail, killID, esi) {
   const { calculateKillValue } = require('../services/priceService');
 

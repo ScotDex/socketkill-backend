@@ -38,18 +38,17 @@ loadChannels();
 
 
 const MIN_WEBHOOK_INTERVAL_MS = 1100;
-let lastWebhookAt = 0;
+let webhookQueue = Promise.resolve();
 
-async function webhookSpacer() {
-    const now = Date.now();
-    const wait = lastWebhookAt + MIN_WEBHOOK_INTERVAL_MS - now;
-    if (wait > 0) await new Promise(r => setTimeout(r, wait));
-    lastWebhookAt = Date.now();
+function webhookSpacer() {
+    const next = webhookQueue.then(() => new Promise(r => setTimeout(r, MIN_WEBHOOK_INTERVAL_MS)));
+    webhookQueue = next;
+    return next;
 }
 
 const TRACKER_CATEGORIES = new Set(['officer', 'at_ships', 'rorqual_activity']);
 
-async function postNewsChannel(kill, zkb, names, category) {
+async function postNewsChannel(kill, names, category) {
     const urls = channels[category];
     if (!urls || urls.length === 0) return;
     const urlList = Array.isArray(urls) ? urls : [urls];
@@ -59,16 +58,20 @@ async function postNewsChannel(kill, zkb, names, category) {
         : NewsEmbedFactory.createEmbed(kill, zkb, names, category);
 
 
-    await Promise.all(
+        const results = await Promise.all(
         urlList.map(async url => {
             await webhookSpacer();
             const finalUrl = payload.flags === 32768 ? `${url}?with_components=true` : url;
-            return axios.post(finalUrl, payload).catch(err =>
-                console.error(`[NEWS] ${category} webhook failed: ${err.message}`)
-            )
+            return axios.post(finalUrl, payload)
+                .then(() => true)
+                .catch(err => {
+                    console.error(`[NEWS] ${category} webhook failed: ${err.message}`);
+                    return false;
+                });
         })
     );
-    console.log(`[RELAY FIRING] Kill ${kill.killmail_id} posted to ${category} (${urlList.length} webhooks)`);
+    const ok = results.filter(Boolean).length;
+    console.log(`[RELAY FIRING] Kill ${kill.killmail_id} posted to ${category} (${ok}/${urlList.length} webhooks)`);
 }
 
 module.exports = async (killmail, zkb, names) => {

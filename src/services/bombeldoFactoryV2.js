@@ -45,7 +45,7 @@ const DEATH_LINES = [
 ];
 
 class bombeldoFactoryV2 {
-    static createEmbed (kill, zkb, names, isDeath){
+    static createEmbed (kill, names, isDeath){
         const killLink  = helpers.getSocketKillLink(kill.killmail_id);
         const zkillLink = helpers.getZkillLink(kill.killmail_id);
             const headline = isDeath
