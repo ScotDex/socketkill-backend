@@ -48,7 +48,7 @@ function webhookSpacer() {
 
 const TRACKER_CATEGORIES = new Set(['officer', 'at_ships', 'rorqual_activity']);
 
-async function postNewsChannel(kill, names, category) {
+async function postNewsChannel(kill, zkb, names, category) {
     const urls = channels[category];
     if (!urls || urls.length === 0) return;
     const urlList = Array.isArray(urls) ? urls : [urls];
