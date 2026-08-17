@@ -3,7 +3,7 @@ const DB_ID = process.env.D1_DATABASE_ID;
 const TOKEN = process.env.D1_API_TOKEN;
 const ENDPOINT = `https://api.cloudflare.com/client/v4/accounts/${ACCOUNT}/d1/database/${DB_ID}/query`;
 
-const ATTACKER_CHUNK = 20; // conservative vs D1 bound-param limits
+const ATTACKER_CHUNK = 20; 
 
 async function query(sql, params = []) {
     const res = await fetch(ENDPOINT, {

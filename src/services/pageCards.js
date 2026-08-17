@@ -31,8 +31,8 @@ const STAMP = {
   SIZE: 320, COL: 440, BOTTOM: 48, RIGHT: 48, RADIUS: 8,
   BORDER: 'rgba(255,255,255,0.15)',
   NAME_SIZE: 30, NAME_GAP: 10, NAME_SLOT: 84,
-  FADE: 0.72,       // depth of the right-edge darkening behind logos
-  FADE_START: 45,   // % across the card where the darkening begins
+  FADE: 0.72,       
+  FADE_START: 45,   
 };
 
 const ENTITY = {
@@ -190,8 +190,6 @@ async function renderEntityCard({ type, id, name, description, shipTypeID }) {
                   },
                 },
                 {
-                  /* textAlign is ignored by Satori unless flexWrap is
-                     also set — both are required to centre each line. */
                   type: 'div',
                   props: {
                     style: {
@@ -249,4 +247,3 @@ async function renderEntityCard({ type, id, name, description, shipTypeID }) {
 
 module.exports = { renderPageCard, PAGES, renderEntityCard };
 
-// forcing workers to do their jobs

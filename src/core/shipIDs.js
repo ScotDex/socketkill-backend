@@ -30,6 +30,9 @@ const AT_SHIP_IDS = new Set([
     74141, // Geri
     85236, // Python
     33675, // Chameleon
+    11011, // Guardian Vexor
+    78414, // Shapash
+    77726, // Cybele
 ]);
 
 

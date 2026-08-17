@@ -1,7 +1,7 @@
 const helpers = require('../core/helpers');
 const pick = a => a[Math.floor(Math.random() * a.length)];
 const plexRate = require('../services/plexRate');
-const FREDDO_PRICE_GBP = 0.39;
+const FREDDO_PRICE_GBP = 0.35;
 const DOTLAN_BASE = 'https://evemaps.dotlan.net';
 const ENTITY_BASE = 'https://socketkill.com';
 
@@ -24,7 +24,8 @@ const KILL_LINES = [
     "Fuck Freddo Prices",
     "Kiss, Kiss, Cuddle...",
     "uWu Daddy",
-    "The best eve guide..."
+    "The best eve guide...",
+    "Still haven't paid my snuffed debts"
 ];
 const DEATH_LINES = [
     "I am a 20th level Wizard from the land of Faerûn",

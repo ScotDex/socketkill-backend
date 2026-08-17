@@ -15,7 +15,7 @@ const LOSS_COMMENTS = [
     "When the goon session lasts longer than your tank",
     "That fit looked better in theory",
     "You’ve successfully reduced server load",
-    "At least it wasn't a Titan",
+    "Wonder if this guy RMT's?",
 ]
 
 class corpIntelFactory {

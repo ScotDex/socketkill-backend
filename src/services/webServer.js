@@ -533,13 +533,13 @@ app.use("/ticker.html", (req, res, next) => {
 
       const [lossRes, killRes] = await Promise.all([
         d1.query(
-          `SELECT ${FIELDS} FROM kills WHERE ${cols.victim} = ? ORDER BY kill_time DESC LIMIT 500`,
+          `SELECT ${FIELDS} FROM kills WHERE ${cols.victim} = ? ORDER BY kill_time DESC`,
           [id]
         ),
         d1.query(
           `SELECT DISTINCT k.kill_id, k.kill_time, k.system_id, k.region_id, k.space, k.total_value, k.ship_type_id, k.attacker_count
            FROM kills k JOIN kill_attackers ka ON ka.kill_id = k.kill_id
-           WHERE ka.${cols.attacker} = ? ORDER BY k.kill_time DESC LIMIT 500`,
+           WHERE ka.${cols.attacker} = ? ORDER BY k.kill_time DESC`,
           [id]
         ),
       ]);
@@ -550,7 +550,6 @@ app.use("/ticker.html", (req, res, next) => {
 
       const merged = [...rows.values()]
         .sort((a, b) => b.kill_time.localeCompare(a.kill_time))
-        .slice(0, 500);
 
       const events = await Promise.all(merged.map(async r => {
         const sys = esi.getSystemDetails(r.system_id);
@@ -750,7 +749,7 @@ app.use("/ticker.html", (req, res, next) => {
 
       const esiRes = await axios.get(
         `https://esi.evetech.net/killmails/${killId}/${hash}/`,
-        { headers: { 'X-Compatibility-Date': '2025-12-16' } }
+        { headers: { 'X-Compatibility-Date': '2026-08-14' } }
       );
       console.log(`[REFIRE] ESI data fetched for kill ${killId}`);
 
@@ -807,7 +806,10 @@ app.use("/ticker.html", (req, res, next) => {
     .listen(PORT, () => {
       console.log(`Web Module Loaded on ${PORT}`);
     })
-    .on("error", (err) => { });
+    .on("error", (err) => {
+      console.error(`[SERVER] Listen failed on port ${PORT}: ${err.code} — ${err.message}`);
+      process.exit(1);
+    });
 
   return { app, io };
 }

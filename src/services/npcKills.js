@@ -5,7 +5,7 @@ let npcData = null;
 async function refresh() {
     const res = await axios.get(
         'https://esi.evetech.net/universe/system_kills/',
-        { headers: { 'X-Compatibility-Date': '2025-12-16' } }
+        { headers: { 'X-Compatibility-Date': '2026-08-14' } }
     );
     const rawData = res.data;
     if (!Array.isArray(rawData)) throw new Error('bad system_kills response');
@@ -24,4 +24,3 @@ function get() {
 
 module.exports = { refresh, get };
 
-// Forcing build again to set fake simulation
