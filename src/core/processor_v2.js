@@ -28,6 +28,7 @@ module.exports = (esi, io, statsManager) => {
 
             ]);
             const finalVictimName = (charName == "Unknown" || !charName) ? corpName : charName;
+            const space = resolveSpace(killmail.solar_system_id, systemDetails?.security_status);
             const finalBlow = killmail.attackers?.find(a => a.final_blow) || null;
             const allianceName = allianceInfo?.name ?? null;
             const allianceTicker = allianceInfo?.ticker ?? null;
@@ -38,7 +39,7 @@ module.exports = (esi, io, statsManager) => {
                 shipGroupID,
                 systemID: killmail.solar_system_id,
                 regionID: systemDetails?.region_id ?? null,
-                space: resolveSpace(killmail.solar_system_id, systemDetails?.security_status),
+                space: space,
                 totalValue: rawValue,
                 attackerCount: killmail.attackers?.length || 0,
                 victimCorpID: killmail.victim.corporation_id ?? null,
@@ -67,7 +68,7 @@ module.exports = (esi, io, statsManager) => {
                 time: killmail.killmail_time,
                 systemID: killmail.solar_system_id,
                 regionID: systemDetails?.region_id ?? null,
-                space: resolveSpace(killmail.solar_system_id, systemDetails?.security_status),
+                space: space,
                 totalValue: rawValue,
                 victimCharacterID: killmail.victim?.character_id ?? null,
                 victimCorpID: killmail.victim?.corporation_id ?? null,
@@ -116,7 +117,7 @@ module.exports = (esi, io, statsManager) => {
                 attackerCount: attackerCount,
                 isTriglavian: TRIGLAVIAN_SYSTEMS.has(killmail.solar_system_id),
                 allianceName: allianceName,
-                space: resolveSpace(killmail.solar_system_id, systemDetails?.security_status),
+                space: space,
                 weaponTypeIDs,
                 corporationId: killmail.victim.corporation_id ?? null,
                 allianceId: killmail.victim.alliance_id ?? null,
@@ -157,6 +158,7 @@ module.exports = (esi, io, statsManager) => {
                 finalVictimName,
                 allianceTicker,
                 securityStatus: systemDetails?.security_status ?? null,
+                space,
             });
 
         } catch (err) {
