@@ -1,7 +1,8 @@
 const IMMUTABLE = 'public, max-age=31536000, immutable';
 
 function clientIp(req) {
-  return req.get('CF-Connecting-IP')
+  return req.get('X-SK-Client-IP')
+    || req.get('CF-Connecting-IP')
     || (req.headers['x-forwarded-for'] || '').split(',')[0].trim()
     || req.socket?.remoteAddress
     || 'unknown';
