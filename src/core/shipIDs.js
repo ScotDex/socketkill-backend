@@ -1,4 +1,4 @@
-// Note for anyone, if I am missing any let me know :)
+// force rebuild note
 
 const AT_SHIP_IDS = new Set([
     60765, // Raiju
