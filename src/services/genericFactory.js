@@ -16,7 +16,6 @@ const CATEGORY_CONFIG = {
 };
 
 const DOTLAN_BASE = 'https://evemaps.dotlan.net';
-const KILLMAIL_BASE = `https://zkillboard.com/`;
 const ENTITY_BASE = `https://socketkill.com`;
 const siteIcon = `https://edge.socketkill.com/favicon.png`;
 

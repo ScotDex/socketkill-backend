@@ -1,30 +1,15 @@
-const axios = require('../network/agent');
 const helpers = require('./helpers');
 const { resolveItems } = require('./itemResolver');
-const { calculateKillValue, calculateBreakdown } = require('../services/priceService');
-
-async function fetchZkbMeta(killID) {
-  try {
-    const res = await axios.get(`https://zkillboard.com/api/killID/${killID}/`, {
-      timeout: 3000,
-    });
-    return res.data?.[0]?.zkb || null;
-  } catch (err) {
-    console.warn(`[ZKB FETCH] ${killID} failed: ${err.message}`);
-    return null;
-  }
-}
-
+const { calculateBreakdown } = require('../services/priceService');
 
 async function resolveKillDetail(killmail, hash, id, esi) {
   const victim = killmail.victim;
   const finalBlow = killmail.attackers.find(a => a.final_blow) || killmail.attackers[0];
   const systemDetails = esi.getSystemDetails(killmail.solar_system_id);
-
   const [
     victimName, victimCorp, victimAlliance, victimShip,
     finalBlowName, finalBlowCorp, finalBlowShip,
-    regionName, zkb, items,
+    regionName, items,
     ...attackerData
   ] = await Promise.all([
     esi.getCharacterName(victim.character_id),
@@ -35,7 +20,6 @@ async function resolveKillDetail(killmail, hash, id, esi) {
     esi.getCorporationName(finalBlow.corporation_id),
     esi.getTypeName(finalBlow.ship_type_id),
     systemDetails?.region_id ? esi.getRegionName(systemDetails.region_id) : Promise.resolve('K-Space'),
-    fetchZkbMeta(id),
     resolveItems(victim.items, esi),
     ...killmail.attackers.flatMap(a => [
       esi.getCharacterName(a.character_id),
@@ -47,7 +31,6 @@ async function resolveKillDetail(killmail, hash, id, esi) {
   ]);
 
   const damageTaken = victim.damage_taken || 0;
-
   const attackers = killmail.attackers.map((a, i) => ({
     name: attackerData[i * 5],
     characterID: a.character_id || null,
@@ -109,11 +92,9 @@ async function resolveKillDetail(killmail, hash, id, esi) {
 
 async function resolveKillSummary(killmail, killID, esi) {
   const { calculateKillValue } = require('../services/priceService');
-
   const victim = killmail.victim;
   const sys = esi.getSystemDetails(killmail.solar_system_id);
   const finalBlow = killmail.attackers?.find(a => a.final_blow) || killmail.attackers?.[0];
-
   const [vName, vCorp, vAlliance, vShip, region, fbCorp] = await Promise.all([
     esi.getCharacterName(victim.character_id),
     esi.getCorporationName(victim.corporation_id),
@@ -124,7 +105,6 @@ async function resolveKillSummary(killmail, killID, esi) {
   ]);
 
   const rawValue = calculateKillValue(killmail);
-
   return {
     killID: parseInt(killID),
     time: killmail.killmail_time,
