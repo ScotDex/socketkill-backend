@@ -116,7 +116,7 @@ class bombeldoFactoryV2 {
         inner.push({ type: 10, content: `-# Powered by [SocketKill.com](https://socketkill.com) · <t:${ts}:R>` });
         return {
             username: "Harold's Mind",
-            avatar_url: "https://edge.socketkill.com/harold.webp",
+            avatar_url: `${GIF_BASE}/harold.webp`,
             flags: 32768,
             components: [
                 { type: 17, accent_color: isDeath ? ACCENT_DEATH : ACCENT_KILL, components: inner }
