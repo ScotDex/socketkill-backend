@@ -137,8 +137,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
 
           if (isBot) {
             console.warn(`[KILL API] 410 PRIMARY GATE kill=${id} (no date resolved) ua="${ua}"`);
-            res.set('Cache-Control', 'public, max-age=86400');
-            return res.status(503).json({ error: 'Killmail not available' });
+            return res.status(410).json({ error: 'Unavailable' });
           }
           try {
             const zkillRes = await axios.get(
