@@ -3,6 +3,12 @@ const axios = require("../network/agent");
 
 
 class utils {
+  static BOT_UA = /bot|crawler|spider|claude|gptbot|ccbot|bytespider|petalbot|slurp|bingbot|googlebot|facebookexternalhit|meta-external/i;
+
+  static isBot(req) {
+    return utils.BOT_UA.test(req.get('User-Agent') || '');
+  }
+  
   static getArticle(name) {
     if (!name || typeof name !== 'string') return "a";
     const vowels = ["a", "e", "i", "o", "u"];
@@ -69,7 +75,6 @@ class utils {
       media_type: "image",
     };
   }
-
   static formatDuration(ms) {
     const days = Math.floor(ms / (1000 * 60 * 60 * 24));
     const hours = Math.floor((ms / (1000 * 60 * 60)) % 24);
@@ -82,8 +87,5 @@ class utils {
 
     return parts.join(" ");
   }
-
 }
-
 module.exports = utils;
-

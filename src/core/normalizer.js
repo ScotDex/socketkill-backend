@@ -24,7 +24,7 @@ module.exports = {
         };
     },
 
-        fromESI: (killmailId, killmailHash, esiData) => {
+    fromESI: (killmailId, killmailHash, esiData) => {
         if (!esiData || !killmailId) return null;
         return {
             killID: killmailId,

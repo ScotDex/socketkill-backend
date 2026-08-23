@@ -22,9 +22,8 @@ const npcKills = require('./npcKills');
 const d1 = require('../network/d1Client');
 const hashIndex = require("../state/hashIndex");
 const { renderPageCard, renderEntityCard, PAGES } = require('../services/pageCards');
+const helpers = require('../core/helpers');
 
-// Refactoring job required
-const BOT_UA = /bot|crawler|spider|claude|gptbot|ccbot|bytespider|petalbot|slurp|bingbot|googlebot|facebookexternalhit|meta-external/i;
 
 function startWebServer(esi, statsManager, sharedState, getProcessor) {
   const app = express();
@@ -68,7 +67,6 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
   );
   app.use(cors());
   app.use(express.json());
-  // Removing fight mode
   const io = new Server(server, {
     pingTimeout: 2000,
     pingInterval: 5000,
@@ -80,7 +78,6 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
         "https://incursions-dev.nesbit.solutions",
         "https://incursions.nesbit.solutions",
         "https://socketkill.com/about/",
-        "https://socketkill-v2.themadlyscientific.workers.dev",
       ],
       methods: ["GET", "POST"],
     },
@@ -98,7 +95,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       return res.status(400).json({ error: 'Invalid killID.' });
     }
 
-    const isBot = BOT_UA.test(req.get('User-Agent') || '');
+    const isBot = helpers.isBot(req);
     const { ip, ua, ref } = requestMeta(req);
     console.log(`[KILL API] ENTRY kill=${id} bot=${isBot} ip=${ip} ua="${ua}"`);
 
@@ -275,7 +272,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD.' });
     }
 
-    if (BOT_UA.test(req.get('User-Agent') || '')) {
+    if (helpers.isBot(req)) {
       res.set('Cache-Control', 'public, max-age=300');
       return res.status(503).json({ error: 'Archive view unavailable to crawlers.' });
     }
