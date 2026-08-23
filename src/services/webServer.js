@@ -572,27 +572,6 @@ app.use("/ticker.html", (req, res, next) => {
     }
   });
 
-  app.get('/api/stats', (req, res) => {
-    const mem = process.memoryUsage();
-    res.json({
-      totalScanned: statsManager.getTotal(),
-      totalIsk: statsManager.totalIsk,
-      connections: io.engine.clientsCount,
-      uptime: process.uptime(),
-      cache: {
-        characters: esi.cache.characters.size,
-        corporations: esi.cache.corporations.size,
-        types: esi.cache.types.size,
-        regions: esi.cache.regions.size
-      },
-      memory: {
-        rss: Math.round(mem.rss / 1024 / 1024),
-        heapUsed: Math.round(mem.heapUsed / 1024 / 1024),
-        heapTotal: Math.round(mem.heapTotal / 1024 / 1024)
-      }
-    });
-  });
-
   app.get('/api/plex-rate', (req, res) => {
     const rate = plexRate.get();
     if (!rate) return res.status(503).json({ error: 'PLEX rate unavailable' });
