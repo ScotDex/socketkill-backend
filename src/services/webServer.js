@@ -262,11 +262,13 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       }
 
       try {
+        console.log(`[FITSTATS] ${id} eft len=${eft.length} head=${JSON.stringify(eft.slice(0, 40))}`);
         const r = await axios.post(
           'https://api.eveworkbench.com/v1/fits/eft/stats',
           eft,
           {
             headers: { 'X-API-KEY': key, 'Content-Type': 'text/plain' },
+            transformRequest: [(d) => d],
             timeout: 5000,
           }
         );
