@@ -263,18 +263,16 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
 
       try {
         console.log(`[FITSTATS] ${id} eft len=${eft.length} head=${JSON.stringify(eft.slice(0, 40))}`);
-        const r = await axios.post(
-          'https://api.eveworkbench.com/v1/fits/eft/stats',
-          eft,
-          {
-            headers: { 'X-API-KEY': key, 'Content-Type': 'text/plain' },
-            transformRequest: [(d) => d],
-            timeout: 5000,
-          }
-        );
+        const r = await fetch('https://api.eveworkbench.com/v1/fits/eft/stats', {
+          method: 'POST',
+          headers: { 'X-API-KEY': key, 'Content-Type': 'text/plain' },
+          body: eft,
+          signal: AbortSignal.timeout(5000)
+        });
+        const data = await r.json();
+        console.log(`[FITSTATS] ${id} upstream=${r.status} keys=${Object.keys(data || {}).join(',')}`);
 
-        const stats = r.data?.stats;
-                console.log(`[FITSTATS] ${id} upstream=${r.status} keys=${Object.keys(data || {}).join(',')}`);
+        const stats = data?.stats;
         if (!stats?.miscellaneous?.ship?.id) {
           res.set('Cache-Control', 'public, max-age=300');
           return res.status(422).json({ error: 'Fit did not parse' });
