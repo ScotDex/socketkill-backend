@@ -272,8 +272,8 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
         const data = await r.json();
         console.log(`[FITSTATS] ${id} upstream=${r.status} keys=${Object.keys(data || {}).join(',')}`);
 
-        const stats = data?.stats;
-        if (!stats?.miscellaneous?.ship?.id) {
+        const stats = data?.Stats;
+        if (!stats?.Miscellaneous?.Ship?.Id) {
           res.set('Cache-Control', 'public, max-age=300');
           return res.status(422).json({ error: 'Fit did not parse' });
         }
