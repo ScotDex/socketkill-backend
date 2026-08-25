@@ -229,6 +229,66 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     }
   }
 
+    const fitStatsLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => ipKeyGenerator(clientIp(req)),
+    message: { error: 'Too many stat requests.' },
+  });
+
+  app.post('/api/fit-stats/:killID',
+    fitStatsLimiter,
+    express.text({ type: '*/*', limit: '32kb' }),
+    async (req, res) => {
+      const id = parseInt(req.params.killID);
+      if (!Number.isFinite(id) || id <= 0) {
+        return res.status(400).json({ error: 'Invalid killID' });
+      }
+
+      const key = process.env.EWB_API_KEY;
+      if (!key) return res.status(503).json({ error: 'Not configured' });
+
+      const eft = req.body;
+      if (typeof eft !== 'string' || !eft.trim()) {
+        return res.status(400).json({ error: 'Missing EFT body' });
+      }
+
+      const cached = await r2.get(`fit-stats/${id}.json`).catch(() => null);
+      if (cached) {
+        res.set('Cache-Control', IMMUTABLE);
+        return res.json(cached);
+      }
+
+      try {
+        const r = await axios.post(
+          'https://api.eveworkbench.com/v1/fits/eft/stats',
+          eft,
+          {
+            headers: { 'X-API-KEY': key, 'Content-Type': 'text/plain' },
+            timeout: 5000,
+          }
+        );
+
+        const stats = r.data?.stats;
+        if (!stats?.miscellaneous?.ship?.id) {
+          res.set('Cache-Control', 'public, max-age=300');
+          return res.status(422).json({ error: 'Fit did not parse' });
+        }
+
+        res.set('Cache-Control', IMMUTABLE);
+        res.json(stats);
+
+        r2.put(`fit-stats/${id}.json`, stats).catch(err =>
+          console.warn(`[FITSTATS] R2 write failed for ${id}: ${err.message}`));
+
+      } catch (err) {
+        console.error(`[FITSTATS] ${id} failed: ${err.message}`);
+        res.status(502).json({ error: 'Upstream failure' });
+      }
+    });
+
   app.get('/og/entity/:type/:id', ogLimiter, async (req, res) => {
   const { type } = req.params;
   const id = parseInt(req.params.id);

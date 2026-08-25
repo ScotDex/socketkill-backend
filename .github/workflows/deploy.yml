@@ -42,6 +42,7 @@ jobs:
             echo "D1_DATABASE_ID=${{ secrets.D1_DATABASE_ID }}" >> .env
             echo "D1_API_TOKEN=${{ secrets.D1_API_TOKEN }}" >> .env
             echo "JANICE_API_KEY=${{ secrets.JANICE_API_KEY }}" >> .env
+            echo "EWB_API_KEY=${{ secrets.EWB_API_KEY }}" >> .env
             git pull
             docker compose down
             docker compose up -d --build
