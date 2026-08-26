@@ -7,7 +7,7 @@ const ENTITY_BASE = 'https://socketkill.com';
 
 
 // VARIABLES TO ROTATE GIFS
-const GIF_COUNT = 7;
+const GIF_COUNT = 9;
 const GIF_BASE = 'https://edge.socketkill.com/bombeldo';
 const ACCENT_KILL  = 10181046;  
 const ACCENT_DEATH = 16739179;  
