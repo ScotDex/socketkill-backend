@@ -50,6 +50,7 @@ function groupForFlag(flag) {
 function flatten(items, out = []) {
     for (const item of items || []) {
         out.push(item);
+        if (item.items?.length) flatten(item.items, out);
     }
     return out;
 }
