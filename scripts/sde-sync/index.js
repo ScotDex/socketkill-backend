@@ -39,7 +39,7 @@ const VICTIM_CATEGORIES = new Set([
   11, // Entity — NPC ships. 
 ]);
 
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 const KV_BASE = `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/storage/kv/namespaces/${CF_NAMESPACE}`;
 const authHeader = { Authorization: `Bearer ${CF_TOKEN}` };
@@ -83,6 +83,12 @@ function getName(field) {
   return null;
 }
 
+const METRES_PER_LY = 9.4607e15;
+function toLY(metres) {
+  if (typeof metres !== 'number') return null;
+  return Math.round((metres / METRES_PER_LY) * 1e4) / 1e4;
+}
+
 async function buildSystems() {
   const out = {};
   let firstRowLogged = false;
@@ -92,10 +98,14 @@ async function buildSystems() {
       console.log('  sample mapSolarSystems row keys:', Object.keys(row).join(', '));
       firstRowLogged = true;
     }
+    const pos = row.position ?? null;
     out[row._key] = {
       name: getName(row.name),
       regionID: row.regionID ?? null,
       security: row.securityStatus ?? null,
+      x: toLY(pos?.x),
+      y: toLY(pos?.y),
+      z: toLY(pos?.z),
     };
   }
   return out;
