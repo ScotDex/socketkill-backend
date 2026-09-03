@@ -3,6 +3,7 @@ services:
     build: .
     container_name: site
     restart: always
+    command: ["node", "--max-old-space-size=450", "index.js"]
     env_file:
       - .env
     ports:
@@ -16,7 +17,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 768M
     logging:
       driver: "json-file"
       options:
