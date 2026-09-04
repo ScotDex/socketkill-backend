@@ -2,7 +2,7 @@
 const helpers = require('../core/helpers')
 
 class AyaFactory {
-    static createKillEmbed(kill, names) {
+    static createKillEmbed(kill, names, isDeath) {
         const DOTLAN_BASE = 'https://evemaps.dotlan.net'
         const ENTITY_BASE = 'https://socketkill.com';
         const totalValue = helpers.formatIsk(names.rawValue)
@@ -11,17 +11,22 @@ class AyaFactory {
     ? `https://images.evetech.net/characters/${kill.victim.character_id}/portrait?size=128`
     : `https://images.evetech.net/corporations/${kill.victim.corporation_id}/logo?size=128`;
 
+    const headline = isDeath
+    ? `Caroline lost a ${names.shipName}`
+    : `Caroline killed a ${names.shipName}`;
+
         return {
             username: "Kill Tracker",
             avatar_url: feedIcon,
             embeds: [{
-                author: {
-                    name: `${names.finalVictimName} lost a ${names.shipName}`,
-                    icon_url: authorIcon
-                },
-                url: helpers.getSocketKillLink(kill.killmail_id),
+    author: {
+        name: headline,
+        url: helpers.getSocketKillLink(kill.killmail_id),
+        icon_url: authorIcon
+    },
+                
                 thumbnail: { url: `https://images.evetech.net/types/${kill.victim.ship_type_id}/render?size=256` },
-                color: 0xff6b6b,
+                color: isDeath ? 0xff6b6b : 0x4ade80,
                 fields: [
                     { name: "System", value: `**[${names.systemName}](${DOTLAN_BASE}/system/${names.systemName.replace(/ /g, '_')})** `, inline: false },
                     { name: "Region", value: `**[${names.regionName}](${DOTLAN_BASE}/region/${names.regionName.replace(/ /g, '_')})** `, inline: false },
