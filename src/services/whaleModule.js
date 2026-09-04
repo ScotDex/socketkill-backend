@@ -9,6 +9,7 @@ const r2 = require("../network/r2Writer");
 const NewsEmbedFactory = require("./genericFactory");
 const bombeldoFactory = require('./bombeldoFactoryV2');
 const { renderOgCard } = require('../services/ogCard');
+const ayaFactory = require('./ayaFactory');
 
 let channels = {};
 
@@ -21,6 +22,10 @@ const VALUE_100M = 100_000_000;
 
 const BOMBELDO_TRACKED_CHARACTERS = [
     909008587,
+];
+
+const AYA_TRACKED_CHARACTERS = [
+    2114581025,
 ];
 
 
@@ -110,8 +115,18 @@ module.exports = async (killmail, names) => {
 
     // End Bombeldo Block of Code
 
+        const ayaVictimId = killmail.victim?.character_id;
+const isAyaDeath = AYA_TRACKED_CHARACTERS.includes(ayaVictimId);
+const isAyaKill = !isAyaDeath && killmail.attackers?.some(a => AYA_TRACKED_CHARACTERS.includes(a.character_id));
+
+if (isAyaDeath || isAyaKill) {
+    categoryPosts.push(postAya(killmail, names, isAyaDeath));
+}
+
 
     if (categoryPosts.length) await Promise.all(categoryPosts);
+
+
 
     if (names.rawValue < WHALE_THRESHOLD) return;
     await Promise.all([
@@ -141,6 +156,20 @@ async function postBombeldo(kill,  names, isDeath) {
 }
 
 // End Bombeldo Posts Function
+
+async function postAya(kill, names, isDeath) {
+    const urls = channels['aya'];
+    if (!urls?.length) return;
+    const list = Array.isArray(urls) ? urls : [urls];
+    const payload = ayaFactory.createKillEmbed(kill, names, isDeath);
+    await Promise.all(list.map(async (url) => {
+        await webhookSpacer();
+        return axios.post(url, payload).catch((err) => {
+            console.error(`[AYA] webhook failed: ${err.message}`);
+            console.error(`[AYA] detail:`, JSON.stringify(err.response?.data));
+        });
+    }));
+}
 
 
 async function postCorpIntel(kill,  names) {
