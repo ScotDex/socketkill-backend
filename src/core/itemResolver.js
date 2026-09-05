@@ -150,6 +150,7 @@ async function resolveItems(rawItems, esi) {
                 name: nameMap.get(item.item_type_id) || 'Unknown',
                 typeID: item.item_type_id,
                 _group: group,
+                _nested: item._nested ?? false,
                 dropped,
                 destroyed,
                 quantity: dropped + destroyed,
@@ -165,7 +166,10 @@ async function resolveItems(rawItems, esi) {
         if (!groups[_group]) groups[_group] = [];
         groups[_group].push(rest);
     }
-    for (const arr of Object.values(groups)) arr.sort((a, b) => a.name.localeCompare(b.name));
+        const ORDERED_GROUPS = new Set(['shipHangar', 'fleetHangar']);
+    for (const [group, arr] of Object.entries(groups)) {
+        if (!ORDERED_GROUPS.has(group)) arr.sort((a, b) => a.name.localeCompare(b.name));
+    }
 
     return { status: 'resolved', groups, slots };
 }
