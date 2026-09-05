@@ -47,10 +47,18 @@ function groupForFlag(flag) {
     return 'other';
 }
 
-function flatten(items, out = []) {
+function flatten(items, out = [], rootGroup = null, containerKey = null) {
+    let containerIndex = 0;
     for (const item of items || []) {
-        out.push(item);
-        if (item.items?.length) flatten(item.items, out);
+        out.push(
+            rootGroup
+                ? { ...item, _rootGroup: rootGroup, _nested: true, _container: containerKey }
+                : item
+        );
+        if (item.items?.length) {
+            const childKey = `${containerKey ?? 'r'}.${containerIndex++}`;
+            flatten(item.items, out, rootGroup || groupForFlag(item.flag), childKey);
+        }
     }
     return out;
 }
@@ -66,7 +74,7 @@ function pickVariation(list, isCopy) {
 function buildSlots(flat, nameMap, variationMap) {
     const byKey = new Map();
 
-    for (const item of flat) {
+        for (const item of flat) {
         const group = groupForFlag(item.flag);
         if (!FITTED_GROUPS.has(group)) continue;
 
@@ -124,10 +132,10 @@ async function resolveItems(rawItems, esi) {
     const slots = buildSlots(flat, nameMap, variationMap);
     const merged = new Map();
     for (const item of flat) {
-        const group = groupForFlag(item.flag);
+        const group = item._rootGroup ?? groupForFlag(item.flag);
         const isCopy = item.singleton === 2;
         const unitPrice = isCopy ? 0 : getPrice(item.item_type_id);
-        const key = `${group}:${item.item_type_id}:${isCopy ? 'c' : 'o'}`;
+        const key = `${group}:${item._container ?? ''}:${item.item_type_id}:${isCopy ? 'c' : 'o'}`;
         const existing = merged.get(key);
         const dropped = item.quantity_dropped || 0;
         const destroyed = item.quantity_destroyed || 0;
