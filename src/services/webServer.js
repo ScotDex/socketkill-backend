@@ -572,6 +572,24 @@ app.use("/ticker.html", (req, res, next) => {
     });
   });
 
+    const ENTITY_IDENTITY = {
+    pilot:    id => `https://esi.evetech.net/characters/${id}`,
+    corp:     id => `https://esi.evetech.net/corporations/${id}`,
+    alliance: id => `https://esi.evetech.net/alliances/${id}`,
+  };
+
+  async function fetchEsi(url, ms = 4000) {
+    try {
+      const { data } = await axios.get(url, {
+        headers: { 'X-Compatibility-Date': '2026-08-14' },
+        timeout: ms,
+      });
+      return { ok: true, data };
+    } catch (err) {
+      return { ok: false, status: err.response?.status ?? 0 };
+    }
+  }
+
   const ENTITY_COLUMNS = {
     pilot: { victim: 'victim_character_id', attacker: 'character_id' },
     corp: { victim: 'victim_corp_id', attacker: 'corp_id' },
