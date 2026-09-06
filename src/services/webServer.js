@@ -608,7 +608,7 @@ app.use("/ticker.html", (req, res, next) => {
     try {
       const FIELDS = 'kill_id, kill_time, system_id, region_id, space, total_value, ship_type_id, attacker_count';
 
-      const [lossRes, killRes] = await Promise.all([
+      const [lossRes, killRes, identityRes, memberCorpsRes] = await Promise.all([
         d1.query(
           `SELECT ${FIELDS} FROM kills WHERE ${cols.victim} = ? ORDER BY kill_time DESC`,
           [id]
