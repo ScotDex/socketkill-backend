@@ -617,6 +617,10 @@ app.use("/ticker.html", (req, res, next) => {
            WHERE ka.${cols.attacker} = ? ORDER BY k.kill_time DESC`,
           [id]
         ),
+        fetchEsi(ENTITY_IDENTITY[type](id)),
+        type === 'alliance'
+          ? fetchEsi(`https://esi.evetech.net/alliances/${id}/corporations/`)
+          : null,
       ]);
 
       const rows = new Map();
@@ -642,8 +646,42 @@ app.use("/ticker.html", (req, res, next) => {
         };
       }));
 
+      let identity = null;
+      if (identityRes.ok) {
+        const raw = identityRes.data;
+        const corpID     = type === 'pilot'    ? (raw.corporation_id ?? null) : null;
+        const allianceID = type !== 'alliance' ? (raw.alliance_id ?? null) : null;
+        const ceoID      = type === 'corp'     ? (raw.ceo_id ?? null) : null;
+        const executorID = type === 'alliance' ? (raw.executor_corporation_id ?? null) : null;
+
+        const [corp, alliance, ceo, executor] = await Promise.all([
+          corpID     ? esi.getCorporationName(corpID)     : null,
+          allianceID ? esi.getAllianceName(allianceID)    : null,
+          ceoID      ? esi.getCharacterName(ceoID)        : null,
+          executorID ? esi.getCorporationName(executorID) : null,
+        ]);
+
+        const clean = n => (n && n !== 'Unknown' ? n : null);
+
+        identity = {
+          raw,
+          names: {
+            corp:     clean(corp),
+            alliance: clean(alliance),
+            ceo:      clean(ceo),
+            executor: clean(executor),
+          },
+          corpCount: memberCorpsRes?.ok ? memberCorpsRes.data.length : null,
+        };
+      }
+
       res.set('Cache-Control', 'public, max-age=60');
-      res.json({ windowDays: 30, events });
+      res.json({
+        windowDays: 30,
+        events,
+        identity,
+        identityStatus: identityRes.ok ? 200 : identityRes.status,
+      });
     } catch (err) {
       console.error(`[ENTITY API] ${req.params.type}/${id} failed: ${err.message}`);
       res.status(500).json({ error: 'Internal error' });
