@@ -603,6 +603,8 @@ app.use("/ticker.html", (req, res, next) => {
       return res.status(400).json({ error: 'Invalid entity type or id' });
     }
 
+  const type = req.params.type;
+
     try {
       const FIELDS = 'kill_id, kill_time, system_id, region_id, space, total_value, ship_type_id, attacker_count';
 
