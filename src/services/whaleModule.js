@@ -215,7 +215,7 @@ async function postSocial(killmail, names, formattedValue, killmailId) {
             },
         });
     } catch (err) {
-        console.error(`[SOCIAL] Card render failed, posting text-only: ${err.message}`);
+        console.error(`[SOCIAL] Card render failed, posting non visual-only: ${err.message}`);
     }
     await Promise.all([
         TwitterService.postWhale(names, formattedValue, killmailId, png),
