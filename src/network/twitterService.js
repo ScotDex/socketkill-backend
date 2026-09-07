@@ -2,6 +2,7 @@ require(`dotenv`).config();
 const { TwitterApi } = require(`twitter-api-v2`)
 const { AtpAgent } = require('@atproto/api');
 const helpers = require('../core/helpers');
+const axios = require('./agent');
 
 const twitterClient = new TwitterApi({
     appKey: process.env.TWITTER_API_KEY,
@@ -76,4 +77,24 @@ class BlueSkyService {
     }
 }
 
-module.exports = { TwitterService, BlueSkyService }
+class MastodonService {
+    static async postWhale (names, formattedValue, killId){
+        try {
+            const date = new Date().toISOString().slice(0,10);
+            const url = helpers.getSocketKillLink(killId, date);
+            const status = `BOOM! ${names.shipName} destroyed! || ${formattedValue} ISK || ${url} || #EveOnline #SocketKill #TweetFleet`;
+
+                        await axios.post(
+                `${process.env.MASTODON_INSTANCE}/api/v1/statuses`,
+                { status },
+                { headers: { Authorization: `Bearer ${process.env.MASTODON_ACCESS_TOKEN}` } }
+            );
+            console.log(`Mastodon post made for Kill #${killId}`);
+        } catch (err) {
+            console.error("Mastodon API Error:", err.response?.status, err.message);
+        }
+    }
+}
+
+
+module.exports = { TwitterService, BlueSkyService, MastodonService }

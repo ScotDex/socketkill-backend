@@ -1,4 +1,4 @@
-const { TwitterService, BlueSkyService } = require("../network/twitterService");
+const { TwitterService, BlueSkyService, MastodonService } = require("../network/twitterService");
 const CorpIntelFactory = require("../services/corpIntelFactory");
 const axios = require("../network/agent");
 const helpers = require("../core/helpers");
@@ -220,5 +220,6 @@ async function postSocial(killmail, names, formattedValue, killmailId) {
     await Promise.all([
         TwitterService.postWhale(names, formattedValue, killmailId, png),
         BlueSkyService.postWhale(names, formattedValue, killmailId, png),
+        MastodonService.postWhale(names, formattedValue, killmailId),
     ]);
 }
