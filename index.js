@@ -13,6 +13,7 @@ const { syncMarketPrices, loadMarketPrices, startMarketSync, getPricedTypeIDs } 
 const kv = require('./src/network/kvClient');
 const { startJaniceOverlay, runOverlayPass } = require("./src/services/janiceOverlay");
 const { loadCustomPrices, startCustomPriceSync } = require("./src/services/customPrices");
+const { loadAbyssalPrices, startAbyssalSync } = require("./src/services/abyssalOverlay");
 const d1 = require("./src/network/d1Client");
 
 
@@ -277,6 +278,8 @@ process.on("SIGINT", () => shutdown("SIGINT"));
   startPoller();
   await loadCustomPrices();
   startCustomPriceSync();
+  await loadAbyssalPrices();
+  startAbyssalSync();
   startJaniceOverlay(getPricedTypeIDs);
   runOverlayPass(getPricedTypeIDs()).catch(() => {});
   d1.pruneOldKills(30).catch(e => console.error('[D1] prune failed:', e.message));

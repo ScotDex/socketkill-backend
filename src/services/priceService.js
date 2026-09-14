@@ -2,6 +2,7 @@ const axios = require('../network/agent');
 const r2 = require('../network/r2Writer');
 const janiceOverlay = require('./janiceOverlay');
 const customPrices = require('./customPrices');
+const abyssalOverlay = require('./abyssalOverlay');
 
 const ESI_BASE = 'https://esi.evetech.net';
 
@@ -68,6 +69,10 @@ function getPrice(typeId) {
     if (custom != null) return custom;
     const janice = janiceOverlay.getJanicePrice(typeId);
     if (janice != null) return janice;
+    
+    const abyssal = abyssalOverlay.getAbyssalPrice(typeId);
+    if (abyssal != null) return abyssal;
+
     const entry = priceMap.get(typeId);
     if (!entry) return 0;
     return entry.average_price ?? entry.adjusted_price ?? 0;
