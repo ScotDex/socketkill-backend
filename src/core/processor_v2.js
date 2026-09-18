@@ -108,11 +108,11 @@ module.exports = (esi, io, statsManager) => {
                 locationLabel: `System: ${systemName} | Region: ${regionName} | Final Blow: ${finalBlowCorp}`,
                 zkillUrl: helpers.getSocketKillLink(killID),
                 victimName: finalVictimName,
-                shipImageUrl: `https://images.evetech.net/types/${killmail.victim.ship_type_id}/render`, // testing
-                corpImageUrl: `https://images.evetech.net/corporations/${killmail.victim.corporation_id}/logo`,
+                shipImageUrl: `https://images.evetech.net/types/${killmail.victim.ship_type_id}/render?size=128`,
+                corpImageUrl: `https://images.evetech.net/corporations/${killmail.victim.corporation_id}/logo?size=128`,
                 allianceImageUrl: killmail.victim.alliance_id
-                    ? `https://images.evetech.net/alliances/${killmail.victim.alliance_id}/logo`
-                    : `https://images.evetech.net/alliances/1/logo`,
+                    ? `https://images.evetech.net/alliances/${killmail.victim.alliance_id}/logo?size=128`
+                    : `https://images.evetech.net/alliances/1/logo?size=128`,
                 finalBlowCorp: finalBlowCorp,
                 attackerCount: attackerCount,
                 isTriglavian: TRIGLAVIAN_SYSTEMS.has(killmail.solar_system_id),
