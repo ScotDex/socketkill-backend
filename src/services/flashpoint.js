@@ -1,9 +1,23 @@
-const THRESHOLD   = 3;          
+const { TwitterService, BlueSkyService, MastodonService } = require('../network/twitterService');
+const helpers = require('../core/helpers');
+const THRESHOLD   = 10;          
 const WINDOW_MS   = 15 * 60_000;  
 const COOLDOWN_MS = 60 * 60_000;  
+const POSTING_ENABLED = true;
 
 const recent = new Map();     
 const lastFired = new Map();  
+
+async function postFlashpoint(systemName, count, isk) {
+    const url = `https://socketkill.com/?system=${encodeURIComponent(systemName)}`;
+    const text = `FLASHPOINT: ${systemName} | ${count} kills in ${WINDOW_MS / 60000} min | ${helpers.formatIsk(isk)} ISK destroyed`;
+
+    await Promise.all([
+        TwitterService.postText(`${text} ${url} #TweetFleet #eveonline #SocketKill`),
+        BlueSkyService.postText(`${text} #EveOnline #SocketKill`, url, `Flashpoint: ${systemName}`),
+        MastodonService.postText(`${text} ${url} #EveOnline #SocketKill #TweetFleet`),
+    ]);
+}
 
 function trackKill(killmail, names) {
     const now = Date.now();
@@ -14,7 +28,7 @@ function trackKill(killmail, names) {
     const cutoff = now - WINDOW_MS;
     const entries = (recent.get(id) || []).filter(e => e.t >= cutoff);
     if (entries.some(e => e.kid === killmail.killmail_id)) return;
-    entries.push({ t: killTime, isk: names.rawValue || 0 });
+    entries.push({ t: killTime, isk: names.rawValue || 0, kid: killmail.killmail_id });
     recent.set(id, entries);
 
     if (entries.length < THRESHOLD) return;
@@ -23,6 +37,10 @@ function trackKill(killmail, names) {
     lastFired.set(id, now);
     const isk = entries.reduce((sum, e) => sum + e.isk, 0);
     console.log(`[FLASHPOINT] WOULD FIRE: ${names.systemName} (${id}) | ${entries.length} kills / ${WINDOW_MS / 60000}min | ${isk} ISK`);
+    if (!POSTING_ENABLED) return;
+    if (names.systemName === 'Unknown System') return;
+    postFlashpoint(names.systemName, entries.length, isk)
+        .catch(err => console.error(`[FLASHPOINT] Post failed: ${err.message}`));
 }
 
 setInterval(() => {
