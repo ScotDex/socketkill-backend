@@ -80,8 +80,8 @@ async function rotateIfNeeded() {
   console.log(`[HASH] New day started: ${currentDate}`);
 }
 
-async function getHashFromShard(date, killID) {
-  if (date === todayUTC()) return get(killID);
+async function getEntry(date, killID) {
+  if (date === todayUTC()) return cache.get(killID) || null;
   let shard = shardCache.get(date);
   if (!shard) {
     shard = await r2.get(shardKey(date));
@@ -93,8 +93,11 @@ async function getHashFromShard(date, killID) {
       shardCache.delete(oldest);
     }
   }
-  const entry = shard[killID] || shard[String(killID)] || null;
-  return entryHash(entry);
+  return shard[killID] || shard[String(killID)] || null;
+}
+
+async function getHashFromShard(date, killID) {
+  return entryHash(await getEntry(date, killID));
 }
 
 function getAllToday() {
@@ -143,4 +146,4 @@ function search(filters) {
   return matches;
 }
 
-module.exports = { prime, set, get, getShipID, flush, rotateIfNeeded, getHashFromShard, getAllToday, findDateForKill, search };
+module.exports = { prime, set, get, getShipID, flush, rotateIfNeeded, getEntry, getHashFromShard, getAllToday, findDateForKill, search };

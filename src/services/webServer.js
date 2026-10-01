@@ -23,6 +23,7 @@ const d1 = require('../network/d1Client');
 const hashIndex = require("../state/hashIndex");
 const { renderPageCard, renderEntityCard, PAGES } = require('../services/pageCards');
 const helpers = require('../core/helpers');
+const { WHALE_THRESHOLD } = require('../services/whaleModule');
 
 
 function startWebServer(esi, statsManager, sharedState, getProcessor) {
@@ -177,11 +178,15 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     }
 
     if (isBot) {
-      res.set('Cache-Control', 'public, max-age=300');
-      return res.status(503).json({ error: 'Killmail not yet cached. Retry shortly.' });
+      const entry = await hashCache.getEntry(date, id);
+      const isWhale = typeof entry === 'object' && entry !== null
+        && (entry.totalValue || 0) >= WHALE_THRESHOLD;
+      if (!isWhale) {
+        res.set('Cache-Control', 'public, max-age=300');
+        return res.status(503).json({ error: 'Killmail not yet cached. Retry shortly.' });
+      }
+      console.log(`[KILL API] BOT WHALE PASS kill=${id} date=${date}`);
     }
-
-
     
     console.log(`[KILL API] kill=${id} date=${date} ip=${ip} ua="${ua}" ref="${ref}"`);
 
@@ -457,13 +462,17 @@ app.use("/ticker.html", (req, res, next) => {
     const today = new Date().toISOString().slice(0, 10);
     const isToday = date === today;
 
-    let ids;
+    let entries;
     if (isToday) {
-      ids = hashCache.getAllToday().map(([killID]) => killID);
+      entries = hashCache.getAllToday();
     } else {
       const shard = await r2.get(`hashes/${date}.json`);
-      ids = shard ? Object.keys(shard) : [];
+      entries = shard ? Object.entries(shard) : [];
     }
+
+    const ids = entries
+      .filter(([, e]) => typeof e === 'object' && e !== null && (e.totalValue || 0) >= WHALE_THRESHOLD)
+      .map(([killID]) => killID);
 
     const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${ids.map(id => `  <url><loc>${SITE}/kill/${id}</loc><lastmod>${date}</lastmod></url>`).join('\n')
       }\n</urlset>`;

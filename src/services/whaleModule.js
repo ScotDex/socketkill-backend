@@ -224,3 +224,5 @@ async function postSocial(killmail, names, formattedValue, killmailId) {
         MastodonService.postWhale(names, formattedValue, killmailId),
     ]);
 }
+
+module.exports.WHALE_THRESHOLD = WHALE_THRESHOLD;

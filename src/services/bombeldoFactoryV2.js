@@ -1,7 +1,8 @@
 const helpers = require('../core/helpers');
 const pick = a => a[Math.floor(Math.random() * a.length)];
 const plexRate = require('../services/plexRate');
-const FREDDO_PRICE_GBP = 0.35;
+// https://freddoindex.com/
+const FREDDO_PRICE_GBP = 0.38;
 const DOTLAN_BASE = 'https://evemaps.dotlan.net';
 const ENTITY_BASE = 'https://socketkill.com';
 
