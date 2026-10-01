@@ -6,6 +6,7 @@ const hashCache = require('../state/hashCache')
 const { calculateKillValue } = require('../services/priceService');
 const d1 = require('../network/d1Client');
 const hashIndex = require('../state/hashIndex');
+const flashpoint = require('../services/flashpoint');
 
 module.exports = (esi, io, statsManager) => {
     async function processPackage(packageData) {
@@ -160,6 +161,8 @@ module.exports = (esi, io, statsManager) => {
                 securityStatus: systemDetails?.security_status ?? null,
                 space,
             });
+            try { flashpoint.trackKill(killmail, { systemName, rawValue }); }
+            catch (err) { console.error(`[FLASHPOINT] ${err.message}`); }
 
         } catch (err) {
             console.error(`[PROCESSOR-ERR] Kill ${killID} failed: ${err.message}`);

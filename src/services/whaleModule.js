@@ -11,9 +11,10 @@ const bombeldoFactory = require('./bombeldoFactoryV2');
 const { renderOgCard } = require('../services/ogCard');
 const ayaFactory = require('./ayaFactory');
 
+
 let channels = {};
 
-const WHALE_THRESHOLD = 40000000000;
+const WHALE_THRESHOLD = 20000000000;
 const VALUE_1B = 1000000000;
 const VALUE_10B = 10000000000;
 const VALUE_100M = 100_000_000;
