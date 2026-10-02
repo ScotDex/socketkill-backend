@@ -146,4 +146,31 @@ function search(filters) {
   return matches;
 }
 
-module.exports = { prime, set, get, getShipID, flush, rotateIfNeeded, getEntry, getHashFromShard, getAllToday, findDateForKill, search };
+const whaleSets = new Map();
+
+async function whaleSetFor(date, threshold) {
+  if (whaleSets.has(date)) return whaleSets.get(date);
+  const shard = await r2.get(shardKey(date));
+  const set = new Set();
+  if (shard) {
+    for (const [id, e] of Object.entries(shard)) {
+      if (e && typeof e === 'object' && (e.totalValue || 0) >= threshold) set.add(Number(id));
+    }
+  }
+  whaleSets.set(date, set);
+  if (whaleSets.size > 30) whaleSets.delete(whaleSets.keys().next().value);
+  return set;
+}
+
+async function isWhale(killID, threshold, days = 8) {
+  const id = Number(killID);
+  const todayEntry = cache.get(id);
+  if (todayEntry) return typeof todayEntry === 'object' && (todayEntry.totalValue || 0) >= threshold;
+  for (let i = 1; i < days; i++) {
+    const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
+    if ((await whaleSetFor(d, threshold)).has(id)) return true;
+  }
+  return false;
+}
+
+module.exports = { prime, set, get, getShipID, flush, rotateIfNeeded, getEntry, getHashFromShard, getAllToday, findDateForKill, search, isWhale };

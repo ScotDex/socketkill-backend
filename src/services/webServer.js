@@ -100,6 +100,12 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     const { ip, ua, ref } = requestMeta(req);
     console.log(`[KILL API] ENTRY kill=${id} bot=${isBot} ip=${ip} ua="${ua}"`);
 
+    if (isBot && !(await hashCache.isWhale(id, WHALE_THRESHOLD))) {
+      console.warn(`[KILL API] BOT GATE kill=${id} not a sitemap whale`);
+      res.set('Cache-Control', 'no-store');
+      return res.status(410).json({ error: 'Unavailable' });
+    }
+
     if (req.params.date) {
       date = req.params.date;
 
@@ -177,16 +183,6 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       }
     }
 
-    if (isBot) {
-      const entry = await hashCache.getEntry(date, id);
-      const isWhale = typeof entry === 'object' && entry !== null
-        && (entry.totalValue || 0) >= WHALE_THRESHOLD;
-      if (!isWhale) {
-        res.set('Cache-Control', 'public, max-age=300');
-        return res.status(503).json({ error: 'Killmail not yet cached. Retry shortly.' });
-      }
-      console.log(`[KILL API] BOT WHALE PASS kill=${id} date=${date}`);
-    }
     
     console.log(`[KILL API] kill=${id} date=${date} ip=${ip} ua="${ua}" ref="${ref}"`);
 
