@@ -7,7 +7,6 @@ const { execSync } = require('node:child_process');
 const { Readable } = require('node:stream');
 const { pipeline } = require('node:stream/promises');
 
-// ─── Config ───────────────────────────────────────────────────────────────
 
 const SDE_BASE = 'https://developers.eveonline.com/static-data/tranquility';
 const LATEST_URL = `${SDE_BASE}/latest.jsonl`;
@@ -54,6 +53,18 @@ const DMG_IDS = [114, 118, 117, 116];
 const CLASS_BY_META = { 1: 'T1', 2: 'T2', 4: 'Faction' };
 const CHARGE_SIZE_ATTR = 128;
 
+const POCHVEN_REGION_NAME = 'Pochven';
+const POCHVEN_EXTRA_SYSTEM_IDS = new Set([32000058, 32000012, 32000049, 32000123, 32000074, 32000102]);
+
+
+function classifySpace(id, regionID, security, pochvenRegionId) {
+  if (id >= 31000000 && id < 32000000) return 'wh';
+  if (regionID === pochvenRegionId || POCHVEN_EXTRA_SYSTEM_IDS.has(id)) return 'pochven';
+  if (security == null) return 'unknown';
+  if (security >= 0.5) return 'high';
+  if (security >= 0.1) return 'low';
+  return 'null';
+}
 
 function shipClass(f, metaGroups) {
   if (f.metaGroupID == null) return f.techLevel === 2 ? 'T2' : 'T1';
@@ -71,7 +82,7 @@ const VICTIM_CATEGORIES = new Set([
   11, // Entity — NPC ships. 
 ]);
 
-const SCHEMA_VERSION = 5;
+const SCHEMA_VERSION = 6;
 
 const KV_BASE = `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/storage/kv/namespaces/${CF_NAMESPACE}`;
 const authHeader = { Authorization: `Bearer ${CF_TOKEN}` };
@@ -124,7 +135,7 @@ function toLY(metres) {
   return Math.round((metres / METRES_PER_LY) * 1e4) / 1e4;
 }
 
-async function buildSystems() {
+async function buildSystems(pochvenRegionId) {
   const out = {};
   let firstRowLogged = false;
   for await (const row of readJsonl(path.join(EXTRACT_DIR, 'mapSolarSystems.jsonl'))) {
@@ -138,6 +149,7 @@ async function buildSystems() {
       name: getName(row.name),
       regionID: row.regionID ?? null,
       security: row.securityStatus ?? null,
+      space: classifySpace(row._key, row.regionID, row.securityStatus, pochvenRegionId),
       x: toLY(pos?.x),
       y: toLY(pos?.y),
       z: toLY(pos?.z),
@@ -403,8 +415,11 @@ async function main() {
   const dogma = await buildDogma(wantedIds);
   console.log(`  dogma rows: ${Object.keys(dogma).length} (frigates + ammo: ${wantedIds.size}) | metaGroups: ${Object.keys(metaGroups).length} | factions: ${Object.keys(factions).length}`);
   const categories = await buildCategories();
-  const systems = await buildSystems();
   const regions = await buildRegions();
+  const pochvenRegionId = Number(Object.keys(regions).find(id => regions[id].name === POCHVEN_REGION_NAME));
+  const systems = await buildSystems(pochvenRegionId);
+  const pochvenCount = Object.values(systems).filter(s => s.space === 'pochven').length;
+  console.log(`  pochven: region ${pochvenRegionId}, ${pochvenCount} systems`);
   const ships = await buildShips(groups);
   const items = await buildItems(groups);
 
