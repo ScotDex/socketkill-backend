@@ -253,6 +253,7 @@ class ESIClient {
             name: raw.name,
             region_id: raw.regionID,
             security_status: raw.security,
+            space: raw.space ?? null,
         };
     }
 

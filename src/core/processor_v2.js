@@ -1,7 +1,6 @@
 const helpers = require("./helpers");
 const handleWhale = require("../services/whaleModule");
 const { resolveKillmail, resolveFinalBlowCorp, resolveTriggerAttacker, resolveSpace, topByDamage } = require('./processorHelpers');
-const { TRIGLAVIAN_SYSTEMS } = require('../core/shipIDs');
 const hashCache = require('../state/hashCache')
 const { calculateKillValue } = require('../services/priceService');
 const d1 = require('../network/d1Client');
@@ -29,7 +28,7 @@ module.exports = (esi, io, statsManager) => {
 
             ]);
             const finalVictimName = (charName == "Unknown" || !charName) ? corpName : charName;
-            const space = resolveSpace(killmail.solar_system_id, systemDetails?.security_status);
+            const space = systemDetails?.space ?? resolveSpace(killmail.solar_system_id, systemDetails?.security_status);
             const finalBlow = killmail.attackers?.find(a => a.final_blow) || null;
             const allianceName = allianceInfo?.name ?? null;
             const allianceTicker = allianceInfo?.ticker ?? null;
@@ -116,7 +115,7 @@ module.exports = (esi, io, statsManager) => {
                     : `https://images.evetech.net/alliances/1/logo?size=128`,
                 finalBlowCorp: finalBlowCorp,
                 attackerCount: attackerCount,
-                isTriglavian: TRIGLAVIAN_SYSTEMS.has(killmail.solar_system_id),
+                isTriglavian: space === 'pochven',
                 allianceName: allianceName,
                 space: space,
                 weaponTypeIDs,
