@@ -46,14 +46,15 @@ async function resolveTriggerAttacker(killmail, esi) {
     const attacker = killmail.attackers?.find(a =>
         AT_SHIP_IDS.has(a.ship_type_id) || OFFICER_SHIP_IDS.has(a.ship_type_id) || RORQUAL_SHIP_IDS.has(a.ship_type_id)
     )
-    if (!attacker) return { triggerShipName: null, triggerCharName: null, triggerCorpName: null, triggerShipId: null };
-    const [triggerShipName, triggerCharName, triggerCorpName] = await Promise.all([
+    if (!attacker) return { triggerShipName: null, triggerCharName: null, triggerCorpName: null, triggerShipId: null, triggerAllianceName: null };
+    const [triggerShipName, triggerCharName, triggerCorpName, triggerAllianceInfo] = await Promise.all([
         esi.getTypeName(attacker.ship_type_id),
         attacker.character_id ? esi.getCharacterName(attacker.character_id) : Promise.resolve("Unknown"),
-        attacker.corporation_id ? esi.getCorporationName(attacker.corporation_id) : Promise.resolve("Unknown")
+        attacker.corporation_id ? esi.getCorporationName(attacker.corporation_id) : Promise.resolve("Unknown"),
+        attacker.alliance_id ? esi.getAllianceInfo(attacker.alliance_id) : Promise.resolve(null)
     ]);
 
-    return { triggerShipName, triggerCharName, triggerCorpName, triggerShipId: attacker.ship_type_id };
+    return { triggerShipName, triggerCharName, triggerCorpName, triggerShipId: attacker.ship_type_id, triggerAllianceName: triggerAllianceInfo?.name ?? null };
 }
 
-module.exports = { resolveKillmail, resolveFinalBlowCorp, resolveTriggerAttacker, resolveSpace, topByDamage };
+module.exports = { resolveKillmail, resolveFinalBlowCorp, resolveTriggerAttacker, resolveSpace, topByDamage, };

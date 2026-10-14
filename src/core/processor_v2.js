@@ -87,7 +87,7 @@ module.exports = (esi, io, statsManager) => {
                 ? await esi.getRegionName(systemDetails.region_id)
                 : "K-Space";
 
-            const { triggerShipName, triggerCharName, triggerCorpName, triggerShipId } = await resolveTriggerAttacker(killmail, esi);
+            const { triggerShipName, triggerCharName, triggerCorpName, triggerShipId, triggerAllianceName } = await resolveTriggerAttacker(killmail, esi);
 
             const durationMs = Number(process.hrtime.bigint() - startProcessing) / 1_000_000;
             console.log(`[PERF] Kill ${killID} | Latency: ${durationMs.toFixed(3)}ms`);
@@ -155,6 +155,7 @@ module.exports = (esi, io, statsManager) => {
                 triggerShipName,
                 triggerCharName,
                 triggerCorpName,
+                triggerAllianceName,
                 triggerShipId,
                 finalVictimName,
                 allianceTicker,

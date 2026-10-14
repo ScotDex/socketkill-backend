@@ -26,7 +26,39 @@ const WORK_DIR = '/tmp/sde-sync';
 const ZIP_PATH = path.join(WORK_DIR, 'sde.zip');
 const EXTRACT_DIR = path.join(WORK_DIR, 'extracted');
 
-const TABLES = ['mapSolarSystems', 'mapRegions', 'types', 'groups', 'categories'];
+const TABLES = ['mapSolarSystems', 'mapRegions', 'types', 'groups', 'categories', 'typeDogma', 'metaGroups', 'factions'];
+
+const FRIGATE_GROUP_NAMES = new Set ([
+'Frigate', 'Assault Frigate', 'Interceptor', 'Covert Ops', 'Stealth Bomber',
+  'Electronic Attack Ship', 'Logistics Frigate', 'Expedition Frigate',
+])
+
+const AMMO_GROUP_FAMILY = {
+  'Projectile Ammo': 'Projectile',
+  'Hybrid Charge': 'Hybrid',
+  'Frequency Crystal': 'Laser',
+  'Light Missile': 'Light Missiles',
+  'Rocket': 'Rockets',
+  'Advanced Light Missile': 'Advanced Light Missiles',
+  'Advanced Rocket': 'Advanced Rockets',
+};
+const SIZED_AMMO_GROUPS = new Set(['Projectile Ammo', 'Hybrid Charge', 'Frequency Crystal']);
+
+const DAMAGE_TYPES = ['EM', 'Thermal', 'Kinetic', 'Explosive'];
+const RES_IDS = {
+  shield: [271, 274, 273, 272],
+  armor:  [267, 270, 269, 268],
+  hull:   [113, 110, 109, 111],   
+};
+const DMG_IDS = [114, 118, 117, 116];
+const CLASS_BY_META = { 1: 'T1', 2: 'T2', 4: 'Faction' };
+const CHARGE_SIZE_ATTR = 128;
+
+
+function shipClass(f, metaGroups) {
+  if (f.metaGroupID == null) return f.techLevel === 2 ? 'T2' : 'T1';
+  return CLASS_BY_META[f.metaGroupID] ?? metaGroups[f.metaGroupID]?.name ?? 'Unknown';
+}
 
 const VICTIM_CATEGORIES = new Set([
   6,   // Ship
@@ -39,7 +71,7 @@ const VICTIM_CATEGORIES = new Set([
   11, // Entity — NPC ships. 
 ]);
 
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 const KV_BASE = `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/storage/kv/namespaces/${CF_NAMESPACE}`;
 const authHeader = { Authorization: `Bearer ${CF_TOKEN}` };
@@ -83,6 +115,9 @@ function getName(field) {
   return null;
 }
 
+const round4 = (n) => Math.round(n * 1e4) / 1e4;
+const toResists = (attrs, ids) => ids.map(id => round4((1 - (attrs?.[id] ?? 1)) * 100));
+
 const METRES_PER_LY = 9.4607e15;
 function toLY(metres) {
   if (typeof metres !== 'number') return null;
@@ -114,6 +149,24 @@ async function buildSystems() {
 async function buildRegions() {
   const out = {};
   for await (const row of readJsonl(path.join(EXTRACT_DIR, 'mapRegions.jsonl'))) {
+    if (row._key === '_meta') continue;
+    out[row._key] = { name: getName(row.name) };
+  }
+  return out;
+}
+
+async function buildFactions() {
+  const out = {};
+  for await (const row of readJsonl(path.join(EXTRACT_DIR, 'factions.jsonl'))) {
+    if (row._key === '_meta') continue;
+    out[row._key] = { name: getName(row.name) };
+  }
+  return out;
+}
+
+async function buildMetaGroups() {
+  const out = {};
+  for await (const row of readJsonl(path.join(EXTRACT_DIR, 'metaGroups.jsonl'))) {
     if (row._key === '_meta') continue;
     out[row._key] = { name: getName(row.name) };
   }
@@ -156,6 +209,80 @@ async function buildShips(groups) {
     };
   }
   console.log('  victim types by category:', tally);
+  return out;
+}
+
+async function buildFrigateTypes(frigateGroupIds) {
+  const out = {};     
+  for await (const row of readJsonl(path.join(EXTRACT_DIR, 'types.jsonl'))) {
+    if (row._key === '_meta') continue;
+    if (!row.published || !frigateGroupIds.has(row.groupID)) continue;
+    out[row._key] = {
+  name: getName(row.name),
+  groupID: row.groupID,
+  metaGroupID: row.metaGroupID ?? null,
+  techLevel: row.techLevel ?? null,
+  factionID: row.factionID ?? null,
+};
+  }
+  console.log(`  frigate types: ${Object.keys(out).length}`);
+  return out;
+}
+
+function buildFrigateGuide({ build, frigates, ammo, dogma, groups, metaGroups, factions }) {
+  const ships = Object.entries(frigates).map(([id, f]) => ({
+    id: Number(id),
+    name: f.name,
+    group: groups[f.groupID]?.name ?? 'Unknown',
+    class: shipClass(f, metaGroups),
+    faction: factions[f.factionID]?.name ?? 'Unknown',
+    res: {
+      shield: toResists(dogma[id], RES_IDS.shield),
+      armor:  toResists(dogma[id], RES_IDS.armor),
+      hull:   toResists(dogma[id], RES_IDS.hull),
+    },
+  })).sort((a, b) => a.name.localeCompare(b.name));
+
+  const ammoList = Object.entries(ammo)
+    .filter(([id, a]) => !a.sized || dogma[id]?.[CHARGE_SIZE_ATTR] === 1)
+    .map(([id, a]) => ({
+      id: Number(id),
+      name: a.name,
+      family: a.family,
+      dmg: DMG_IDS.map(d => round4(dogma[id]?.[d] ?? 0)),
+    }))
+    .sort((a, b) => a.id - b.id);
+
+  return {
+    sdeBuild: String(build),
+    sdeFile: `eve-online-static-data-${build}-jsonl.zip`,
+    damageTypes: DAMAGE_TYPES,
+    ships,
+    ammo: ammoList,
+  };
+}
+
+async function buildAmmoTypes(ammoGroupFamilies) {
+  const out = {};     
+  for await (const row of readJsonl(path.join(EXTRACT_DIR, 'types.jsonl'))) {
+    if (row._key === '_meta') continue;
+    if (!row.published || !ammoGroupFamilies.has(row.groupID)) continue;
+    const g = ammoGroupFamilies.get(row.groupID);
+   out[row._key] = { name: getName(row.name), groupID: row.groupID, family: g.family, sized: g.sized };
+  }
+  console.log(`  ammo types: ${Object.keys(out).length}`);
+  return out;
+}
+
+async function buildDogma(wantedIds) {
+  const out = {};
+  for await (const row of readJsonl(path.join(EXTRACT_DIR, 'typeDogma.jsonl'))) {
+    if (row._key === '_meta') continue;
+    if (!wantedIds.has(row._key)) continue;
+    const attrs = {};
+    for (const a of row.dogmaAttributes ?? []) attrs[a.attributeID] = a.value;
+    out[row._key] = attrs;
+  }
   return out;
 }
 
@@ -256,6 +383,25 @@ async function main() {
   // Step 6: Transform.
   console.log('Transforming…');
   const groups = await buildGroups();
+  const frigateGroupIds = new Set(
+     Object.entries(groups)
+       .filter(([, g]) => FRIGATE_GROUP_NAMES.has(g.name))
+       .map(([id]) => Number(id))
+   );
+  console.log(`  frigate groups: ${frigateGroupIds.size}/${FRIGATE_GROUP_NAMES.size}`);
+  const ammoGroupFamilies = new Map(
+    Object.entries(groups)
+      .filter(([, g]) => AMMO_GROUP_FAMILY[g.name])
+      .map(([id, g]) => [Number(id), { family: AMMO_GROUP_FAMILY[g.name], sized: SIZED_AMMO_GROUPS.has(g.name) }])
+  );
+  console.log(`  ammo groups: ${ammoGroupFamilies.size}/${Object.keys(AMMO_GROUP_FAMILY).length}`);
+  const metaGroups = await buildMetaGroups();
+  const factions = await buildFactions();
+  const frigates = await buildFrigateTypes(frigateGroupIds);
+  const ammo = await buildAmmoTypes(ammoGroupFamilies);
+  const wantedIds = new Set([...Object.keys(frigates), ...Object.keys(ammo)].map(Number));
+  const dogma = await buildDogma(wantedIds);
+  console.log(`  dogma rows: ${Object.keys(dogma).length} (frigates + ammo: ${wantedIds.size}) | metaGroups: ${Object.keys(metaGroups).length} | factions: ${Object.keys(factions).length}`);
   const categories = await buildCategories();
   const systems = await buildSystems();
   const regions = await buildRegions();
@@ -268,7 +414,10 @@ async function main() {
   console.log(`  categories: ${Object.keys(categories).length}`);
   console.log(`  ships:   ${Object.keys(ships).length}`);
   console.log(`  items:   ${Object.keys(items).length}`);
-
+  const guide = buildFrigateGuide({ build: newBuild, frigates, ammo, dogma, groups, metaGroups, factions });
+  console.log(`  guide: ${guide.ships.length} ships, ${guide.ammo.length} ammo`);
+  fs.writeFileSync(path.join(WORK_DIR, 'frigates.json'), JSON.stringify(guide, null, 2));
+  if (process.env.DRY_RUN) { console.log('DRY_RUN: skipping KV writes'); return; }
   // Step 7: Write to KV.
   console.log('Writing to KV…');
   await kvPut('sde:systems', systems);
