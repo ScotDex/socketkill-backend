@@ -71,7 +71,7 @@ const VICTIM_CATEGORIES = new Set([
   11, // Entity — NPC ships. 
 ]);
 
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 
 const KV_BASE = `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/storage/kv/namespaces/${CF_NAMESPACE}`;
 const authHeader = { Authorization: `Bearer ${CF_TOKEN}` };
@@ -426,6 +426,7 @@ async function main() {
   await kvPut('sde:categories', categories);
   await kvPut('sde:ships', ships);
   await kvPut('sde:items', items);
+  await kvPut('sde:frigateGuide', guide); 
 
   // Step 8: Update meta.
   await kvPut('sde:meta', {

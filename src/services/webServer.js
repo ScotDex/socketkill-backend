@@ -756,6 +756,34 @@ app.use("/ticker.html", (req, res, next) => {
     }
   });
 
+    let lastGuideStamp = null;
+
+  app.get('/api/frigate-guide', async (req, res) => {
+    try {
+      const meta = await kvClient.get('sde:meta', { ttlMs: 60_000 });
+      const stamp = meta ? `${meta.buildNumber}-${meta.schemaVersion ?? 0}` : null;
+      const etag = stamp ? `"guide-${stamp}"` : null;
+
+      if (etag && req.headers['if-none-match'] === etag) {
+        res.set('ETag', etag);
+        return res.status(304).end();
+      }
+
+      const stale = Boolean(stamp && stamp !== lastGuideStamp);
+      const guide = await kvClient.get('sde:frigateGuide', { bypassCache: stale });
+      if (stale) lastGuideStamp = stamp;
+
+      if (!guide) return res.status(503).json({ error: 'Frigate guide unavailable' });
+
+      res.set('Cache-Control', 'public, max-age=3600, must-revalidate');
+      if (etag) res.set('ETag', etag);
+      res.json(guide);
+    } catch (err) {
+      console.error('[frigate-guide] error:', err);
+      res.status(500).json({ error: 'Internal error' });
+    }
+  });
+
   app.get('/stats/npc-kills', (req, res) => {
     const data = npcKills.get();
     if (!data) return res.status(503).json({ error: 'NPC data initializing...' });
