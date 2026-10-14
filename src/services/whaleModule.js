@@ -4,7 +4,7 @@ const axios = require("../network/agent");
 const helpers = require("../core/helpers");
 const atOfficerFactory = require("./atOfficerFactory");
 const { AT_SHIP_IDS, OFFICER_SHIP_IDS, RORQUAL_SHIP_IDS } = require('../core/shipIDs');
-const { TITAN_SHIP_IDS, SUPER_SHIP_IDS, TRIGLAVIAN_SYSTEMS } = require('../core/relayShipIDs');
+const { TITAN_SHIP_IDS, SUPER_SHIP_IDS} = require('../core/relayShipIDs');
 const r2 = require("../network/r2Writer");
 const NewsEmbedFactory = require("./genericFactory");
 const bombeldoFactory = require('./bombeldoFactoryV2');
@@ -101,7 +101,7 @@ module.exports = async (killmail, names) => {
     if (names.rawValue >= VALUE_100M) categoryPosts.push(postNewsChannel(killmail,  names, 'all_kills'));
     if (TITAN_SHIP_IDS.has(killmail.victim?.ship_type_id)) categoryPosts.push(postNewsChannel(killmail,  names, 'titan_loss'));
     if (SUPER_SHIP_IDS.has(killmail.victim?.ship_type_id)) categoryPosts.push(postNewsChannel(killmail,  names, 'super_loss'));
-    if (TRIGLAVIAN_SYSTEMS.has(killmail.solar_system_id)) categoryPosts.push(postNewsChannel(killmail, names, 'pochven'));
+    if (names.space === 'pochven') categoryPosts.push(postNewsChannel(killmail, names, 'pochven'));
     if (names.space === 'high') categoryPosts.push(postNewsChannel(killmail,  names, 'ganks'));
 
     // Bombeldo Block of Code
