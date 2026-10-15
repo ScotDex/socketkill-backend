@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@atproto/api": "^0.23.0",
+    "@atproto/api": "^0.24.3",
     "@axiomhq/js": "^1.8.0",
     "@resvg/resvg-js": "^2.6.2",
     "axios": "^1.20.0",
