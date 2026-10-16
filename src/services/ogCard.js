@@ -37,6 +37,10 @@ function parseIsk(v) {
   return n * mult;
 }
 
+function article(word) {
+  return word && 'aeiou'.includes(word[0].toLowerCase()) ? 'an' : 'a';
+}
+
 async function renderOgCard(kill) {
   const totalIsk = kill.rawValue ?? parseIsk(kill.totalValue);
   const tierColor =
@@ -76,12 +80,12 @@ async function renderOgCard(kill) {
             type: 'div',
             props: {
               style: {
-                display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
-                position: 'relative', width: '100%', height: '100%', padding: 48,
+                display: 'flex', flexDirection: 'column',
+                position: 'absolute', left: 48, right: 48, bottom: 48,
               },
               children: [
                 { type: 'div', props: { style: { fontSize: 54, fontWeight: 600, color: '#ffffff' }, children: kill.victim.name } },
-                { type: 'div', props: { style: { fontSize: 32, color: C.faint }, children: `lost a ${kill.victim.ship}` } },
+                                { type: 'div', props: { style: { fontSize: 32, color: C.faint }, children: `lost ${article(kill.victim.ship)} ${kill.victim.ship}` } },
                 ...(kill.totalValue ? [{
                   type: 'div',
                   props: { style: { fontFamily: 'Mono', fontSize: 64, color: tierColor }, children: `${kill.totalValue} ISK` },
