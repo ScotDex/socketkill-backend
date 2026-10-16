@@ -1,6 +1,6 @@
 const { TwitterService, BlueSkyService, MastodonService } = require('../network/twitterService');
 const helpers = require('../core/helpers');
-const THRESHOLD   = 5;          
+const THRESHOLD   = 1;          
 const WINDOW_MS   = 15 * 60_000;  
 const COOLDOWN_MS = 60 * 60_000;  
 const POSTING_ENABLED = true;
@@ -13,14 +13,14 @@ async function postFlashpoint(systemName, count, isk, firstT, lastT) {
     const url = `https://socketkill.com/?system=${encodeURIComponent(systemName)}`;
     const fmt = ms => new Date(ms).toISOString().slice(11, 16);
     const timeRange = `${fmt(firstT)}–${fmt(lastT)} EVE`;
-    const text = `FLASHPOINT: ${systemName} | ${timeRange} | ${count} kills in ${WINDOW_MS / 60000} min | ${helpers.formatIsk(isk)} ISK destroyed`;
+    const text = `Flashpoint : ${systemName} | ${timeRange} | ${count} kills in ${WINDOW_MS / 60000} min | ${helpers.formatIsk(isk)} ISK destroyed`;
 
     await Promise.all([
         TwitterService.postText(`${text} ${url} #TweetFleet #eveonline #SocketKill`),
         BlueSkyService.postText(`${text} #EveOnline #SocketKill`, url, `Flashpoint: ${systemName}`),
         MastodonService.postText(`${text} ${url} #EveOnline #SocketKill #TweetFleet`),
                 postFlashpointDiscord({
-            content: `**FLASHPOINT: ${systemName}**\n${timeRange} | ${count} kills in ${WINDOW_MS / 60000} min | ${helpers.formatIsk(isk)} ISK destroyed\n${url}`,
+            content: `**${systemName}**${timeRange} | ${count} kills in ${WINDOW_MS / 60000} min | ${helpers.formatIsk(isk)} ISK destroyed${url}`,
          }),
     ]);
 }
