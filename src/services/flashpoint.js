@@ -1,6 +1,6 @@
 const { TwitterService, BlueSkyService, MastodonService } = require('../network/twitterService');
 const helpers = require('../core/helpers');
-const THRESHOLD   = 1;          
+const THRESHOLD   = 150;          
 const WINDOW_MS   = 15 * 60_000;  
 const COOLDOWN_MS = 60 * 60_000;  
 const POSTING_ENABLED = true;
@@ -20,7 +20,7 @@ async function postFlashpoint(systemName, count, isk, firstT, lastT) {
         BlueSkyService.postText(`${text} #EveOnline #SocketKill`, url, `Flashpoint: ${systemName}`),
         MastodonService.postText(`${text} ${url} #EveOnline #SocketKill #TweetFleet`),
                 postFlashpointDiscord({
-            content: `**${systemName}**${timeRange} | ${count} kills in ${WINDOW_MS / 60000} min | ${helpers.formatIsk(isk)} ISK destroyed${url}`,
+            content: `**${systemName} | **${timeRange} | ${count} kills in ${WINDOW_MS / 60000} min | ${helpers.formatIsk(isk)} ISK destroyed${url}`,
          }),
     ]);
 }
