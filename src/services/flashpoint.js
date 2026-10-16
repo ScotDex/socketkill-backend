@@ -1,6 +1,6 @@
 const { TwitterService, BlueSkyService, MastodonService } = require('../network/twitterService');
 const helpers = require('../core/helpers');
-const THRESHOLD   = 5;          
+const THRESHOLD   = 150;          
 const WINDOW_MS   = 15 * 60_000;  
 const COOLDOWN_MS = 60 * 60_000;  
 const POSTING_ENABLED = true;
