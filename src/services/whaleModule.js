@@ -172,6 +172,19 @@ async function postAya(kill, names, isDeath) {
     }));
 }
 
+async function postFlashpointDiscord(payload) {
+    const urls = channels['flashpoint'];
+    if (!urls?.length) return;
+    const list = Array.isArray(urls) ? urls : [urls];
+       await Promise.all(list.map(async (url) => {
+        await webhookSpacer();
+        return axios.post(url, payload).catch((err) => {
+            console.error(`[FLASHPOINT] Discord webhook failed: ${err.message}`);
+            console.error(`[FLASHPOINT] detail:`, JSON.stringify(err.response?.data));
+        });
+    }));
+    
+}
 
 async function postCorpIntel(kill,  names) {
     console.log(`[CORP INTEL] Firing for kill ${kill.killmail_id} | rawValue: ${names.rawValue}`);
@@ -226,3 +239,4 @@ async function postSocial(killmail, names, formattedValue, killmailId) {
 }
 
 module.exports.WHALE_THRESHOLD = WHALE_THRESHOLD;
+module.exports.postFlashpointDiscord = postFlashpointDiscord;

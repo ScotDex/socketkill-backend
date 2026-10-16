@@ -1,9 +1,10 @@
 const { TwitterService, BlueSkyService, MastodonService } = require('../network/twitterService');
 const helpers = require('../core/helpers');
-const THRESHOLD   = 150;          
+const THRESHOLD   = 5;          
 const WINDOW_MS   = 15 * 60_000;  
 const COOLDOWN_MS = 60 * 60_000;  
 const POSTING_ENABLED = true;
+const { postFlashpointDiscord } = require('./whaleModule');
 
 const recent = new Map();     
 const lastFired = new Map();  
@@ -18,6 +19,14 @@ async function postFlashpoint(systemName, count, isk, firstT, lastT) {
         TwitterService.postText(`${text} ${url} #TweetFleet #eveonline #SocketKill`),
         BlueSkyService.postText(`${text} #EveOnline #SocketKill`, url, `Flashpoint: ${systemName}`),
         MastodonService.postText(`${text} ${url} #EveOnline #SocketKill #TweetFleet`),
+        postFlashpointDiscord({
+            embeds: [{
+                title: `FLASHPOINT: ${systemName}`,
+                url,
+                description: `${timeRange} | ${count} kills in ${WINDOW_MS / 60000} min | ${helpers.formatIsk(isk)} ISK destroyed`,
+                timestamp: new Date(lastT).toISOString(),
+            }],
+        }),
     ]);
 }
 
