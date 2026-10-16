@@ -20,7 +20,7 @@ async function postFlashpoint(systemName, count, isk, firstT, lastT) {
         BlueSkyService.postText(`${text} #EveOnline #SocketKill`, url, `Flashpoint: ${systemName}`),
         MastodonService.postText(`${text} ${url} #EveOnline #SocketKill #TweetFleet`),
                 postFlashpointDiscord({
-            content: `**${systemName} | **${timeRange} | ${count} kills in ${WINDOW_MS / 60000} min | ${helpers.formatIsk(isk)} ISK destroyed${url}`,
+            content: `**${systemName} | **${timeRange} | ${count} kills in ${WINDOW_MS / 60000} min | ${helpers.formatIsk(isk)} ISK destroyed$ | {url}`,
          }),
     ]);
 }
