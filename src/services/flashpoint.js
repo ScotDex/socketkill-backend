@@ -19,14 +19,9 @@ async function postFlashpoint(systemName, count, isk, firstT, lastT) {
         TwitterService.postText(`${text} ${url} #TweetFleet #eveonline #SocketKill`),
         BlueSkyService.postText(`${text} #EveOnline #SocketKill`, url, `Flashpoint: ${systemName}`),
         MastodonService.postText(`${text} ${url} #EveOnline #SocketKill #TweetFleet`),
-        postFlashpointDiscord({
-            embeds: [{
-                title: `FLASHPOINT: ${systemName}`,
-                url,
-                description: `${timeRange} | ${count} kills in ${WINDOW_MS / 60000} min | ${helpers.formatIsk(isk)} ISK destroyed`,
-                timestamp: new Date(lastT).toISOString(),
-            }],
-        }),
+                postFlashpointDiscord({
+            content: `**FLASHPOINT: ${systemName}**\n${timeRange} | ${count} kills in ${WINDOW_MS / 60000} min | ${helpers.formatIsk(isk)} ISK destroyed\n${url}`,
+         }),
     ]);
 }
 
