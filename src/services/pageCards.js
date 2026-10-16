@@ -93,8 +93,8 @@ async function renderPageCard(key) {
             type: 'div',
             props: {
               style: {
-                display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
-                position: 'relative', width: '100%', height: '100%', padding: 48,
+                display: 'flex', flexDirection: 'column',
+                position: 'absolute', left: 48, right: 48, bottom: 48,
               },
               children: [
                 {
