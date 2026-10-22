@@ -61,6 +61,14 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     message: { error: 'Too many card renders — slow down.' },
   });
 
+    const pingLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => ipKeyGenerator(clientIp(req)),
+  });
+
   app.use(
     helmet({
       contentSecurityPolicy: false,
@@ -639,6 +647,23 @@ app.use("/ticker.html", (req, res, next) => {
     if (!rate) return res.status(503).json({ error: 'PLEX rate unavailable' });
     res.set('Cache-Control', 'public, max-age=3600');
     res.json({ gbpPerIsk: rate.gbpPerIsk });
+  });
+
+  app.post('/api/overlay-ping', pingLimiter, express.text({ type: 'text/plain', limit: '1kb' }), (req, res) => {
+    res.status(204).end();
+
+    let body;
+    try {
+      body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+    } catch {
+      return;
+    }
+
+    const channel = typeof body.channel === 'string' ? body.channel.toLowerCase() : '';
+    const v = Number.isInteger(body.v) ? body.v : 0;
+    if (!/^[a-z0-9_]{3,25}$/.test(channel)) return;
+
+    console.log(`[OVERLAY PING] channel=${channel} v=${v}`);
   });
 
   app.get('/api/top10', async (req, res) => {
