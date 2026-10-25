@@ -29,6 +29,16 @@ router.post('/kick/webhook', express.raw({ type: 'application/json', limit: '64k
 
     console.log('[KICK WH] verified', req.get('kick-event-type'));
 
+  if (!io || req.get('kick-event-type') !== 'chat.message.sent') return;
+
+  try {
+    const event = JSON.parse(req.body.toString('utf8'));
+    const id = event?.broadcaster?.user_id;
+    if (Number.isInteger(id)) io.to(`kick:${id}`).emit('kick:chat', event);
+  } catch (err) {
+    console.warn('[KICK WH] emit failed:', err.message);
+  }
+
   });
 
 router.post('/api/overlay-ping', pingLimiter, express.text({ type: 'text/plain', limit: '1kb' }), (req, res) => {
