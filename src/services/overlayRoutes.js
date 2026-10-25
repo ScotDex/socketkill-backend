@@ -4,6 +4,7 @@ const { ipKeyGenerator } = require('express-rate-limit');
 const { clientIp } = require('../core/requestMeta');
 const kickVerify = require('./kickVerify');
 const kickAuth = require('./kickAuth');
+const kickSubs = require('./kickSubs');
 
 const router = express.Router();
 let io = null;
@@ -74,5 +75,6 @@ router.post('/api/overlay-ping', pingLimiter, express.text({ type: 'text/plain',
 
    module.exports = (ioInstance) => {
      io = ioInstance;
+     kickSubs.attach(io);
      return router;
    };
