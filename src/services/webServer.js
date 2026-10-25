@@ -61,21 +61,15 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     message: { error: 'Too many card renders — slow down.' },
   });
 
-    const pingLimiter = rateLimit({
-    windowMs: 60 * 1000,
-    max: 10,
-    standardHeaders: true,
-    legacyHeaders: false,
-    keyGenerator: (req) => ipKeyGenerator(clientIp(req)),
-  });
-
   app.use(
     helmet({
       contentSecurityPolicy: false,
     }),
   );
   app.use(cors());
+  app.use(require('./overlayRoutes'));
   app.use(express.json());
+  
   const io = new Server(server, {
     pingTimeout: 2000,
     pingInterval: 5000,
@@ -86,7 +80,6 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
         "https://ws.socketkill.com",
         "https://incursions-dev.nesbit.solutions",
         "https://incursions.nesbit.solutions",
-        "https://socketkill.com/about/",
       ],
       methods: ["GET", "POST"],
     },
@@ -649,22 +642,6 @@ app.use("/ticker.html", (req, res, next) => {
     res.json({ gbpPerIsk: rate.gbpPerIsk });
   });
 
-  app.post('/api/overlay-ping', pingLimiter, express.text({ type: 'text/plain', limit: '1kb' }), (req, res) => {
-    res.status(204).end();
-
-    let body;
-    try {
-      body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
-    } catch {
-      return;
-    }
-
-    const channel = typeof body.channel === 'string' ? body.channel.toLowerCase() : '';
-    const v = Number.isInteger(body.v) ? body.v : 0;
-    if (!/^[a-z0-9_]{3,25}$/.test(channel)) return;
-
-    console.log(`[OVERLAY PING] channel=${channel} v=${v}`);
-  });
 
   app.get('/api/top10', async (req, res) => {
     try {
