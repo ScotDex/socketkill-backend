@@ -5,6 +5,7 @@ const { clientIp } = require('../core/requestMeta');
 const kickVerify = require('./kickVerify');
 const kickAuth = require('./kickAuth');
 const kickSubs = require('./kickSubs');
+const axios = require('../network/agent');
 
 const router = express.Router();
 let io = null;
@@ -17,6 +18,41 @@ const pingLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => ipKeyGenerator(clientIp(req)),
+});
+
+const resolveLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => ipKeyGenerator(clientIp(req)),
+});
+
+const slugCache = new Map();
+
+router.get('/api/kick/resolve', resolveLimiter, async (req, res) => {
+  const slug = String(req.query.slug || '').trim().toLowerCase();
+  if (!/^[a-z0-9_-]{1,25}$/.test(slug)) return res.status(400).json({ error: 'Invalid Kick username' });
+
+  if (slugCache.has(slug)) return res.json({ id: slugCache.get(slug) });
+
+  try {
+    const token = await kickAuth.getToken();
+    const { data } = await axios.get('https://api.kick.com/public/v1/channels', {
+      params: { slug },
+      headers: { Authorization: 'Bearer ' + token },
+      timeout: 5000,
+    });
+    const id = data?.data?.[0]?.broadcaster_user_id;
+    if (!Number.isInteger(id)) return res.status(404).json({ error: 'Kick channel not found' });
+
+    if (slugCache.size > 1000) slugCache.clear();
+    slugCache.set(slug, id);
+    res.json({ id });
+  } catch (err) {
+    console.warn(`[KICK RESOLVE] ${slug} failed:`, err.response?.status || err.message);
+    res.status(502).json({ error: 'Lookup failed' });
+  }
 });
 
 function toOverlayMessage(event) {

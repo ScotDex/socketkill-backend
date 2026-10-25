@@ -51,7 +51,7 @@ function ensure(id) {
 
   const p = (async () => {
     await ready;
-    if (subs.has(id)) return;
+    if (subs.has(id)) { const e = subs.get(id); clearTimeout(e.idleTimer); e.idleTimer = null; return; }
     const { data } = await axios.post(API,
       { broadcaster_user_id: id, events: [{ name: 'chat.message.sent', version: 1 }], method: 'webhook' },
       { headers: await authHeaders(), timeout: 5000 });
