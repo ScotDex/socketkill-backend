@@ -6,6 +6,7 @@ const kickVerify = require('./kickVerify');
 const kickAuth = require('./kickAuth');
 
 const router = express.Router();
+let io = null;
 kickVerify.loadKey().catch(err => console.error('[KICK WH] key load failed:', err.message));
 kickAuth.getToken().catch(err => console.error('[KICK AUTH] failed:', err.response?.data || err.message));
 
@@ -26,7 +27,7 @@ router.post('/kick/webhook', express.raw({ type: 'application/json', limit: '64k
   const result = kickVerify.verify(req.headers, req.body);
   if (result !== 'ok') return console.warn(`[KICK WH] rejected: ${result}`);
 
-  console.log('[KICK WH] verified', req.get('kick-event-type'), req.body.toString('utf8').slice(0, 500));
+    console.log('[KICK WH] verified', req.get('kick-event-type'));
 
   });
 
@@ -47,4 +48,7 @@ router.post('/api/overlay-ping', pingLimiter, express.text({ type: 'text/plain',
   console.log(`[OVERLAY PING] channel=${channel} v=${v}`);
 });
 
-module.exports = router;
+   module.exports = (ioInstance) => {
+     io = ioInstance;
+     return router;
+   };

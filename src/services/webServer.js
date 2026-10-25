@@ -67,8 +67,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     }),
   );
   app.use(cors());
-  app.use(require('./overlayRoutes'));
-  app.use(express.json());
+  
   
   const io = new Server(server, {
     pingTimeout: 2000,
@@ -85,6 +84,9 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     },
     transports: ["websocket", "polling"],
   });
+
+  app.use(require('./overlayRoutes')(io));
+  app.use(express.json());
 
   const PORT = process.env.PORT;
   const publicPath = path.join(__dirname, "..", "..", "public");
@@ -852,6 +854,14 @@ app.use("/ticker.html", (req, res, next) => {
       if (Number.isFinite(charId) && charId > 0) {
         socket.join(`char:${charId}`);
         console.log(`[TICKER] ${socket.id} joined char:${charId}`);
+      }
+    }
+        const kickParam = socket.handshake.query.kick;
+    if (kickParam) {
+      const kickId = parseInt(kickParam);
+      if (Number.isFinite(kickId) && kickId > 0) {
+        socket.join(`kick:${kickId}`);
+        console.log(`[KICK] ${socket.id} joined kick:${kickId}`);
       }
     }
     socket.on("disconnect", (reason) => {
