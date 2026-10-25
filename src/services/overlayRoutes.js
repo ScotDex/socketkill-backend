@@ -18,6 +18,20 @@ const pingLimiter = rateLimit({
   keyGenerator: (req) => ipKeyGenerator(clientIp(req)),
 });
 
+function toOverlayMessage(event) {
+  const s = event.sender || {};
+  const badges = (s.identity?.badges || []).map(b => `${b.type}/1`).join(',');
+  return {
+    platform: 'kick',
+    user: s.channel_slug || String(s.user_id),
+    text: typeof event.content === 'string' ? event.content : '',
+    tags: {
+      'display-name': s.username,
+      color: s.identity?.username_color || '',
+      badges,
+    },
+  };
+}
 
 router.post('/kick/webhook', express.raw({ type: 'application/json', limit: '64kb' }), (req, res) => {
   res.status(200).end();
@@ -34,7 +48,7 @@ router.post('/kick/webhook', express.raw({ type: 'application/json', limit: '64k
   try {
     const event = JSON.parse(req.body.toString('utf8'));
     const id = event?.broadcaster?.user_id;
-    if (Number.isInteger(id)) io.to(`kick:${id}`).emit('kick:chat', event);
+    if (Number.isInteger(id)) io.to(`kick:${id}`).emit('kick:chat', toOverlayMessage(event))
   } catch (err) {
     console.warn('[KICK WH] emit failed:', err.message);
   }
