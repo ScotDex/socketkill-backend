@@ -3,6 +3,7 @@ const rateLimit = require('express-rate-limit');
 const { ipKeyGenerator } = require('express-rate-limit');
 const { clientIp } = require('../core/requestMeta');
 const kickVerify = require('./kickVerify');
+const kickAuth = require('./kickAuth');
 
 const router = express.Router();
 kickVerify.loadKey().catch(err => console.error('[KICK WH] key load failed:', err.message));
