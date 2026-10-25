@@ -6,6 +6,7 @@ const kickVerify = require('./kickVerify');
 
 const router = express.Router();
 kickVerify.loadKey().catch(err => console.error('[KICK WH] key load failed:', err.message));
+kickAuth.getToken().catch(err => console.error('[KICK AUTH] failed:', err.response?.data || err.message));
 
 const pingLimiter = rateLimit({
   windowMs: 60 * 1000,
