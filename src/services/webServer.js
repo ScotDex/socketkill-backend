@@ -101,7 +101,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
 
     const isBot = helpers.isBot(req);
     const { ip, ua, ref } = requestMeta(req);
-    console.log(`[KILL API] ENTRY kill=${id} bot=${isBot} ip=${ip} ua="${ua}"`);
+    console.log(`[KILL API] ENTRY kill=${id} bot=${isBot} ip=${ip} real=${req.get('CF-Connecting-IP') || '-'} claimed=${req.get('X-SK-Client-IP') || '-'} ua="${ua}"`);
 
     if (isBot && !(await hashCache.isWhale(id, WHALE_THRESHOLD))) {
       console.warn(`[KILL API] BOT GATE kill=${id} not a sitemap whale`);
