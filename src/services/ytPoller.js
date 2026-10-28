@@ -115,7 +115,7 @@ function ensure(channelId) {
   if (streams.size >= MAX_STREAMS) return console.warn(`[YT POLL] cap reached, refused ${channelId}`);
 
   streams.set(channelId, { chatId: null, pageToken: null, timer: null, idleTimer: null, stopped: false });
-  console.log(`[YT POLL] started ${channelId}`);
+  console.log(`[YT POLLER] started ${channelId}`);
   poll(channelId);
 }
 
