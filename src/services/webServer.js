@@ -24,6 +24,7 @@ const hashIndex = require("../state/hashIndex");
 const { renderPageCard, renderEntityCard, PAGES } = require('../services/pageCards');
 const helpers = require('../core/helpers');
 const { WHALE_THRESHOLD } = require('../services/whaleModule');
+
 // force-redeploy
 
 function startWebServer(esi, statsManager, sharedState, getProcessor) {
@@ -86,6 +87,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
   });
 
   app.use(require('./overlayRoutes')(io));
+  app.use(require('./ytRoutes')(io));
   app.use(express.json());
 
   const PORT = process.env.PORT;
@@ -859,6 +861,12 @@ app.use("/ticker.html", (req, res, next) => {
         console.log(`[KICK] ${socket.id} joined kick:${kickId}`);
       }
     }
+
+    const ytParam = socket.handshake.query.yt;
+if (typeof ytParam === 'string' && /^UC[A-Za-z0-9_-]{22}$/.test(ytParam)) {
+  socket.join(`yt:${ytParam}`);
+  console.log(`[YT] ${socket.id} joined yt:${ytParam}`);
+}
     socket.on("disconnect", (reason) => {
       console.log(`[NETWORK] Client disconnected: ${socket.id} | Reason: ${reason} | Active: ${io.engine.clientsCount}`);
     });

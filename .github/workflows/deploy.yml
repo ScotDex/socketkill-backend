@@ -47,6 +47,7 @@ jobs:
             echo "MASTODON_ACCESS_TOKEN=${{ secrets.MASTODON_ACCESS_TOKEN }}" >> .env
             echo "KICK_CLIENT_ID=${{ secrets.KICK_CLIENT_ID }}" >> .env
             echo "KICK_CLIENT_SECRET=${{ secrets.KICK_CLIENT_SECRET }}" >> .env
+            echo "YT_API_KEY=${{ secrets.YT_API_KEY }}" >> .env
             git pull
             docker compose down
             docker compose up -d --build

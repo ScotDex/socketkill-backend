@@ -60,7 +60,7 @@ function toOverlayMessage(event) {
   const badges = (s.identity?.badges || []).map(b => `${b.type}/1`).join(',');
   return {
     platform: 'kick',
-    user: s.channel_slug || String(s.user_id),
+    user: 'kick:' + (s.channel_slug || String(s.user_id)),
     text: typeof event.content === 'string' ? event.content : '',
     tags: {
       'display-name': s.username,
