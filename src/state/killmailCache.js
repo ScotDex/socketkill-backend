@@ -32,9 +32,6 @@ async function fetchFromESI(killID, hash) {
     const url = `${ESI_BASE}/${killID}/${hash}/`;
     const res = await talker.get (url, { headers: ESI_HEADERS, timeout: 5000 });
 
-        r2.put(`killmails/${killID}.json`, res.data).catch(err =>
-        console.warn(`[KILLCACHE] R2 persist failed for ${killID}: ${err.message}`));
-
     return res.data;
 }
 
