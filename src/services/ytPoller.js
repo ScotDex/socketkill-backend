@@ -111,8 +111,8 @@ const parseRoom = room => { const m = /^yt:(UC[A-Za-z0-9_-]{22})$/.exec(room); r
 function ensure(channelId) {
   const s = streams.get(channelId);
   if (s) { clearTimeout(s.idleTimer); s.idleTimer = null; return; }
-  if (!process.env.YT_API_KEY) return console.warn('[YT POLL] no API key set');
-  if (streams.size >= MAX_STREAMS) return console.warn(`[YT POLL] cap reached, refused ${channelId}`);
+  if (!process.env.YT_API_KEY) return console.warn('[YT POLLER] no API key set');
+  if (streams.size >= MAX_STREAMS) return console.warn(`[YT POLLER] cap reached, refused ${channelId}`);
 
   streams.set(channelId, { chatId: null, pageToken: null, timer: null, idleTimer: null, stopped: false });
   console.log(`[YT POLLER] started ${channelId}`);
