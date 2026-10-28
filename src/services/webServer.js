@@ -205,11 +205,6 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       setCacheHeader(res, { isToday, todayMaxAge: 60 });
       res.json(payload);
 
-      if (!isToday) {
-        r2.put(`kill-responses/${date}/${id}.json`, payload).catch(err =>
-          console.warn(`[KILL API] R2 cache write failed for ${id}: ${err.message}`));
-      }
-
     } catch (err) {
       console.error(`[KILL API] Error resolving ${date}/${id}: ${err.message}`);
       res.status(500).json({ error: 'Internal error resolving killmail.' });
