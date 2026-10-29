@@ -5,7 +5,7 @@ const axios = require('../network/agent');
 
 const API = 'https://www.googleapis.com/youtube/v3';
 const MAX_STREAMS = 3;
-const RECONNECT_MS = 1_000;
+const RECONNECT_STEPS = [1_000, 5_000, 15_000, 30_000];
 const RETRY_MS = 10_000;
 const WAIT_MS = 3 * 60_000;
 const BACKOFF_MS = 5 * 60_000;
@@ -98,6 +98,7 @@ async function run(channelId) {
     if (s.stopped) return;
     if (!s.chatId) return schedule(s, channelId, WAIT_MS);
     s.pageToken = null;
+    s.idleRounds = 0;
     console.log(`[YT POLL] ${channelId} is live`);
   }
 
@@ -119,6 +120,7 @@ function openStream(channelId, s) {
 
   let skipFirst = !s.pageToken;
   let ended = false;
+  let delivered = 0;
 
   call.on('data', res => {
     if (res.next_page_token) s.pageToken = res.next_page_token;
@@ -129,7 +131,10 @@ function openStream(channelId, s) {
     for (const item of res.items || []) {
       const type = item.snippet?.type;
       if (type === 'CHAT_ENDED_EVENT') ended = true;
-      if (type === 'TEXT_MESSAGE_EVENT') io.to(`yt:${channelId}`).emit('yt:chat', toOverlayMessage(item));
+      if (type === 'TEXT_MESSAGE_EVENT') {
+        io.to(`yt:${channelId}`).emit('yt:chat', toOverlayMessage(item));
+        delivered++;
+      }
     }
   });
 
@@ -146,8 +151,11 @@ function openStream(channelId, s) {
     }
 
     switch (st.code) {
-      case grpc.status.OK:
-        return schedule(s, channelId, RECONNECT_MS);
+      case grpc.status.OK: {
+        s.idleRounds = delivered > 0 ? 0 : s.idleRounds + 1;
+        const step = RECONNECT_STEPS[Math.min(s.idleRounds, RECONNECT_STEPS.length - 1)];
+        return schedule(s, channelId, step);
+      }
       case grpc.status.FAILED_PRECONDITION:
       case grpc.status.NOT_FOUND:
         console.log(`[YT POLL] ${channelId} chat ended or disabled`);
@@ -175,7 +183,9 @@ function ensure(channelId) {
   if (!process.env.YT_API_KEY) return console.warn('[YT POLL] no API key set');
   if (streams.size >= MAX_STREAMS) return console.warn(`[YT POLL] cap reached, refused ${channelId}`);
 
-  streams.set(channelId, { chatId: null, pageToken: null, call: null, timer: null, idleTimer: null, stopped: false });
+  streams.set(channelId, {
+    chatId: null, pageToken: null, call: null, timer: null, idleTimer: null, stopped: false, idleRounds: 0,
+  });
   console.log(`[YT POLL] started ${channelId}`);
   run(channelId);
 }
