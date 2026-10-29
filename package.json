@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@atproto/api": "^0.28.0",
+    "@atproto/api": "^0.29.4",
     "@axiomhq/js": "^1.8.0",
     "@grpc/grpc-js": "^1.14.6",
     "@grpc/proto-loader": "^0.8.1",
