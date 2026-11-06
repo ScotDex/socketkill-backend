@@ -13,7 +13,7 @@ const {
   PAGES,
 } = require("../services/pageCards");
 
-const { ENTITY_COLUMNS } = require("../core/entityMaps");
+const { ENTITY_COLUMNS } = require("../routes/entityMaps");
 
 const ogLimiter = rateLimit({
   windowMs: 60 * 1000,
