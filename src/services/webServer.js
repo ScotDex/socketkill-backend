@@ -17,16 +17,10 @@ const { ipKeyGenerator } = require('express-rate-limit');
 const { clientIp, requestMeta, setCacheHeader, IMMUTABLE } = require('../core/requestMeta')
 const r2 = require('../network/r2Writer');
 const plexRate = require('../services/plexRate');
-const { renderOgCard } = require('../services/ogCard');
 const npcKills = require('./npcKills');
-const d1 = require('../network/d1Client');
 const hashIndex = require("../state/hashIndex");
-const { renderPageCard, renderEntityCard, PAGES } = require('../services/pageCards');
 const helpers = require('../core/helpers');
 const { WHALE_THRESHOLD } = require('../services/whaleModule');
-
-// force-redeploy
-
 function startWebServer(esi, statsManager, sharedState, getProcessor) {
   const app = express();
   app.set('trust proxy', 1);
@@ -53,14 +47,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     message: { error: 'Too many searches — slow down.' },
   });
 
-  const ogLimiter = rateLimit({
-    windowMs: 60 * 1000,
-    max: 20,
-    standardHeaders: true,
-    legacyHeaders: false,
-    keyGenerator: (req) => ipKeyGenerator(clientIp(req)),
-    message: { error: 'Too many card renders — slow down.' },
-  });
+
 
   app.use(
     helmet({
@@ -213,56 +200,8 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     }
   }
 
-  const ENTITY_NAME = {
-    pilot:    id => esi.getCharacterName(id),
-    corp:     id => esi.getCorporationName(id),
-    alliance: id => esi.getAllianceName(id),
-  };
-
-  async function resolveEntityName(type, id) {
-    const fn = ENTITY_NAME[type];
-    if (!fn) return null;
-    try {
-      const name = await fn(id);
-      return typeof name === 'string' && name.trim() ? name : null;
-    } catch {
-      return null;
-    }
-  }
-
-  app.get('/og/entity/:type/:id', ogLimiter, async (req, res) => {
-  const { type } = req.params;
-  const id = parseInt(req.params.id);
-
-  if (!ENTITY_COLUMNS[type] || !Number.isFinite(id) || id <= 0) {
-    res.set('Cache-Control', 'no-store');
-    return res.status(400).json({ error: 'Invalid entity type or id' });
-  }
-
-  try {
-    const name = await resolveEntityName(type, id);
-    if (!name) {
-      res.set('Cache-Control', 'public, max-age=300');
-      return res.status(404).json({ error: 'Entity not found' });
-    }
-
-    const png = await renderEntityCard({
-      type, id, name,
-      description: PAGES.home.description,
-    });
-
-    res.set('Content-Type', 'image/png');
-    res.set('Cache-Control', 'public, max-age=3600');
-    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
-    res.send(png);
-
-  } catch (err) {
-    console.error(`[OG ENTITY] ${type}/${id} failed: ${err.message}`);
-    res.set('Cache-Control', 'no-store');
-    res.status(500).json({ error: 'Card render failed' });
-  }
-});
-
+     
+  app.use(require('../routes/ogRoutes')(esi));
   app.get('/api/kill/:killID', handleKillDetail);
   app.get('/api/kill/:date/:killID', handleKillDetail);
 
@@ -347,85 +286,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     }
   });
 
-  app.get('/og/:killID', ogLimiter, async (req, res) => {
-    const id = parseInt(req.params.killID);
-    if (!Number.isFinite(id) || id <= 0) {
-      res.set('Cache-Control', 'no-store');
-      return res.status(400).json({ error: 'Invalid killID' });
-    }
 
-    try {
-      let date = null;
-      const now = new Date();
-      for (let i = 0; i < 30; i++) {
-        const d = new Date(now.getTime() - i * 86400000).toISOString().slice(0, 10);
-        if (await hashCache.getHashFromShard(d, id)) { date = d; break; }
-      }
-      if (!date) {
-        const km = await r2.get(`killmails/${id}.json`).catch(() => null);
-        if (km?.killmail_time) date = km.killmail_time.slice(0, 10);
-      }
-      if (!date) {
-        res.set('Cache-Control', 'no-store');
-        return res.status(404).json({ error: 'Kill not found' });
-      }
-
-      const isToday = date === new Date().toISOString().slice(0, 10);
-      let payload = null;
-      if (!isToday) {
-        payload = await r2.get(`kill-responses/${date}/${id}.json`).catch(() => null);
-      }
-      if (!payload) {
-        const hash = await hashCache.getHashFromShard(date, id);
-        if (!hash) {
-          res.set('Cache-Control', 'no-store');
-          return res.status(404).json({ error: 'Kill not found' });
-        }
-        const killmail = await killmailCache.get(id, hash);
-        const s = await killmailResolver.resolveKillSummary(killmail, id, esi);
-        payload = {
-          victim: s.victim,
-          totalValue: s.formattedValue,
-          rawValue: s.rawValue,
-          system: s.system,
-        };
-      }
-      if (!payload?.victim?.shipTypeID || !payload?.victim?.name) {
-        res.set('Cache-Control', 'public, max-age=300');
-        return res.status(503).json({ error: 'Kill still resolving. Retry shortly.' });
-      }
-
-      const png = await renderOgCard(payload);
-      res.set('Content-Type', 'image/png');
-      res.set('Cache-Control', IMMUTABLE);
-      res.set('Cross-Origin-Resource-Policy', 'cross-origin');
-      res.send(png);
-
-    } catch (err) {
-      console.error(`[OG CARD] ${id} failed: ${err.message}`);
-      res.set('Cache-Control', 'no-store');
-      res.status(500).json({ error: 'Card render failed' });
-    }
-  });
-
-  app.get('/og/page/:key', ogLimiter, async (req, res) => {
-  const key = req.params.key;
-  if (!PAGES[key]) {
-    res.set('Cache-Control', 'no-store');
-    return res.status(404).json({ error: 'Unknown page' });
-  }
-  try {
-    const png = await renderPageCard(key);
-    res.set('Content-Type', 'image/png');
-    res.set('Cache-Control', 'public, max-age=3600');
-    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
-    res.send(png);
-  } catch (err) {
-    console.error(`[OG PAGE] ${key} failed: ${err.message}`);
-    res.set('Cache-Control', 'no-store');
-    res.status(500).json({ error: 'Card render failed' });
-  }
-});
 
 app.use("/ticker.html", (req, res, next) => {
   res.removeHeader("X-Frame-Options");
@@ -437,45 +298,7 @@ app.use("/ticker.html", (req, res, next) => {
 });
 
 
-  const SITE = 'https://socketkill.com';
-
-  app.get('/sitemaps/kills-index.xml', (req, res) => {
-    const days = [];
-    const start = new Date(Date.now() - 7 * 86400000);
-    for (let d = new Date(); d >= start; d.setDate(d.getDate() - 1)) {
-      days.push(d.toISOString().slice(0, 10));
-    }
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${days.map(d => `  <sitemap><loc>${SITE}/sitemaps/kills/${d}.xml</loc><lastmod>${d}</lastmod></sitemap>`).join('\n')
-      }\n</sitemapindex>`;
-    res.set('Content-Type', 'application/xml');
-    res.set('Cache-Control', 'public, max-age=3600');
-    res.send(xml);
-  });
-
-  app.get('/sitemaps/kills/:date.xml', async (req, res) => {
-    const { date } = req.params;
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).send('Invalid date');
-    const today = new Date().toISOString().slice(0, 10);
-    const isToday = date === today;
-
-    let entries;
-    if (isToday) {
-      entries = hashCache.getAllToday();
-    } else {
-      const shard = await r2.get(`hashes/${date}.json`);
-      entries = shard ? Object.entries(shard) : [];
-    }
-
-    const ids = entries
-      .filter(([, e]) => typeof e === 'object' && e !== null && (e.totalValue || 0) >= WHALE_THRESHOLD)
-      .map(([killID]) => killID);
-
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${ids.map(id => `  <url><loc>${SITE}/kill/${id}</loc><lastmod>${date}</lastmod></url>`).join('\n')
-      }\n</urlset>`;
-    res.set('Content-Type', 'application/xml');
-    setCacheHeader(res, { isToday, todayMaxAge: 3600 });
-    res.send(xml);
-  });
+app.use(require('../routes/sitemapRoutes')());
 
   app.get('/api/search', searchLimiter, (req, res) => {
     const { parseIDList, parseSpaceList } = require('../core/apiHelpers');
@@ -516,123 +339,7 @@ app.use("/ticker.html", (req, res, next) => {
     });
   });
 
-    const ENTITY_IDENTITY = {
-    pilot:    id => `https://esi.evetech.net/characters/${id}`,
-    corp:     id => `https://esi.evetech.net/corporations/${id}`,
-    alliance: id => `https://esi.evetech.net/alliances/${id}`,
-  };
-
-  async function fetchEsi(url, ms = 4000) {
-    try {
-      const { data } = await axios.get(url, {
-        headers: { 'X-Compatibility-Date': '2026-08-14' },
-        timeout: ms,
-      });
-      return { ok: true, data };
-    } catch (err) {
-      return { ok: false, status: err.response?.status ?? 0 };
-    }
-  }
-
-  const ENTITY_COLUMNS = {
-    pilot: { victim: 'victim_character_id', attacker: 'character_id' },
-    corp: { victim: 'victim_corp_id', attacker: 'corp_id' },
-    alliance: { victim: 'victim_alliance_id', attacker: 'alliance_id' },
-  };
-
-  app.get('/api/entity/:type/:id', async (req, res) => {
-    const cols = ENTITY_COLUMNS[req.params.type];
-    const id = parseInt(req.params.id);
-    if (!cols || !Number.isFinite(id) || id <= 0) {
-      return res.status(400).json({ error: 'Invalid entity type or id' });
-    }
-
-  const type = req.params.type;
-
-    try {
-      const FIELDS = 'kill_id, kill_time, system_id, region_id, space, total_value, ship_type_id, attacker_count';
-
-      const [lossRes, killRes, identityRes, memberCorpsRes] = await Promise.all([
-        d1.query(
-          `SELECT ${FIELDS} FROM kills WHERE ${cols.victim} = ? ORDER BY kill_time DESC`,
-          [id]
-        ),
-        d1.query(
-          `SELECT DISTINCT k.kill_id, k.kill_time, k.system_id, k.region_id, k.space, k.total_value, k.ship_type_id, k.attacker_count
-           FROM kills k JOIN kill_attackers ka ON ka.kill_id = k.kill_id
-           WHERE ka.${cols.attacker} = ? ORDER BY k.kill_time DESC`,
-          [id]
-        ),
-        fetchEsi(ENTITY_IDENTITY[type](id)),
-        type === 'alliance'
-          ? fetchEsi(`https://esi.evetech.net/alliances/${id}/corporations/`)
-          : null,
-      ]);
-
-      const rows = new Map();
-      for (const r of killRes.result?.[0]?.results ?? []) rows.set(r.kill_id, { ...r, isLoss: false });
-      for (const r of lossRes.result?.[0]?.results ?? []) rows.set(r.kill_id, { ...r, isLoss: true }); // loss wins on awox overlap
-
-      const merged = [...rows.values()]
-        .sort((a, b) => b.kill_time.localeCompare(a.kill_time))
-
-      const events = await Promise.all(merged.map(async r => {
-        const sys = esi.getSystemDetails(r.system_id);
-        return {
-          killID: r.kill_id,
-          isLoss: r.isLoss,
-          shipTypeID: r.ship_type_id,
-          shipName: await esi.getTypeName(r.ship_type_id),
-          systemName: sys?.name ?? 'Unknown System',
-          regionName: r.region_id ? await esi.getRegionName(r.region_id) : 'K-Space',
-          space: r.space,
-          totalValue: r.total_value,
-          time: r.kill_time,
-          attackerCount: r.attacker_count,
-        };
-      }));
-
-      let identity = null;
-      if (identityRes.ok) {
-        const raw = identityRes.data;
-        const corpID     = type === 'pilot'    ? (raw.corporation_id ?? null) : null;
-        const allianceID = type !== 'alliance' ? (raw.alliance_id ?? null) : null;
-        const ceoID      = type === 'corp'     ? (raw.ceo_id ?? null) : null;
-        const executorID = type === 'alliance' ? (raw.executor_corporation_id ?? null) : null;
-
-        const [corp, alliance, ceo, executor] = await Promise.all([
-          corpID     ? esi.getCorporationName(corpID)     : null,
-          allianceID ? esi.getAllianceName(allianceID)    : null,
-          ceoID      ? esi.getCharacterName(ceoID)        : null,
-          executorID ? esi.getCorporationName(executorID) : null,
-        ]);
-
-        const clean = n => (n && n !== 'Unknown' ? n : null);
-
-        identity = {
-          raw,
-          names: {
-            corp:     clean(corp),
-            alliance: clean(alliance),
-            ceo:      clean(ceo),
-            executor: clean(executor),
-          },
-          corpCount: memberCorpsRes?.ok ? memberCorpsRes.data.length : null,
-        };
-      }
-
-      res.set('Cache-Control', 'public, max-age=60');
-      res.json({
-        windowDays: 30,
-        events,
-        identity,
-        identityStatus: identityRes.ok ? 200 : identityRes.status,
-      });
-    } catch (err) {
-      console.error(`[ENTITY API] ${req.params.type}/${id} failed: ${err.message}`);
-      res.status(500).json({ error: 'Internal error' });
-    }
-  });
+  app.use(require('../routes/entityRoutes')(esi));
 
   app.get('/api/plex-rate', (req, res) => {
     const rate = plexRate.get();
