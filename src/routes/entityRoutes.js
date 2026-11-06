@@ -1,7 +1,7 @@
 const express = require('express');
 const axios = require('../network/agent');
 const d1 = require('../network/d1Client');
-const { ENTITY_COLUMNS } = require('../core/entityMaps');
+const { ENTITY_COLUMNS } = require('../routes/entityMaps');
 
 
 const ENTITY_IDENTITY = {
