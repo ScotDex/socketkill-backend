@@ -11,6 +11,7 @@ const hashCache = require("../state/hashCache");
 const killmailCache = require("../state/killmailCache");
 const pLimit = require("p-limit");
 const killmailResolver = require("../core/killmailResolver");
+const coldGate = require("../middleware/lookupGate");
 const {
   requestMeta,
   setCacheHeader,
@@ -222,9 +223,23 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     }
   }
 
+    async function guardedKillDetail(req, res) {
+    const id = parseInt(req.params.killID);
+    if (Number.isFinite(id) && hashCache.get(id)) {
+      return handleKillDetail(req, res);
+    }
+    const release = coldGate.acquire(req, res);
+    if (!release) return;
+    try {
+      await handleKillDetail(req, res);
+    } finally {
+      release();
+    }
+  }
+
   app.use(require("../routes/ogRoutes")(esi));
-  app.get("/api/kill/:killID", handleKillDetail);
-  app.get("/api/kill/:date/:killID", handleKillDetail);
+  app.get("/api/kill/:killID", guardedKillDetail);
+  app.get("/api/kill/:date/:killID", guardedKillDetail);
 
   app.get("/api/kills/:date", async (req, res) => {
     const { date } = req.params;
