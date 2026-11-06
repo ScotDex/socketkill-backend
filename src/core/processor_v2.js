@@ -88,8 +88,8 @@ module.exports = (esi, io, statsManager) => {
 
             const { triggerShipName, triggerCharName, triggerCorpName, triggerShipId, triggerAllianceName } = await resolveTriggerAttacker(killmail, esi);
 
-            const durationMs = Number(process.hrtime.bigint() - startProcessing) / 1_000_000;
-            console.log(`[PERF] Kill ${killID} | Latency: ${durationMs.toFixed(3)}ms`);
+            // const durationMs = Number(process.hrtime.bigint() - startProcessing) / 1_000_000;
+            // console.log(`[PERF] Kill ${killID} | Latency: ${durationMs.toFixed(3)}ms`);
             io.emit("gatekeeper-stats", {
                 totalScanned: statsManager.getTotal(),
                 totalIsk: statsManager.totalIsk

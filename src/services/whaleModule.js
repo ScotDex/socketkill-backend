@@ -77,7 +77,9 @@ async function postNewsChannel(kill, names, category) {
         })
     );
     const ok = results.filter(Boolean).length;
-    console.log(`[RELAY FIRING] Kill ${kill.killmail_id} posted to ${category} (${ok}/${urlList.length} webhooks)`);
+    if (ok < urlList.length) {
+    console.error(`[RELAY FAILED] Kill ${kill.killmail_id} ${category} (${ok}/${urlList.length} webhooks)`);
+}
 }
 
 module.exports = async (killmail, names) => {
