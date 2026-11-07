@@ -1,4 +1,4 @@
-require(`dotenv`).config();
+require("dotenv").config({ quiet: true });
 const { TwitterApi } = require(`twitter-api-v2`)
 const { AtpAgent } = require('@atproto/api');
 const helpers = require('../core/helpers');
