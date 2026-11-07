@@ -347,9 +347,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
   app.use(require("../routes/adminRoutes")(getProcessor));
 
   app.use(express.static(path.join(__dirname, "..", "..", "public")));
-  app.get("/", (req, res) => {
-    res.sendFile(path.join(publicPath, "index.html"));
-  });
+  app.get("/", (req, res) => res.redirect(301, "https://socketkill.com"));
 
   io.on("connection", (socket) => {
     console.log(`Client connected to Web Socket Stream: ${socket.id}`);
