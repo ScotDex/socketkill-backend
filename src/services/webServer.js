@@ -23,6 +23,7 @@ const npcKills = require("./npcKills");
 const hashIndex = require("../state/hashIndex");
 const helpers = require("../core/helpers");
 const { WHALE_THRESHOLD } = require("../services/whaleModule");
+const WORKER_IP = "2a06:98c0:3600::103";
 function startWebServer(esi, statsManager, sharedState, getProcessor) {
   const app = express();
   app.set("trust proxy", 1);
@@ -76,13 +77,16 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     }
 
     const isBot = helpers.isBot(req);
-    const { ip, ua, ref } = requestMeta(req);
-    console.log(
-      `[KILL API] ENTRY kill=${id} bot=${isBot} ip=${ip} real=${req.get("CF-Connecting-IP") || "-"} claimed=${req.get("X-SK-Client-IP") || "-"} ua="${ua}"`,
-    );
+    const { ip, ua } = requestMeta(req);
+    
+    const real = req.get("CF-Connecting-IP") || "-";
+    const claimed = req.get("X-SK-Client-IP");
+    const via = real === WORKER_IP ? "worker" : "direct";
+    const spoof = via === "direct" && claimed ? ` SPOOF=${claimed}` : "";
+  
 
     if (isBot && !(await hashCache.isWhale(id, WHALE_THRESHOLD))) {
-      console.warn(`[KILL API] BOT GATE kill=${id} not a sitemap whale`);
+      console.warn(`[KILL API] BOT GATE kill=${id}`);
       res.set("Cache-Control", "no-store");
       return res.status(410).json({ error: "Unavailable" });
     }
@@ -123,9 +127,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
 
       if (!date) {
         if (isBot) {
-          console.warn(
-            `[KILL API] 410 PRIMARY GATE kill=${id} (no date resolved) ua="${ua}"`,
-          );
+          console.warn(`[KILL API] BOT GATE kill=${id} no date`);
           return res.status(410).json({ error: "Unavailable" });
         }
         try {
@@ -139,7 +141,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
               .status(404)
               .json({
                 Error:
-                  "Kill not found in last 30 days or cache. Check Zkill URL",
+                  "Kill not found - Check Zkill URL",
               });
           }
 
@@ -173,17 +175,10 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
         .catch(() => null);
       if (cached) {
         res.set("Cache-Control", IMMUTABLE);
-        const { ip, ua, ref } = requestMeta(req);
-        console.log(
-          `[KILL API] CACHE kill=${id} date=${date} ip=${ip} ua="${ua}" ref="${ref}"`,
-        );
+        console.log(`[KILL API] CACHE kill=${id} date=${date}`);
         return res.json(cached);
       }
     }
-
-    console.log(
-      `[KILL API] kill=${id} date=${date} ip=${ip} ua="${ua}" ref="${ref}"`,
-    );
 
     try {
       const hash =

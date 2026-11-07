@@ -56,7 +56,7 @@ router.get('/api/entity/:type/:id', async (req, res) => {
 
       const rows = new Map();
       for (const r of killRes.result?.[0]?.results ?? []) rows.set(r.kill_id, { ...r, isLoss: false });
-      for (const r of lossRes.result?.[0]?.results ?? []) rows.set(r.kill_id, { ...r, isLoss: true }); // loss wins on awox overlap
+      for (const r of lossRes.result?.[0]?.results ?? []) rows.set(r.kill_id, { ...r, isLoss: true }); 
 
       const merged = [...rows.values()]
         .sort((a, b) => b.kill_time.localeCompare(a.kill_time))

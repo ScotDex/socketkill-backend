@@ -214,16 +214,11 @@ module.exports = function statsRoutes(esi) {
       res.status(500).json({ error: "Internal error" });
     }
   });
-
   router.get("/stats/npc-kills", (req, res) => {
     const data = npcKills.get();
     if (!data)
       return res.status(503).json({ error: "NPC data initializing..." });
     res.json(data);
   });
-
-  // ← paste: /api/search, /api/plex-rate, /api/top10,
-  //   /api/filter-source, /stats/npc-kills  (app.get → router.get)
-
   return router;
 };
