@@ -12,6 +12,7 @@ const killmailCache = require("../state/killmailCache");
 const pLimit = require("p-limit");
 const killmailResolver = require("../core/killmailResolver");
 const coldGate = require("../middleware/lookupGate");
+const zkillLimit = require("../middleware/zkillLimit");
 const {
   requestMeta,
   setCacheHeader,
@@ -133,6 +134,14 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
           console.warn(`[KILL API] BOT GATE kill=${id} no date`);
           return res.status(410).json({ error: "Unavailable" });
         }
+
+        if (!zkillLimit.tryTake()) {
+          console.warn(`[KILL API] FAILOVER LIMIT kill=${id}`);
+          res.set("Cache-Control", "no-store");
+          res.set("Retry-After", "30");
+          return res.status(503).json({ error: "Archive busy — retry shortly." });
+        }
+
         try {
           const zkillRes = await axios.get(
             `https://zkillboard.com/api/killID/${id}/`,
@@ -239,7 +248,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
   app.get("/api/kill/:killID", guardedKillDetail);
   app.get("/api/kill/:date/:killID", guardedKillDetail);
 
-  app.get("/api/kills/:date", async (req, res) => {
+  async function handleKillsByDate(req, res) {
     const { date } = req.params;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return res
@@ -333,7 +342,23 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       console.error(`[LOG API] Error for ${date}: ${err.message}`);
       res.status(500).json({ error: "Internal error" });
     }
-  });
+  };
+
+    async function guardedKillsByDate(req, res) {
+    const today = new Date().toISOString().slice(0, 10);
+    if (req.params.date === today) {
+      return handleKillsByDate(req, res);
+    }
+    const release = coldGate.acquire(req, res);
+    if (!release) return;
+    try {
+      await handleKillsByDate(req, res);
+    } finally {
+      release();
+    }
+  }
+
+  app.get("/api/kills/:date", guardedKillsByDate);
 
   app.use("/ticker.html", (req, res, next) => {
     res.removeHeader("X-Frame-Options");
