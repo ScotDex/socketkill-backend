@@ -1,4 +1,4 @@
-const MAX_PER_MIN = Number(process.env.ZKILL_FAILOVER_PER_MIN ?? 10);
+const MAX_PER_MIN = Number(process.env.ZKILL_FAILOVER_PER_MIN ?? 5);
 const WINDOW_MS = 60_000;
 const stamps = [];
 
