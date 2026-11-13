@@ -13,6 +13,7 @@ const pLimit = require("p-limit");
 const killmailResolver = require("../core/killmailResolver");
 const coldGate = require("../middleware/lookupGate");
 const zkillLimit = require("../middleware/zkillLimit");
+const turnstile = require("../middleware/turnstile");
 const {
   requestMeta,
   setCacheHeader,
@@ -133,6 +134,12 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
         if (isBot) {
           console.warn(`[KILL API] BOT GATE kill=${id} no date`);
           return res.status(410).json({ error: "Unavailable" });
+        }
+
+      const tsOk = await turnstile.verify(req.get("X-SK-Turnstile"));
+        if (!tsOk) {
+          res.set("Cache-Control", "no-store");
+          return res.status(428).json({ error: "Challenge required." });
         }
 
         if (!zkillLimit.tryTake()) {
