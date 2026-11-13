@@ -85,10 +85,11 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     const claimed = req.get("X-SK-Client-IP");
     const via = real === WORKER_IP ? "worker" : "direct";
     const spoof = via === "direct" && claimed ? ` SPOOF=${claimed}` : "";
-        console.log(
-      `[KILL API] ENTRY kill=${id}${isBot ? " BOT" : ""} ip=${ip} via=${via}${spoof} ua="${ua}"`,
-    );
-  
+    if (via === "direct" || req.get("X-SK-Turnstile")) {
+      console.log(
+        `[KILL API] ENTRY kill=${id}${isBot ? " BOT" : ""} ip=${ip} via=${via}${spoof} ua="${ua}"`,
+      );
+    }
 
     if (isBot && !(await hashCache.isWhale(id, WHALE_THRESHOLD))) {
       console.warn(`[KILL API] BOT GATE kill=${id}`);
