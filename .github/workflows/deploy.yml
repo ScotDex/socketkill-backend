@@ -48,6 +48,7 @@ jobs:
             echo "KICK_CLIENT_ID=${{ secrets.KICK_CLIENT_ID }}" >> .env
             echo "KICK_CLIENT_SECRET=${{ secrets.KICK_CLIENT_SECRET }}" >> .env
             echo "YT_API_KEY=${{ secrets.YT_API_KEY }}" >> .env
+            echo "TURNSTILE_SECRET=${{ secrets.TURNSTILE_SECRET }}" >> .env
             git pull
             docker compose down
             docker compose up -d --build
