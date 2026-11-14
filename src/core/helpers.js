@@ -75,6 +75,11 @@ class utils {
       media_type: "image",
     };
   }
+
+  static todayUTC() {
+    return new Date().toISOString().slice(0, 10);
+  }
+  
   static formatDuration(ms) {
     const days = Math.floor(ms / (1000 * 60 * 60 * 24));
     const hours = Math.floor((ms / (1000 * 60 * 60)) % 24);

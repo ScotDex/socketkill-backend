@@ -1,16 +1,22 @@
 require("dotenv").config({ quiet: true });
-const express = require("express");
-const https = require("https");
-const { Server } = require("socket.io");
-const cors = require("cors");
-const path = require("path");
-const helmet = require("helmet");
+
+// Node Modules
 const fs = require("fs");
-const axios = require("../network/agent");
+const https = require("https");
+const path = require("path");
+
+// Packages
+const cors = require("cors");
+const express = require("express");
+const pLimit = require("p-limit");
+const { Server } = require("socket.io");
+const helmet = require("helmet");
+
+// Imports
 const hashCache = require("../state/hashCache");
 const killmailCache = require("../state/killmailCache");
-const pLimit = require("p-limit");
 const killmailResolver = require("../core/killmailResolver");
+const killLocator = require("../core/killLocator");
 const coldGate = require("../middleware/lookupGate");
 const zkillLimit = require("../middleware/zkillLimit");
 const turnstile = require("../middleware/turnstile");
@@ -25,170 +31,183 @@ const npcKills = require("./npcKills");
 const hashIndex = require("../state/hashIndex");
 const helpers = require("../core/helpers");
 const { WHALE_THRESHOLD } = require("../services/whaleModule");
+
+// Configuration
+const PORT = process.env.PORT;
 const WORKER_IP = "2a06:98c0:3600::103";
+const ROOT = path.join(__dirname, "..", "..");
+const SSL_DIR = path.join(ROOT, "ssl");
+const PUBLIC_DIR = path.join(ROOT, "public");
+const SOCKET_ORIGINS = [
+  "https://socketkill.com",
+  "https://pf.darkventure.space",
+  "https://ws.socketkill.com",
+  "https://incursions-dev.nesbit.solutions",
+  "https://incursions.nesbit.solutions",
+];
+const KILLS_PAGE_SIZE = 200;
+const KILLS_CONCURRENCY = 5;
+const HOUR_MS = 60 * 60 * 1000;
+
+// ---------------------------------------------------------------------------
+// Helpers (need nothing from inside startWebServer)
+// ---------------------------------------------------------------------------
+
+// Logs direct (non-Worker) hits and Turnstile retries on the kill API.
+function logKillEntry(req, id, isBot) {
+  const { ip, ua } = requestMeta(req);
+  const real = req.get("CF-Connecting-IP") || "-";
+  const claimed = req.get("X-SK-Client-IP");
+  const via = real === WORKER_IP ? "worker" : "direct";
+  const spoof = via === "direct" && claimed ? ` SPOOF=${claimed}` : "";
+  if (via === "direct" || req.get("X-SK-Turnstile")) {
+    console.log(
+      `[KILL API] ENTRY kill=${id}${isBot ? " BOT" : ""} ip=${ip} via=${via}${spoof} ua="${ua}"`,
+    );
+  }
+}
+
+// Wraps a handler so cold (expensive) requests must take a gate slot first.
+// isHot(req) returning true skips the gate.
+function withColdGate(handler, isHot) {
+  return async function (req, res) {
+    if (isHot(req)) return handler(req, res);
+    const release = coldGate.acquire(req, res);
+    if (!release) return;
+    try {
+      await handler(req, res);
+    } finally {
+      release();
+    }
+  };
+}
+
+// Hot = the kill is in today's in-memory cache.
+function isHotKill(req) {
+  const id = parseInt(req.params.killID);
+  return Number.isFinite(id) && Boolean(hashCache.get(id));
+}
+
+// Hot = the request is for today's kill log.
+function isTodayLog(req) {
+  return req.params.date === helpers.todayUTC();
+}
+
+// Joins a socket to `${room}:${id}` when the handshake query has a valid
+// positive number under `param`.
+function joinNumericRoom(socket, param, room, tag) {
+  const raw = socket.handshake.query[param];
+  if (!raw) return;
+  const id = parseInt(raw);
+  if (Number.isFinite(id) && id > 0) {
+    socket.join(`${room}:${id}`);
+    console.log(`[${tag}] ${socket.id} joined ${room}:${id}`);
+  }
+}
+
+// Runs service.refresh() now, then again every intervalMs.
+function startRefresh(tag, service, intervalMs) {
+  service
+    .refresh()
+    .catch((e) => console.error(`[${tag}] init failed:`, e.message));
+  setInterval(
+    () =>
+      service
+        .refresh()
+        .catch((e) => console.error(`[${tag}] refresh failed:`, e.message)),
+    intervalMs,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Web server
+// ---------------------------------------------------------------------------
+
 function startWebServer(esi, statsManager, sharedState, getProcessor) {
+  // Express app + global middleware
   const app = express();
   app.set("trust proxy", 1);
-  const options = {
-    key: fs.readFileSync(
-      path.join(__dirname, "..", "..", "ssl", "socketkillcom.key"),
-    ),
-    cert: fs.readFileSync(
-      path.join(__dirname, "..", "..", "ssl", "socketkillcom.pem"),
-    ),
-  };
-  const server = https.createServer(options, app);
-  app.use(
-    helmet({
-      contentSecurityPolicy: false,
-    }),
-  );
+  app.use(helmet({ contentSecurityPolicy: false }));
   app.use(cors());
 
-  const io = new Server(server, {
-    pingTimeout: 2000,
-    pingInterval: 5000,
-    cors: {
-      origin: [
-        "https://socketkill.com",
-        "https://pf.darkventure.space",
-        "https://ws.socketkill.com",
-        "https://incursions-dev.nesbit.solutions",
-        "https://incursions.nesbit.solutions",
-      ],
-      methods: ["GET", "POST"],
+  // HTTPS server
+  const server = https.createServer(
+    {
+      key: fs.readFileSync(path.join(SSL_DIR, "socketkillcom.key")),
+      cert: fs.readFileSync(path.join(SSL_DIR, "socketkillcom.pem")),
     },
+    app,
+  );
+
+  // Socket.IO
+  const io = new Server(server, {
+    pingTimeout: 3000,
+    pingInterval: 5000,
+    cors: { origin: SOCKET_ORIGINS, methods: ["GET", "POST"] },
     transports: ["websocket", "polling"],
   });
 
+  // Feature routes that need the socket server
   app.use(require("./overlayRoutes")(io));
   app.use(require("./ytRoutes")(io));
+
   app.use(express.json());
 
-  const PORT = process.env.PORT;
-  const publicPath = path.join(__dirname, "..", "..", "public");
-
+  // -------------------------------------------------------------------------
+  // GET /api/kill/:killID  and  /api/kill/:date/:killID
+  // -------------------------------------------------------------------------
   async function handleKillDetail(req, res) {
-    let date,
-      id,
-      recoveredHash = null;
-
-    id = parseInt(req.params.killID);
+    const id = parseInt(req.params.killID);
     if (!Number.isFinite(id) || id <= 0) {
       return res.status(400).json({ error: "Invalid killID." });
     }
 
     const isBot = helpers.isBot(req);
-    const { ip, ua } = requestMeta(req);
-    
-    const real = req.get("CF-Connecting-IP") || "-";
-    const claimed = req.get("X-SK-Client-IP");
-    const via = real === WORKER_IP ? "worker" : "direct";
-    const spoof = via === "direct" && claimed ? ` SPOOF=${claimed}` : "";
-    if (via === "direct" || req.get("X-SK-Turnstile")) {
-      console.log(
-        `[KILL API] ENTRY kill=${id}${isBot ? " BOT" : ""} ip=${ip} via=${via}${spoof} ua="${ua}"`,
-      );
-    }
+    logKillEntry(req, id, isBot);
 
+    // Gate: bots only get whale kills
     if (isBot && !(await hashCache.isWhale(id, WHALE_THRESHOLD))) {
       console.warn(`[KILL API] BOT GATE kill=${id}`);
       res.set("Cache-Control", "no-store");
       return res.status(410).json({ error: "Unavailable" });
     }
 
-    if (req.params.date) {
-      date = req.params.date;
-    } else {
-      const todayStr = new Date().toISOString().slice(0, 10);
-      if (hashCache.get(id)) {
-        date = todayStr;
-      }
+    // Locate: date from the URL, otherwise look locally
+    let located = req.params.date
+      ? { date: req.params.date, hash: null }
+      : await killLocator.findKillLocally(id);
 
-      if (!date) {
-        const km = await r2.get(`killmails/${id}.json`).catch(() => null);
-        if (km?.killmail_time) {
-          date = km.killmail_time.slice(0, 10);
-          console.log(`[KILL API] DIRECT date for ${id}: ${date}`);
-        }
+    // Failover: not known locally, so gate it, then ask zKill.
+    // Order matters: bot check -> Turnstile -> rate limit -> zKill.
+    if (!located) {
+      if (isBot) {
+        console.warn(`[KILL API] BOT GATE kill=${id} no date`);
+        return res.status(410).json({ error: "Unavailable" });
       }
-
-      if (!date) {
-        const idxHash = await hashIndex.getHashById(id);
-        if (idxHash) {
-          try {
-            const kmIdx = await killmailCache.get(id, idxHash);
-            if (kmIdx?.killmail_time) {
-              date = kmIdx.killmail_time.slice(0, 10);
-              recoveredHash = idxHash;
-              console.log(`[KILL API] INDEX date for ${id}: ${date}`);
-            }
-          } catch (err) {
-            console.warn(
-              `[KILL API] Index hash unresolvable for ${id}: ${err.message}`,
-            );
-          }
-        }
-      }
-
-      if (!date) {
-        if (isBot) {
-          console.warn(`[KILL API] BOT GATE kill=${id} no date`);
-          return res.status(410).json({ error: "Unavailable" });
-        }
 
       const tsOk = await turnstile.verify(req.get("X-SK-Turnstile"));
-        if (!tsOk) {
-          res.set("Cache-Control", "no-store");
-          return res.status(428).json({ error: "Challenge required." });
-        }
+      if (!tsOk) {
+        res.set("Cache-Control", "no-store");
+        return res.status(428).json({ error: "Challenge required." });
+      }
 
-        if (!zkillLimit.tryTake()) {
-          console.warn(`[KILL API] FAILOVER LIMIT kill=${id}`);
-          res.set("Cache-Control", "no-store");
-          res.set("Retry-After", "30");
-          return res.status(503).json({ error: "Archive busy — retry shortly." });
-        }
+      if (!zkillLimit.tryTake()) {
+        console.warn(`[KILL API] FAILOVER LIMIT kill=${id}`);
+        res.set("Cache-Control", "no-store");
+        res.set("Retry-After", "30");
+        return res.status(503).json({ error: "Archive busy — retry shortly." });
+      }
 
-        try {
-          const zkillRes = await axios.get(
-            `https://zkillboard.com/api/killID/${id}/`,
-            { timeout: 3000 },
-          );
-          const zkbHash = zkillRes.data?.[0]?.zkb?.hash;
-          if (!zkbHash) {
-            return res
-              .status(404)
-              .json({
-                Error:
-                  "Kill not found - Check Zkill URL",
-              });
-          }
-
-          const km2 = await killmailCache.get(id, zkbHash);
-          if (!km2?.killmail_time) {
-            return res
-              .status(404)
-              .json({ Error: "Kill hash sourced but killmail unavailable." });
-          }
-
-          date = km2.killmail_time.slice(0, 10);
-          recoveredHash = zkbHash;
-          console.log(
-            `[KILL API] Failover recovered ${id} via zkill, date=${date}`,
-          );
-        } catch (err) {
-          console.warn(`[KILL API] Failover failed for ${id}: ${err.message}`);
-          return res
-            .status(404)
-            .json({
-              Error: "Kill not found in last 30 days or cache. Check Zkill URL",
-            });
-        }
+      located = await killLocator.recoverFromZkill(id);
+      if (located.error) {
+        return res.status(404).json({ Error: located.error });
       }
     }
 
-    const isToday = date === new Date().toISOString().slice(0, 10);
+    const { date, hash: recoveredHash } = located;
+
+    // Serve a stored response for past days if we have one
+    const isToday = date === helpers.todayUTC();
     if (!isToday) {
       const cached = await r2
         .get(`kill-responses/${date}/${id}.json`)
@@ -200,27 +219,23 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       }
     }
 
+    // Resolve and send
     try {
       const hash =
         recoveredHash ||
         (await hashIndex.getHashById(id)) ||
         (await hashCache.getHashFromShard(date, id));
       if (!hash) {
-        return res
-          .status(404)
-          .json({
-            error: `Kill ${id} not found in archive - CTRL + F5 incase not cached yet - for ${date}.`,
-          });
+        return res.status(404).json({
+          error: `Kill ${id} not found in archive - CTRL + F5 incase not cached yet - for ${date}.`,
+        });
       }
 
       const killmail = await killmailCache.get(id, hash);
       if (!killmail) {
-        return res
-          .status(502)
-          .json({
-            error:
-              "Failed to fetch killmail - CTRL + F5 incase not cached yet.",
-          });
+        return res.status(502).json({
+          error: "Failed to fetch killmail - CTRL + F5 incase not cached yet.",
+        });
       }
 
       const payload = await killmailResolver.resolveKillDetail(
@@ -238,23 +253,22 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     }
   }
 
-    async function guardedKillDetail(req, res) {
-    const id = parseInt(req.params.killID);
-    if (Number.isFinite(id) && hashCache.get(id)) {
-      return handleKillDetail(req, res);
-    }
-    const release = coldGate.acquire(req, res);
-    if (!release) return;
+  // -------------------------------------------------------------------------
+  // GET /api/kills/:date
+  // -------------------------------------------------------------------------
+
+  // Turns one [killID, value] shard entry into a kill summary, or null.
+  async function summariseKill([killID, value]) {
     try {
-      await handleKillDetail(req, res);
-    } finally {
-      release();
+      const hash = typeof value === "object" ? value.hash : value;
+      const km = await killmailCache.get(parseInt(killID), hash);
+      if (!km) return null;
+      return await killmailResolver.resolveKillSummary(km, killID, esi);
+    } catch (err) {
+      console.warn(`[LOG API] Failed kill ${killID}: ${err.message}`);
+      return null;
     }
   }
-
-  app.use(require("../routes/ogRoutes")(esi));
-  app.get("/api/kill/:killID", guardedKillDetail);
-  app.get("/api/kill/:date/:killID", guardedKillDetail);
 
   async function handleKillsByDate(req, res) {
     const { date } = req.params;
@@ -271,8 +285,7 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
         .json({ error: "Archive view unavailable to crawlers." });
     }
 
-    const today = new Date().toISOString().slice(0, 10);
-    const isToday = date === today;
+    const isToday = date === helpers.todayUTC();
     console.log(`[LOG API] Request for ${date}${isToday ? " (today)" : ""}`);
 
     try {
@@ -297,7 +310,6 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       }
 
       const shipFilter = req.query.ship ? parseInt(req.query.ship) : null;
-
       if (shipFilter) {
         entries = entries.filter(([, value]) => {
           const shipID = typeof value === "object" ? value.shipID : null;
@@ -306,43 +318,26 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       }
 
       const page = Math.max(1, parseInt(req.query.page) || 1);
-      const PAGE_SIZE = 200;
-      const start = (page - 1) * PAGE_SIZE;
-      const end = start + PAGE_SIZE;
-
+      const start = (page - 1) * KILLS_PAGE_SIZE;
+      const end = start + KILLS_PAGE_SIZE;
       const reversed = [...entries].reverse();
-      const capped = reversed.slice(start, end);
-      const hasMore = reversed.length > end;
-      const hasPrev = page > 1;
-      const limit = pLimit(5);
+      const pageEntries = reversed.slice(start, end);
 
+      const limit = pLimit(KILLS_CONCURRENCY);
       const kills = await Promise.all(
-        capped.map(([killID, value]) =>
-          limit(async () => {
-            try {
-              const hash = typeof value === "object" ? value.hash : value;
-              const km = await killmailCache.get(parseInt(killID), hash);
-              if (!km) return null;
-              return await killmailResolver.resolveKillSummary(km, killID, esi);
-            } catch (err) {
-              console.warn(`[LOG API] Failed kill ${killID}: ${err.message}`);
-              return null;
-            }
-          }),
-        ),
+        pageEntries.map((entry) => limit(() => summariseKill(entry))),
       );
-
       const validKills = kills.filter(Boolean);
 
       setCacheHeader(res, { isToday, todayMaxAge: 30 });
       res.json({
         date,
         page,
-        pageSize: PAGE_SIZE,
+        pageSize: KILLS_PAGE_SIZE,
         count: validKills.length,
         total: entries.length,
-        hasMore,
-        hasPrev,
+        hasMore: reversed.length > end,
+        hasPrev: page > 1,
         shipFilter,
         kills: validKills,
       });
@@ -350,24 +345,19 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
       console.error(`[LOG API] Error for ${date}: ${err.message}`);
       res.status(500).json({ error: "Internal error" });
     }
-  };
-
-    async function guardedKillsByDate(req, res) {
-    const today = new Date().toISOString().slice(0, 10);
-    if (req.params.date === today) {
-      return handleKillsByDate(req, res);
-    }
-    const release = coldGate.acquire(req, res);
-    if (!release) return;
-    try {
-      await handleKillsByDate(req, res);
-    } finally {
-      release();
-    }
   }
 
-  app.get("/api/kills/:date", guardedKillsByDate);
+  // -------------------------------------------------------------------------
+  // Route mounts (order is the same as the original file)
+  // -------------------------------------------------------------------------
 
+  // Kill routes
+  app.use(require("../routes/ogRoutes")(esi));
+  app.get("/api/kill/:killID", withColdGate(handleKillDetail, isHotKill));
+  app.get("/api/kill/:date/:killID", withColdGate(handleKillDetail, isHotKill));
+  app.get("/api/kills/:date", withColdGate(handleKillsByDate, isTodayLog));
+
+  // Ticker page may be framed by the main site
   app.use("/ticker.html", (req, res, next) => {
     res.removeHeader("X-Frame-Options");
     res.setHeader(
@@ -377,39 +367,31 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     next();
   });
 
+  // Other route modules
   app.use(require("../routes/sitemapRoutes")());
   app.use(require("../routes/entityRoutes")(esi));
   app.use(require("../routes/statsRoutes")(esi));
   app.use(require("../routes/adminRoutes")(getProcessor));
 
-  app.use(express.static(path.join(__dirname, "..", "..", "public")));
+  // Static files and root redirect
+  app.use(express.static(PUBLIC_DIR));
   app.get("/", (req, res) => res.redirect(301, "https://socketkill.com"));
 
+  // -------------------------------------------------------------------------
+  // Socket rooms
+  // -------------------------------------------------------------------------
   io.on("connection", (socket) => {
     console.log(`Client connected to Web Socket Stream: ${socket.id}`);
 
-    const charParam = socket.handshake.query.character;
-    if (charParam) {
-      const charId = parseInt(charParam);
-      if (Number.isFinite(charId) && charId > 0) {
-        socket.join(`char:${charId}`);
-        console.log(`[TICKER] ${socket.id} joined char:${charId}`);
-      }
-    }
-    const kickParam = socket.handshake.query.kick;
-    if (kickParam) {
-      const kickId = parseInt(kickParam);
-      if (Number.isFinite(kickId) && kickId > 0) {
-        socket.join(`kick:${kickId}`);
-        console.log(`[KICK] ${socket.id} joined kick:${kickId}`);
-      }
-    }
+    joinNumericRoom(socket, "character", "char", "TICKER");
+    joinNumericRoom(socket, "kick", "kick", "KICK");
 
     const ytParam = socket.handshake.query.yt;
     if (typeof ytParam === "string" && /^UC[A-Za-z0-9_-]{22}$/.test(ytParam)) {
       socket.join(`yt:${ytParam}`);
       console.log(`[YT] ${socket.id} joined yt:${ytParam}`);
     }
+
     socket.on("disconnect", (reason) => {
       console.log(
         `[NETWORK] Client disconnected: ${socket.id} | Reason: ${reason} | Active: ${io.engine.clientsCount}`,
@@ -417,27 +399,15 @@ function startWebServer(esi, statsManager, sharedState, getProcessor) {
     });
   });
 
-  plexRate
-    .refresh()
-    .catch((e) => console.error("[PLEX] init failed:", e.message));
-  setInterval(
-    () =>
-      plexRate
-        .refresh()
-        .catch((e) => console.error("[PLEX] refresh failed:", e.message)),
-    12 * 60 * 60 * 1000,
-  );
+  // -------------------------------------------------------------------------
+  // Background refreshes
+  // -------------------------------------------------------------------------
+  startRefresh("PLEX", plexRate, 12 * HOUR_MS);
+  startRefresh("NPC", npcKills, HOUR_MS);
 
-  npcKills
-    .refresh()
-    .catch((e) => console.error("[NPC] init failed:", e.message));
-  setInterval(
-    () =>
-      npcKills
-        .refresh()
-        .catch((e) => console.error("[NPC] refresh failed:", e.message)),
-    60 * 60 * 1000,
-  );
+  // -------------------------------------------------------------------------
+  // Listen
+  // -------------------------------------------------------------------------
   server
     .listen(PORT, () => {
       console.log(`Web Module Loaded on ${PORT}`);
